@@ -40,7 +40,8 @@ body <- dashboardBody(
           tags$hr(),
           uiOutput('items_ui'),
           actionButton('run', lang$run, icon = icon('play')),
-          actionButton('reset', lang$reset, icon = icon('redo-alt'))
+          actionButton('reset', lang$reset, icon = icon('redo-alt')),
+          uiOutput('download_ui')
         ),
         tabBox(
           id = 'io',

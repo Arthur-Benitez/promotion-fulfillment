@@ -1,6 +1,11 @@
 
 
-
+/* Obligar a que los páneles tengan siempre una altura razonable */
 .tab-pane {
   min-height: 400px;
+}
+
+/* Para que el botón de descargar esté inline (meterlo en renderUI le pone un div extra con display: block) */
+#download_ui {
+  display: inline-block;
 }

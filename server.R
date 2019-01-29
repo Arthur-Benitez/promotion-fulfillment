@@ -117,5 +117,20 @@ shinyServer(function(input, output, session){
     r$query_result <- NULL
     r$final_result <- NULL
   })
+  
+  ## Download
+  output$download_ui <- renderUI({
+    req(r$final_result)
+    downloadButton('download', label = lang$download, icon = icon('download'))
+  })
+  output$download <- downloadHandler(
+    filename = function() {
+      sprintf('estrategias_%s.csv', Sys.Date())
+    },
+    content = function(file) {
+      write_excel_csv(r$final_result, path = file, na = '')
+    },
+    contentType = 'text/csv'
+  )
 })
 
