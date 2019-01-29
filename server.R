@@ -30,7 +30,12 @@ shinyServer(function(input, output, session){
     }
   })
   
-  ## 
+  ## Validar input
+  items <- reactive({
+    parse_input(input$items$datapath)
+  })
+  
+  ## Correr análisis
   rr <- reactiveVal(0)
   observeEvent(input$run, {
     updateTabItems(session, 'io', selected = 'output_table')
@@ -38,36 +43,36 @@ shinyServer(function(input, output, session){
     rr(rr() + 1)
   })
   observeEvent(rr(), {
-    browser()
     tb <- tryCatch({
       sqlQuery(r$ch, 'select top 10 * from mx_cf_vm.calendar_day')
     }, error = function(e){
       NULL
     })
-    if (is.null(tb)) {
-      show(id = 'error-query', anim = TRUE, animType = 'fade')
-      delay(4000, hide(id = 'error-query', anim = TRUE, animType = 'fade'))
-    } else {
-      tb_fin <- tryCatch({
+    is_valid <- validate_input(items(), gl$cols)
+    tb_fin <- tryCatch({
+      if (is_valid) {
         perform_computations(tb)
-      }, error = function(e){
-        show(id = 'error-comp', anim = TRUE, animType = 'fade')
-        delay(4000, hide(id = 'error-comp', anim = TRUE, animType = 'fade'))
+      } else {
         NULL
-      })
-      if (!is.null(tb_fin)) {
-        output$output_table <- renderDT({
-          datatable(
-            tb,
-            filter = 'top',
-            options = list(
-              scrollX = TRUE,
-              scrollY = '400px'
-            )
-          )
-        })
       }
-    }
+    }, error = function(e){
+      NULL
+    })
+    output$output_table <- renderDT({
+      validate(
+        need(!is.null(tb), 'El query falló :('),
+        need(is_valid, 'El input no está en el formato correcto :('),
+        need(!is.null(tb_fin), 'Los cálculos fallaron :(')
+      )
+      datatable(
+        tb,
+        filter = 'top',
+        options = list(
+          scrollX = TRUE,
+          scrollY = '400px'
+        )
+      )
+    })
   })
   
 })

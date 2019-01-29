@@ -42,32 +42,21 @@ body <- dashboardBody(
           actionButton('run', 'Correr', icon = icon('play')),
           actionButton('reset', 'Reset', icon = icon('redo-alt'))
         ),
-        box(
+        tabBox(
+          id = 'io',
+          selected = NULL,
           width = 9,
-          tabBox(
-            id = 'io',
-            selected = NULL,
-            tabPanel(
-              value = 'input_table',
-              title = 'Entradas',
-              DTOutput('input_table')
-            ),
-            tabPanel(
-              value = 'output_table',
-              title = 'Resultados',
-              DTOutput('output_table') %>% withSpinner(type = 8),
-              hidden(
-                tags$div(
-                  id = 'error-query',
-                  h1('La consulta falló :(', class = 'error-msg')
-                )
-              ),
-              hidden(
-                tags$div(
-                  id = 'error-comp',
-                  h1('Los cálculos fallaron :(', class = 'error-msg')
-                )
-              )
+          tabPanel(
+            value = 'input_table',
+            title = 'Entradas',
+            DTOutput('input_table')
+          ),
+          tabPanel(
+            value = 'output_table',
+            title = 'Resultados',
+            tags$div(
+              DTOutput('output_table') %>% withSpinner(type = 8)
+              # h2('Hello'),
             )
           )
         )

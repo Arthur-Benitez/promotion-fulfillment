@@ -1,4 +1,6 @@
 
-.error-msg {
-  color: red;
+
+
+.tab-pane {
+  min-height: 400px;
 }
