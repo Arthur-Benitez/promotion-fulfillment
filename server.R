@@ -6,8 +6,17 @@ ch <-
 shinyServer(function(input, output, session){
   
   r <- reactiveValues(
-    ch = NULL
+    ch = NULL,
+    query_result = NULL,
+    final_result = NULL
   )
+  
+  ## UI
+  output$items_ui <- renderUI({
+    input$reset
+    fileInput('items', 'Items')
+  })
+  
   ## Login a Teradata
   observeEvent(input$auth, {
     is_open <- tryCatch({
@@ -30,42 +39,56 @@ shinyServer(function(input, output, session){
     }
   })
   
-  ## Validar input
+  ## Leer input
   items <- reactive({
+    # req(input$items)
+    # input$reset
     parse_input(input$items$datapath)
   })
+  items_is_valid <- reactive({
+    # req(items())
+    validate_input(items(), gl$cols)
+  })
+  output$input_table <- renderDT({
+    validate(
+      need(is.data.frame(items()), 'No pudimos leer el archivo de entrada :('),
+      need(nrow(items()) > 0, 'No hay items para procesar')
+    )
+    items()
+  })
   
-  ## Correr análisis
+  ## Seleccionar pestaña de output para que se vea el loader
   rr <- reactiveVal(0)
   observeEvent(input$run, {
     updateTabItems(session, 'io', selected = 'output_table')
     output$output_table <- renderDT(NULL)
     rr(rr() + 1)
   })
+  
+  ## Correr query y análisis
   observeEvent(rr(), {
-    tb <- tryCatch({
-      sqlQuery(r$ch, 'select top 10 * from mx_cf_vm.calendar_day')
-    }, error = function(e){
-      NULL
-    })
-    is_valid <- validate_input(items(), gl$cols)
-    tb_fin <- tryCatch({
-      if (is_valid) {
-        perform_computations(tb)
-      } else {
+    # browser()
+    if (items_is_valid()) {
+      r$query_result <- tryCatch({
+        sqlQuery(r$ch, 'select top 10 * from mx_cf_vm.calendar_day') %>% 
+          withProgress(min = 0, max = 1, value = 1)
+      }, error = function(e){
         NULL
-      }
-    }, error = function(e){
-      NULL
-    })
+      })
+      r$final_result <- tryCatch({
+        perform_computations(r$query_result)
+      }, error = function(e){
+        NULL
+      })
+    }
     output$output_table <- renderDT({
       validate(
-        need(!is.null(tb), 'El query falló :('),
-        need(is_valid, 'El input no está en el formato correcto :('),
-        need(!is.null(tb_fin), 'Los cálculos fallaron :(')
+        need(!is.null(r$query_result), 'El query falló :('),
+        need(items_is_valid(), 'El input no está en el formato correcto :('),
+        need(!is.null(r$final_result), 'Los cálculos fallaron :(')
       )
       datatable(
-        tb,
+        r$final_result,
         filter = 'top',
         options = list(
           scrollX = TRUE,
@@ -73,7 +96,6 @@ shinyServer(function(input, output, session){
         )
       )
     })
-  })
-  
+  }, ignoreInit = TRUE)
 })
 

@@ -38,7 +38,7 @@ body <- dashboardBody(
           passwordInput('password', 'Password'),
           actionButton('auth', 'Login', icon = icon('sign-in-alt')),
           tags$hr(),
-          fileInput('items', 'Items'),
+          uiOutput('items_ui'),
           actionButton('run', 'Correr', icon = icon('play')),
           actionButton('reset', 'Reset', icon = icon('redo-alt'))
         ),
@@ -55,7 +55,7 @@ body <- dashboardBody(
             value = 'output_table',
             title = 'Resultados',
             tags$div(
-              DTOutput('output_table') %>% withSpinner(type = 8)
+              DTOutput('output_table') #%>% withSpinner(type = 8)
               # h2('Hello'),
             )
           )
