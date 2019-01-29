@@ -27,6 +27,7 @@ parse_input <- function(input_file) {
 ## Validar inputs
 validate_input <- function(data, cols) {
   if (
+    !is.data.frame(data) ||
     nrow(data) == 0 ||
     !setequal(names(data), names(gl$cols)) ||
     any(map_chr(data[names(cols)], class) != cols)
@@ -37,8 +38,15 @@ validate_input <- function(data, cols) {
   }
 }
 
+## Correr query
+run_query <- function(ch, input_data) {
+  Sys.sleep(1)
+  sqlQuery(ch, 'select top 10 * from mx_cf_vm.calendar_day')
+}
+
 ## Lógica en R
 perform_computations <- function(data) {
+  Sys.sleep(1)
   data
 }
 

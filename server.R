@@ -43,6 +43,8 @@ shinyServer(function(input, output, session){
       odbcClose(r$ch)
       r$is_open <- FALSE
       updateActionButton(session, 'auth', label = lang$login, icon = icon('sign-in-alt'))
+      updateTextInput(session, 'user', value = '')
+      updateTextInput(session, 'password', value = '')
       flog.info('LOGGED OUT')
     }
   }, ignoreInit = TRUE)
@@ -62,7 +64,6 @@ shinyServer(function(input, output, session){
   output$input_table <- renderDT({
     validate(
       need(!is.null(r$items_file), lang$need_items_file) %then%
-        need(is.data.frame(items()), lang$need_data_frame) %then%
         need(items_is_valid(), lang$need_valid_input)
     )
     items()
@@ -81,18 +82,12 @@ shinyServer(function(input, output, session){
     # browser()
     query_was_tried <- FALSE
     if (items_is_valid()) {
-      r$query_result <- tryCatch({
+      withProgress(min = 0, max = 1, value = 0, message = lang$running_query, expr = {
+        incProgress(0.33, message = lang$running_query)
         query_was_tried <- TRUE
-        sqlQuery(r$ch, 'select top 10 * from mx_cf_vm.calendar_day') %>% 
-          withProgress(min = 0, max = 1, value = 1)
-      }, error = function(e){
-        NULL
-      })
-      r$final_result <- tryCatch({
-        perform_computations(r$query_result) %>% 
-          withProgress(min = 0, max = 1, value = 1)
-      }, error = function(e){
-        NULL
+        r$query_result <- purrr::safely(run_query)(r$ch, items())$result
+        incProgress(0.33, message = lang$running_computations)
+        r$final_result <- purrr::safely(perform_computations)(r$query_result)$result
       })
     }
     output$output_table <- renderDT({
