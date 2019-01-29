@@ -3,14 +3,14 @@ require(shiny)
 require(shinydashboard)
 
 header <- dashboardHeader(
-  title = 'Promo Fulfillment'
+  title = lang$app_name
 )
 
 sidebar <- dashboardSidebar(
   sidebarMenu(
     menuItem(
       tabName = 'promo',
-      text = 'Promo',
+      text = lang$promo,
       icon = icon('calculator')
     ),
     column(
@@ -34,13 +34,13 @@ body <- dashboardBody(
       fluidRow(
         box(
           width = 3,
-          textInput('user', 'Usuario'),
-          passwordInput('password', 'Password'),
-          actionButton('auth', 'Login', icon = icon('sign-in-alt')),
+          textInput('user', lang$user),
+          passwordInput('password', lang$password),
+          actionButton('auth', lang$login, icon = icon('sign-in-alt')),
           tags$hr(),
           uiOutput('items_ui'),
-          actionButton('run', 'Correr', icon = icon('play')),
-          actionButton('reset', 'Reset', icon = icon('redo-alt'))
+          actionButton('run', lang$run, icon = icon('play')),
+          actionButton('reset', lang$reset, icon = icon('redo-alt'))
         ),
         tabBox(
           id = 'io',
@@ -48,12 +48,12 @@ body <- dashboardBody(
           width = 9,
           tabPanel(
             value = 'input_table',
-            title = 'Entradas',
+            title = lang$tab_input,
             DTOutput('input_table')
           ),
           tabPanel(
             value = 'output_table',
-            title = 'Resultados',
+            title = lang$tab_output,
             tags$div(
               DTOutput('output_table') #%>% withSpinner(type = 8)
               # h2('Hello'),

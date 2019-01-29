@@ -17,7 +17,7 @@ shinyServer(function(input, output, session){
   ## UI
   output$items_ui <- renderUI({
     input$reset
-    fileInput('items', 'Items')
+    fileInput('items', label = lang$items, buttonLabel = lang$browse, placeholder = lang$browse_empty)
   })
   
   ## Login a Teradata
@@ -34,7 +34,7 @@ shinyServer(function(input, output, session){
         r$ch <- odbcDriverConnect(sprintf("Driver={Teradata};DBCName=WMG;UID=f0g00bq;AUTHENTICATION=ldap;AUTHENTICATIONPARAMETER=%s", paste0(input$user, '@@', input$password)))
         odbcGetInfo(r$ch) ## Truena si no se abrió la conexión
         r$is_open <- TRUE
-        updateActionButton(session, 'auth', label = 'Logout', icon = icon('sign-out-alt'))
+        updateActionButton(session, 'auth', label = lang$logout, icon = icon('sign-out-alt'))
         flog.info('LOGGED IN')
       }, error = function(e){
         flog.warn('ERROR LOGGING IN')
@@ -42,7 +42,7 @@ shinyServer(function(input, output, session){
     } else {
       odbcClose(r$ch)
       r$is_open <- FALSE
-      updateActionButton(session, 'auth', label = 'Login', icon = icon('sign-in-alt'))
+      updateActionButton(session, 'auth', label = lang$login, icon = icon('sign-in-alt'))
       flog.info('LOGGED OUT')
     }
   }, ignoreInit = TRUE)
@@ -61,9 +61,9 @@ shinyServer(function(input, output, session){
   })
   output$input_table <- renderDT({
     validate(
-      need(!is.null(r$items_file), 'Cargar un archivo de items para comenzar.') %then%
-        need(is.data.frame(items()), 'No pudimos leer el archivo de entrada.\nRecuerda que debe ser un Excel (xlsx) con una sola hoja y las siguientes columnas: dept_nbr, formato, old_nbr, fecha_ini, fecha_fin.') %then%
-        need(items_is_valid(), 'El archivo de entrada no está en el formato correcto.\nRecuerda que debe ser un Excel (xlsx) con una sola hoja y las siguientes columnas: dept_nbr, formato, old_nbr, fecha_ini, fecha_fin.')
+      need(!is.null(r$items_file), lang$need_items_file) %then%
+        need(is.data.frame(items()), lang$need_data_frame) %then%
+        need(items_is_valid(), lang$need_valid_input)
     )
     items()
   })
@@ -97,12 +97,12 @@ shinyServer(function(input, output, session){
     }
     output$output_table <- renderDT({
       validate(
-        need(r$is_open, 'Iniciar sesión para continuar.') %then%
-          need(!is.null(r$items_file), 'Cargar un archivo de items para comenzar.') %then%
-          need(items_is_valid(), 'El archivo de items no está en el formato correcto.') %then%
-          need(query_was_tried, 'Click en *Correr* para empezar.') %then%
-          need(!is.null(r$query_result), 'El query falló :(') %then%
-          need(!is.null(r$final_result), 'Los cálculos fallaron :(')
+        need(r$is_open, lang$need_auth) %then%
+          need(!is.null(r$items_file), lang$need_items_file) %then%
+          need(items_is_valid(), lang$need_valid_input) %then%
+          need(query_was_tried, lang$need_run) %then%
+          need(!is.null(r$query_result), lang$need_query_result) %then%
+          need(!is.null(r$final_result), lang$need_final_result)
       )
       datatable(
         r$final_result,
