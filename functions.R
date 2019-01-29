@@ -41,3 +41,6 @@ validate_input <- function(data, cols) {
 perform_computations <- function(data) {
   data
 }
+
+## Función para encadenar condiciones dentro de validate()
+`%then%` <- shiny:::`%OR%`

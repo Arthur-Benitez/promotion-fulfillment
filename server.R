@@ -8,7 +8,8 @@ shinyServer(function(input, output, session){
   r <- reactiveValues(
     ch = NULL,
     query_result = NULL,
-    final_result = NULL
+    final_result = NULL,
+    items_file = NULL
   )
   
   ## UI
@@ -40,10 +41,16 @@ shinyServer(function(input, output, session){
   })
   
   ## Leer input
+  observeEvent(input$items, {
+    r$items_file <- input$items$datapath
+  })
+  observeEvent(input$reset, {
+    ## Esto es necesario porque al resetear la UI de input$items, no cambia el datapath
+    r$items_file <- NULL
+  })
   items <- reactive({
     # req(input$items)
-    # input$reset
-    parse_input(input$items$datapath)
+    parse_input(r$items_file)
   })
   items_is_valid <- reactive({
     # req(items())
@@ -51,8 +58,9 @@ shinyServer(function(input, output, session){
   })
   output$input_table <- renderDT({
     validate(
-      need(is.data.frame(items()), 'No pudimos leer el archivo de entrada :('),
-      need(nrow(items()) > 0, 'No hay items para procesar')
+      need(!is.null(r$items_file), 'Cargar un archivo de items para comenzar.') %then%
+      need(is.data.frame(items()), 'No pudimos leer el archivo de entrada.\nRecuerda que debe ser un Excel (xlsx) con una sola hoja y las siguientes columnas: dept_nbr, formato, old_nbr, fecha_ini, fecha_fin.') %then%
+      need(items_is_valid(), 'El archivo de entrada no está en el formato correcto.\nRecuerda que debe ser un Excel (xlsx) con una sola hoja y las siguientes columnas: dept_nbr, formato, old_nbr, fecha_ini, fecha_fin.')
     )
     items()
   })
@@ -83,8 +91,8 @@ shinyServer(function(input, output, session){
     }
     output$output_table <- renderDT({
       validate(
-        need(!is.null(r$query_result), 'El query falló :('),
-        need(items_is_valid(), 'El input no está en el formato correcto :('),
+        need(items_is_valid(), 'El input no está en el formato correcto.') %then%
+        need(!is.null(r$query_result), 'El query falló :(') %then%
         need(!is.null(r$final_result), 'Los cálculos fallaron :(')
       )
       datatable(
