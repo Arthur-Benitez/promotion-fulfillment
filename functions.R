@@ -121,7 +121,10 @@ run_query <- function(ch, input_data) {
     map('result') %>% 
     discard(is.null)
   if (length(res) > 0) {
-    res <- bind_rows(res)
+    res <- bind_rows(res) %>% 
+      replace_na(list(
+        avg_dly_pos_or_fcst = 0
+      ))
   } else {
     res <- NULL
   }
@@ -130,9 +133,38 @@ run_query <- function(ch, input_data) {
 
 ## Lógica en R
 perform_computations <- function(data) {
-  Sys.sleep(1)
-  data
+  data %>% 
+    group_by(feature_nbr, store_nbr) %>% 
+    mutate(
+      feature_perc_pos_or_fcst = avg_dly_pos_or_fcst / sum(avg_dly_pos_or_fcst),
+      feature_qty_req = feature_perc_pos_or_fcst * max_feature_qty,
+      feature_ddv_req = feature_qty_req / avg_dly_pos_or_fcst,
+      feature_ddv_fin = pmin(feature_ddv_req, max_ddv),
+      feature_ddv_bound_active = ifelse(feature_ddv_req > max_ddv, 1, 0),
+      feature_qty_fin = feature_ddv_fin * avg_dly_pos_or_fcst
+    ) %>% 
+    ungroup() %>% 
+    select(
+      feature_nbr,
+      feature_name,
+      store_nbr,
+      dept_nbr,
+      negocio,
+      old_nbr,
+      primary_desc,
+      max_feature_qty,
+      max_ddv,
+      semana_ini,
+      semana_fin,
+      fcst_or_sales,
+      avg_dly_pos_or_fcst,
+      starts_with('feature_'),
+      everything()
+    ) %>% 
+    arrange(feature_nbr, store_nbr)
 }
+  
+
 
 ## Función para encadenar condiciones dentro de validate()
 `%then%` <- shiny:::`%OR%`

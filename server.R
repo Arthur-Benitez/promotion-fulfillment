@@ -101,7 +101,7 @@ shinyServer(function(input, output, session){
       )
       datatable(
         r$final_result,
-        filter = 'none',
+        filter = 'top',
         options = list(
           scrollX = TRUE,
           scrollY = '400px'
