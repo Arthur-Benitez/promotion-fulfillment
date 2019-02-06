@@ -58,6 +58,8 @@ validate_input <- function(data, gl) {
       pull(n_dups) %>% 
       sum() %>% 
       equals(0)
+    ## Checar que el tipo sea F ó S
+    cond[[4]] <- all(toupper(data$fcst_or_sales) %in% c('F', 'S'))
     all(unlist(cond))
   }
 }
@@ -85,18 +87,23 @@ run_query_once <- function(ch, input_data) {
   wk_inicio <- unique(input_data$semana_ini)
   wk_final <- unique(input_data$semana_fin)
   keys <- input_data$display_key
-  type <- unique(input_data$fcst_or_sales)
-  if (toupper(type) == 'F') {
+  type <- toupper(unique(input_data$fcst_or_sales))
+  if (type == 'F') {
     query <- read_lines('sql/exhibiciones-fcst.sql')
-  } else {
+    value <- sym('avg_dly_fcst')
+  } else if (type == 'S') {
     query <- read_lines('sql/exhibiciones-pos.sql')
+    value <- sym('avg_dly_pos')
+  } else { ## No debería pasar si los datos están validados
+    return(NULL)
   }
   query <- prepare_query(query, keys, wk_inicio, wk_final)
   tryCatch({
     res <- sqlQuery(ch, query) %>% 
       as_tibble() %>% 
       set_names(tolower(names(.))) %>% 
-      mutate_if(is.factor, as.character)
+      mutate_if(is.factor, as.character) %>% 
+      rename(avg_dly_pos_or_fcst = !!value)
     input_data %>% 
       left_join(res)
   }, error = function(e){
