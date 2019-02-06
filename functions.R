@@ -1,6 +1,6 @@
 
 ## Leer entrada
-parse_input <- function(input_file, cols) {
+parse_input <- function(input_file, gl) {
   tryCatch({
     x <- read_excel(
       path = input_file,
@@ -11,21 +11,26 @@ parse_input <- function(input_file, cols) {
     ) %>% 
       set_names(tolower(names(.)))
     for (v in names(x)) {
-      x[[v]] <- as(x[[v]], cols[[v]])
+      x[[v]] <- as(x[[v]], gl$cols[[v]])
     }
     if (anyNA(x)) {
       flog.info('MISSING VALUES PRESENT. INPUT PARSING ABORTED.')
-      NULL
-    } else {
-      x
+      return(NULL)
     }
+    if (!validate_input(x, gl)) {
+      flog.info('INVALID INPUT. INPUT PARSING ABORTED.')
+      return(NULL)
+    }
+    prepare_input(x)
   }, error = function(e){
     NULL
   })
 }
 
+
 ## Validar inputs
 validate_input <- function(data, gl) {
+  # browser()
   if (
     ## Condiciones básicas
     !is.data.frame(data) ||
@@ -35,18 +40,35 @@ validate_input <- function(data, gl) {
   ) {
     FALSE
   } else {
+    cond <- list()
     ## Checar las columnas que deben ser constantes por feature
-    cond1 <- data %>% 
+    cond[[1]] <- data %>% 
       group_by(feature_nbr) %>% 
       summarise_at(gl$feature_const_cols, funs(length(unique(.)))) %>% 
       ungroup() %>% 
       select_at(gl$feature_const_cols) %>% 
       equals(1) %>% 
       all()
-    ## Checar los formatos
-    cond2 <- all(data$formato %in% gl$formatos)
-    cond1 && cond2
+    ## Checar los negocios
+    cond[[2]] <- all(data$negocio %in% gl$negocios)
+    ## No se deben repetir artículos por feature
+    cond[[3]] <- data %>% 
+      group_by(feature_nbr) %>% 
+      summarise(n_dups = sum(duplicated(old_nbr))) %>% 
+      pull(n_dups) %>% 
+      sum() %>% 
+      equals(0)
+    all(unlist(cond))
   }
+}
+
+## Preparar inputs
+prepare_input <- function(data) {
+  ## Requiere que data haya pasado validate_input
+  data %>% 
+    mutate(
+      display_key = paste(dept_nbr, old_nbr, negocio, sep = '.')
+    )
 }
 
 ## Correr query

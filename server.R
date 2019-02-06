@@ -55,16 +55,16 @@ shinyServer(function(input, output, session){
   })
   items <- reactive({
     # req(input$items)
-    parse_input(r$items_file)
+    parse_input(r$items_file, gl)
   })
   items_is_valid <- reactive({
     # req(items())
-    validate_input(items(), gl$cols)
+    validate_input(items(), gl)
   })
   output$input_table <- renderDT({
     validate(
       need(!is.null(r$items_file), lang$need_items_file) %then%
-        need(items_is_valid(), lang$need_valid_input)
+        need(!is.null(items()), lang$need_valid_input)
     )
     items()
   })
@@ -81,7 +81,7 @@ shinyServer(function(input, output, session){
   observeEvent(rr(), {
     # browser()
     query_was_tried <- FALSE
-    if (items_is_valid()) {
+    if (!is.null(items())) {
       withProgress(min = 0, max = 1, value = 0, message = lang$running_query, expr = {
         incProgress(0.33, message = lang$running_query)
         query_was_tried <- TRUE
@@ -94,14 +94,14 @@ shinyServer(function(input, output, session){
       validate(
         need(r$is_open, lang$need_auth) %then%
           need(!is.null(r$items_file), lang$need_items_file) %then%
-          need(items_is_valid(), lang$need_valid_input) %then%
+          need(!is.null(items()), lang$need_valid_input) %then%
           need(query_was_tried, lang$need_run) %then%
           need(!is.null(r$query_result), lang$need_query_result) %then%
           need(!is.null(r$final_result), lang$need_final_result)
       )
       datatable(
         r$final_result,
-        filter = 'top',
+        filter = 'none',
         options = list(
           scrollX = TRUE,
           scrollY = '400px'

@@ -26,7 +26,7 @@ gl <- list(
     'feature_nbr' = 'numeric',
     'feature_name' = 'character',
     'dept_nbr' = 'numeric',
-    'formato' = 'character',
+    'negocio' = 'character',
     'old_nbr' = 'numeric',
     'max_feature_qty' = 'numeric',
     'max_ddv' = 'numeric',
@@ -37,13 +37,13 @@ gl <- list(
   feature_const_cols = c(
     'feature_name',
     'dept_nbr',
-    'formato',
+    'negocio',
     'max_feature_qty',
     'semana_ini',
     'semana_fin',
     'fcst_or_sales'
   ),
-  formatos = c(
+  negocios = c(
     'SUPERCENTER',
     'BODEGA',
     'SUPERAMA',
