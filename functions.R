@@ -72,10 +72,53 @@ prepare_input <- function(data) {
 }
 
 ## Correr query
+prepare_query <- function(query, keys, wk_inicio, wk_final) {
+  # browser()
+  query %>% 
+    str_replace_all('\\?KEY', paste0("'", paste(keys, collapse = "','"), "'")) %>% 
+    str_replace_all('\\?WK_INICIO', as.character(wk_inicio)) %>% 
+    str_replace_all('\\?WK_FINAL', as.character(wk_final)) %>% 
+    paste(collapse = '\n')
+}
+run_query_once <- function(ch, input_data) {
+  # browser()
+  wk_inicio <- unique(input_data$semana_ini)
+  wk_final <- unique(input_data$semana_fin)
+  keys <- input_data$display_key
+  type <- unique(input_data$fcst_or_sales)
+  if (toupper(type) == 'F') {
+    query <- read_lines('sql/exhibiciones-fcst.sql')
+  } else {
+    query <- read_lines('sql/exhibiciones-pos.sql')
+  }
+  query <- prepare_query(query, keys, wk_inicio, wk_final)
+  tryCatch({
+    res <- sqlQuery(ch, query) %>% 
+      as_tibble() %>% 
+      set_names(tolower(names(.))) %>% 
+      mutate_if(is.factor, as.character)
+    input_data %>% 
+      left_join(res)
+  }, error = function(e){
+    NULL
+  })
+}
+# ch <- odbcDriverConnect(sprintf("Driver={Teradata};DBCName=WMG;UID=f0g00bq;AUTHENTICATION=ldap;AUTHENTICATIONPARAMETER=%s", rstudioapi::askForPassword()))
 run_query <- function(ch, input_data) {
-  
-  Sys.sleep(1)
-  sqlQuery(ch, 'select top 10 * from mx_cf_vm.calendar_day')
+  res <- input_data %>% 
+    mutate(rango_semanas = paste(semana_ini, semana_fin, sep = '-')) %>% 
+    split(., .$rango_semanas) %>% 
+    map(safely(function(x){
+      run_query_once(ch, x)
+    })) %>% 
+    map('result') %>% 
+    discard(is.null)
+  if (length(res) > 0) {
+    res <- bind_rows(res)
+  } else {
+    res <- NULL
+  }
+  res
 }
 
 ## Lógica en R
