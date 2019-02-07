@@ -141,7 +141,10 @@ perform_computations <- function(data) {
   data %>% 
     group_by(feature_nbr, store_nbr) %>% 
     mutate(
-      feature_perc_pos_or_fcst = avg_dly_pos_or_fcst / sum(avg_dly_pos_or_fcst),
+      feature_perc_pos_or_fcst = avg_dly_pos_or_fcst / sum(avg_dly_pos_or_fcst)
+    ) %>% 
+    ungroup() %>% 
+    mutate(
       feature_qty_req = feature_perc_pos_or_fcst * max_feature_qty,
       feature_ddv_req = feature_qty_req / avg_dly_pos_or_fcst,
       feature_ddv_fin = pmin(feature_ddv_req, max_ddv),
@@ -168,7 +171,6 @@ perform_computations <- function(data) {
     ) %>% 
     arrange(feature_nbr, store_nbr)
 }
-  
 
 
 ## Función para encadenar condiciones dentro de validate()
