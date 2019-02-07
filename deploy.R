@@ -17,10 +17,19 @@ eval(parse('global.R', encoding = 'UTF-8'))
 
 ## Se debe iniciar en la carpeta building-blocks-app
 setwd('..')
-zip::zip(
-  zipfile = sprintf('releases/promo-fulfillment-app_v%s_%s.zip', gl$app_version, Sys.Date()),
-  files = 'promo-fulfillment-app',
-  recurse = TRUE,
-  compression_level = 9
-)
+any_open_xlsx <- list.files('promo-fulfillment-app/', recursive = TRUE) %>% 
+  str_replace('(.+/)', '') %>% 
+  str_detect('~\\$') %>% 
+  any()
+if (any_open_xlsx) {
+  message('Please close all Excel files before proceeding.')
+} else {
+  message('Zipping project...')
+  zip::zip(
+    zipfile = sprintf('releases/promo-fulfillment-app_v%s_%s.zip', gl$app_version, Sys.Date()),
+    files = 'promo-fulfillment-app',
+    recurse = TRUE,
+    compression_level = 9
+  )
+}
 setwd('promo-fulfillment-app/')
