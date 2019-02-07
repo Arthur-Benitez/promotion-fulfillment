@@ -23,6 +23,16 @@ sidebar <- dashboardSidebar(
   )
 )
 
+if (gl$app_deployment_environment == 'dev') {
+  login <- tagList(
+    textInput('user', lang$user),
+    passwordInput('password', lang$password),
+    actionButton('auth', lang$login, icon = icon('sign-in-alt')),
+    tags$hr()
+  )
+} else {
+  login <- NULL
+}
 body <- dashboardBody(
   useShinyjs(),
   tags$head(
@@ -34,10 +44,7 @@ body <- dashboardBody(
       fluidRow(
         box(
           width = 3,
-          textInput('user', lang$user),
-          passwordInput('password', lang$password),
-          actionButton('auth', lang$login, icon = icon('sign-in-alt')),
-          tags$hr(),
+          login,
           uiOutput('items_ui'),
           actionButton('run', lang$run, icon = icon('play')),
           actionButton('reset', lang$reset, icon = icon('redo-alt')),

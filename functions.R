@@ -99,7 +99,12 @@ run_query_once <- function(ch, input_data) {
   }
   query <- prepare_query(query, keys, wk_inicio, wk_final)
   tryCatch({
-    res <- sqlQuery(ch, query) %>% 
+    if (is.null(ch)) {
+      res <- mlutils::dataset.load(name = 'WMG', query = query)
+    } else {
+      res <- sqlQuery(ch, query)
+    }
+    res <- res %>% 
       as_tibble() %>% 
       set_names(tolower(names(.))) %>% 
       mutate_if(is.factor, as.character) %>% 
@@ -113,8 +118,8 @@ run_query_once <- function(ch, input_data) {
 # ch <- odbcDriverConnect(sprintf("Driver={Teradata};DBCName=WMG;UID=f0g00bq;AUTHENTICATION=ldap;AUTHENTICATIONPARAMETER=%s", rstudioapi::askForPassword()))
 run_query <- function(ch, input_data) {
   res <- input_data %>% 
-    mutate(rango_semanas = paste(semana_ini, semana_fin, sep = '-')) %>% 
-    split(., .$rango_semanas) %>% 
+    mutate(split_var = paste(semana_ini, semana_fin, fcst_or_sales, sep = '-')) %>% 
+    split(., .$split_var) %>% 
     map(safely(function(x){
       run_query_once(ch, x)
     })) %>% 

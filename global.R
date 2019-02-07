@@ -20,7 +20,12 @@ options(readr.default_locale=readr::locale(tz = ''))
 
 
 gl <- list(
-  app_version = 'v0.1.0',
+  app_deployment_environment = {
+    if (dir.exists('prod')) 'prod'
+    else if (dir.exists('dev')) 'dev'
+    else stop('Either a directory named "dev" or a directory "prod" must exist.')
+  },
+  app_version = '0.1.0',
   app_version_date = '2019-01-28',
   cols = c(
     'feature_nbr' = 'numeric',
