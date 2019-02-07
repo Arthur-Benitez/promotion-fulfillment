@@ -1,7 +1,7 @@
 
 require(shiny)
 library(RODBC)
-ch <- 
+
 
 shinyServer(function(input, output, session){
   
@@ -62,9 +62,9 @@ shinyServer(function(input, output, session){
     validate_input(items(), gl)
   })
   output$input_table <- renderDT({
-    validate(
-      need(!is.null(r$items_file), lang$need_items_file) %then%
-        need(!is.null(items()), lang$need_valid_input)
+    shiny::validate(
+      shiny::need(!is.null(r$items_file), lang$need_items_file) %then%
+        shiny::need(!is.null(items()), lang$need_valid_input)
     )
     items()
   })
@@ -91,13 +91,13 @@ shinyServer(function(input, output, session){
       })
     }
     output$output_table <- renderDT({
-      validate(
-        need(r$is_open, lang$need_auth) %then%
-          need(!is.null(r$items_file), lang$need_items_file) %then%
-          need(!is.null(items()), lang$need_valid_input) %then%
-          need(query_was_tried, lang$need_run) %then%
-          need(!is.null(r$query_result), lang$need_query_result) %then%
-          need(!is.null(r$final_result), lang$need_final_result)
+      shiny::validate(
+        shiny::need(r$is_open, lang$need_auth) %then%
+          shiny::need(!is.null(r$items_file), lang$need_items_file) %then%
+          shiny::need(!is.null(items()), lang$need_valid_input) %then%
+          shiny::need(query_was_tried, lang$need_run) %then%
+          shiny::need(!is.null(r$query_result), lang$need_query_result) %then%
+          shiny::need(!is.null(r$final_result), lang$need_final_result)
       )
       datatable(
         r$final_result,
