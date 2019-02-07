@@ -11,7 +11,9 @@ shinyServer(function(input, output, session){
     auth_trigger = 0,
     query_result = NULL,
     final_result = NULL,
-    items_file = NULL
+    items_file = NULL,
+    items = NULL,
+    query_was_tried = FALSE
   )
   
   ## UI
@@ -53,20 +55,20 @@ shinyServer(function(input, output, session){
   observeEvent(input$items, {
     r$items_file <- input$items$datapath
   })
-  items <- reactive({
+  observe({
     # req(input$items)
-    parse_input(r$items_file, gl)
+    r$items <- parse_input(r$items_file, gl)
   })
   items_is_valid <- reactive({
-    # req(items())
-    validate_input(items(), gl)
+    # req(r$items)
+    validate_input(r$items, gl)
   })
   output$input_table <- renderDT({
     shiny::validate(
       shiny::need(!is.null(r$items_file), lang$need_items_file) %then%
-        shiny::need(!is.null(items()), lang$need_valid_input)
+        shiny::need(!is.null(r$items), lang$need_valid_input)
     )
-    items()
+    r$items
   }, options = list(
     filter = 'top',
     scrollX = TRUE,
@@ -76,7 +78,7 @@ shinyServer(function(input, output, session){
   ## Seleccionar pestaña de output para que se vea el loader
   rr <- reactiveVal(0)
   observeEvent(input$run, {
-    updateTabItems(session, 'io', selected = 'output_table')
+    updateTabItems(session, 'io', selected = 'output_summary')
     output$output_table <- renderDT(NULL)
     rr(rr() + 1)
   })
@@ -84,22 +86,23 @@ shinyServer(function(input, output, session){
   ## Correr query y análisis
   observeEvent(rr(), {
     # browser()
-    query_was_tried <- FALSE
-    if (!is.null(items())) {
+    r$query_was_tried <- FALSE
+    if (!is.null(r$items)) {
       withProgress(min = 0, max = 1, value = 0, message = lang$running_query, expr = {
         incProgress(0.33, message = lang$running_query)
-        query_was_tried <- TRUE
-        r$query_result <- purrr::safely(run_query)(r$ch, items())$result
+        r$query_was_tried <- TRUE
+        r$query_result <- purrr::safely(run_query)(r$ch, r$items)$result
         incProgress(0.33, message = lang$running_computations)
         r$final_result <- purrr::safely(perform_computations)(r$query_result)$result
       })
     }
+    
     output$output_table <- renderDT({
       shiny::validate(
-        shiny::need(r$is_open, lang$need_auth) %then%
+        shiny::need(r$is_open || gl$app_deployment_environment == 'prod', lang$need_auth) %then%
           shiny::need(!is.null(r$items_file), lang$need_items_file) %then%
-          shiny::need(!is.null(items()), lang$need_valid_input) %then%
-          shiny::need(query_was_tried, lang$need_run) %then%
+          shiny::need(!is.null(r$items), lang$need_valid_input) %then%
+          shiny::need(r$query_was_tried, lang$need_run) %then%
           shiny::need(!is.null(r$query_result), lang$need_query_result) %then%
           shiny::need(!is.null(r$final_result), lang$need_final_result)
       )
@@ -114,15 +117,80 @@ shinyServer(function(input, output, session){
     })
   }, ignoreNULL = TRUE)
   
+  output$output_feature_select_ui <- renderUI({
+    req(r$items)
+    choices <- r$items %>% 
+      select(feature_nbr, feature_name) %>%
+      distinct() %>% 
+      with(feature_nbr %>% set_names(paste(feature_nbr, feature_name, sep = ' - ')))
+    selectInput(
+      inputId = 'output_feature_select',
+      label = lang$feature,
+      choices = choices
+    )
+  })
+  
+  output$feature_histogram <- renderPlot({
+    # req(r$final_result)
+    # req(input$output_feature_select)
+    # req(nchar(input$output_feature_select) > 0)
+    shiny::validate(
+      shiny::need(r$is_open || gl$app_deployment_environment == 'prod', lang$need_auth) %then%
+        shiny::need(!is.null(r$items_file), lang$need_items_file) %then%
+        shiny::need(!is.null(r$items), lang$need_valid_input) %then%
+        shiny::need(r$query_was_tried, lang$need_run) %then%
+        shiny::need(!is.null(r$query_result), lang$need_query_result) %then%
+        shiny::need(!is.null(r$final_result), lang$need_final_result) %then%
+        shiny::need(nchar(input$output_feature_select) > 0, lang$need_select_feature)
+    )
+    cut_values <- c(0, 0.25, 0.50, 0.75, 1.00)
+    cut_labels <- paste(
+      scales::percent(head(cut_values, -1)),
+      scales::percent(cut_values[-1]),
+      sep = ' - '
+    )
+    x <- r$final_result %>% 
+      filter(feature_nbr == input$output_feature_select) %>% 
+      group_by(feature_nbr, feature_name, store_nbr) %>% 
+      summarise(
+        feature_perc_qty = round(sum(feature_qty_fin), 5) / mean(max_feature_qty)
+      ) %>% 
+      ungroup() %>% 
+      mutate(
+        feature_perc_qty_bin = cut(feature_perc_qty, breaks = cut_values, labels = cut_labels, include.lowest = TRUE)
+      )
+    x %>% 
+      group_by(feature_perc_qty_bin) %>% 
+      summarise(
+        n = n()
+      ) %>% 
+      ungroup() %>% 
+      mutate(
+        p = n / sum(n),
+        label_y = n + 0.05 * max(n)
+      ) %>% 
+      ggplot(aes(feature_perc_qty_bin, n)) +
+      geom_col() +
+      geom_text(aes(y = label_y, label = sprintf('%s (%s)', scales::comma(n), scales::percent(p)))) +
+      scale_y_continuous(labels = scales::comma) +
+      theme_bw()+
+      labs(
+        title = 'Alcance a piezas máximas por tienda',
+        x = 'Alcance (% Max. Feature Qty.)',
+        y = 'Número de tiendas'
+      )
+  })
   ## Reset
   observeEvent(input$reset, {
     ## Esto es necesario porque al resetear la UI de input$items, no cambia el datapath
     r$items_file <- NULL
+    r$items <- NULL
     r$query_result <- NULL
     r$final_result <- NULL
+    r$query_was_tried <- NULL
   })
   
-  ## Download
+  ## Download results
   output$download_ui <- renderUI({
     req(r$final_result)
     downloadButton('download', label = lang$download, icon = icon('download'))
@@ -135,6 +203,15 @@ shinyServer(function(input, output, session){
       write_excel_csv(r$final_result, path = file, na = '')
     },
     contentType = 'text/csv'
+  )
+  
+  ## Download template
+  output$download_template <- downloadHandler(
+    filename = 'promo-fulfillment-sample.xlsx',
+    content = function(file) {
+      file.copy('data/sample-input.xlsx', file)
+    },
+    contentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
   )
 })
 

@@ -65,7 +65,9 @@ validate_input <- function(data, gl) {
         ## Máximo de renglones
         nrow(data) <= gl$max_input_rows,
         ## Máximo de queries a correr
-        length(unique(data$split_var)) <= gl$max_input_queries
+        length(unique(data$split_var)) <= gl$max_input_queries,
+        ## Semana ini <= semana fin
+        with(data, all(semana_ini <= semana_fin))
       )
       
       return(all(cond))
@@ -127,7 +129,6 @@ run_query_once <- function(ch, input_data) {
     NULL
   })
 }
-# ch <- odbcDriverConnect(sprintf("Driver={Teradata};DBCName=WMG;UID=f0g00bq;AUTHENTICATION=ldap;AUTHENTICATIONPARAMETER=%s", rstudioapi::askForPassword()))
 run_query <- function(ch, input_data) {
   res <- input_data %>% 
     split(., .$split_var) %>% 
@@ -149,7 +150,8 @@ run_query <- function(ch, input_data) {
 
 ## Lógica en R
 perform_computations <- function(data) {
-  data %>% 
+  initial_columns <- names(data)
+  data <- data %>% 
     group_by(feature_nbr, store_nbr) %>% 
     mutate(
       feature_perc_pos_or_fcst = avg_dly_pos_or_fcst / sum(avg_dly_pos_or_fcst)
@@ -181,6 +183,9 @@ perform_computations <- function(data) {
       everything()
     ) %>% 
     arrange(feature_nbr, store_nbr)
+  new_columns <- setdiff(names(data), initial_columns)
+  data %>% 
+    mutate_at(new_columns, funs(replace_na(., 0)))
 }
 
 

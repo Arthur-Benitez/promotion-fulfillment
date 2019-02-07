@@ -48,7 +48,7 @@ body <- dashboardBody(
           uiOutput('items_ui'),
           actionButton('run', lang$run, icon = icon('play')),
           actionButton('reset', lang$reset, icon = icon('redo-alt')),
-          uiOutput('download_ui')
+          downloadButton('download_template', lang$download_template, icon = icon('download'))
         ),
         tabBox(
           id = 'io',
@@ -60,12 +60,16 @@ body <- dashboardBody(
             DTOutput('input_table')
           ),
           tabPanel(
+            value = 'output_summary',
+            title = lang$tab_output_summary,
+            uiOutput('output_feature_select_ui'),
+            plotOutput('feature_histogram')
+          ),
+          tabPanel(
             value = 'output_table',
-            title = lang$tab_output,
-            tags$div(
-              DTOutput('output_table') #%>% withSpinner(type = 8)
-              # h2('Hello'),
-            )
+            title = lang$tab_output_table,
+            uiOutput('download_ui'),
+            DTOutput('output_table') #%>% withSpinner(type = 8)
           )
         )
       )

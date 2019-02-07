@@ -28,7 +28,7 @@ gl <- list(
   app_version = '0.1.0',
   app_version_date = '2019-01-28',
   cols = c(
-    'feature_nbr' = 'numeric',
+    'feature_nbr' = 'character',
     'feature_name' = 'character',
     'dept_nbr' = 'numeric',
     'negocio' = 'character',
