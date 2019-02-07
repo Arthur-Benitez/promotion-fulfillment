@@ -67,7 +67,11 @@ shinyServer(function(input, output, session){
         shiny::need(!is.null(items()), lang$need_valid_input)
     )
     items()
-  })
+  }, options = list(
+    filter = 'top',
+    scrollX = TRUE,
+    scrollY = '400px'
+  ))
   
   ## Seleccionar pestaña de output para que se vea el loader
   rr <- reactiveVal(0)

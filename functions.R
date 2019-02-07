@@ -17,11 +17,12 @@ parse_input <- function(input_file, gl) {
       flog.info('MISSING VALUES PRESENT. INPUT PARSING ABORTED.')
       return(NULL)
     }
+    x <- prepare_input(x)
     if (!validate_input(x, gl)) {
       flog.info('INVALID INPUT. INPUT PARSING ABORTED.')
       return(NULL)
     }
-    prepare_input(x)
+    x
   }, error = function(e){
     NULL
   })
@@ -38,29 +39,39 @@ validate_input <- function(data, gl) {
     length(setdiff(names(gl$cols), names(data))) > 0 ||
     any(map_chr(data[names(gl$cols)], class) != gl$cols)
   ) {
-    FALSE
+    return(FALSE)
   } else {
-    cond <- list()
-    ## Checar las columnas que deben ser constantes por feature
-    cond[[1]] <- data %>% 
-      group_by(feature_nbr) %>% 
-      summarise_at(gl$feature_const_cols, funs(length(unique(.)))) %>% 
-      ungroup() %>% 
-      select_at(gl$feature_const_cols) %>% 
-      equals(1) %>% 
-      all()
-    ## Checar los negocios
-    cond[[2]] <- all(data$negocio %in% gl$negocios)
-    ## No se deben repetir artículos por feature
-    cond[[3]] <- data %>% 
-      group_by(feature_nbr) %>% 
-      summarise(n_dups = sum(duplicated(old_nbr))) %>% 
-      pull(n_dups) %>% 
-      sum() %>% 
-      equals(0)
-    ## Checar que el tipo sea F ó S
-    cond[[4]] <- all(toupper(data$fcst_or_sales) %in% c('F', 'S'))
-    all(unlist(cond))
+    tryCatch({
+      cond <- c(
+        ## Checar las columnas que deben ser constantes por feature
+        data %>% 
+          group_by(feature_nbr) %>% 
+          summarise_at(gl$feature_const_cols, funs(length(unique(.)))) %>% 
+          ungroup() %>% 
+          select_at(gl$feature_const_cols) %>% 
+          equals(1) %>% 
+          all(),
+        ## Checar los negocios
+        all(data$negocio %in% gl$negocios),
+        ## No se deben repetir artículos por feature
+        data %>% 
+          group_by(feature_nbr) %>% 
+          summarise(n_dups = sum(duplicated(old_nbr))) %>% 
+          pull(n_dups) %>% 
+          sum() %>% 
+          equals(0),
+        ## Checar que el tipo sea F ó S
+        all(toupper(data$fcst_or_sales) %in% c('F', 'S')),
+        ## Máximo de renglones
+        nrow(data) <= gl$max_input_rows,
+        ## Máximo de queries a correr
+        length(unique(data$split_var)) <= gl$max_input_queries
+      )
+      
+      return(all(cond))
+    }, error = function(e){
+      return(FALSE)
+    })
   }
 }
 
@@ -69,7 +80,8 @@ prepare_input <- function(data) {
   ## Requiere que data haya pasado validate_input
   data %>% 
     mutate(
-      display_key = paste(dept_nbr, old_nbr, negocio, sep = '.')
+      display_key = paste(dept_nbr, old_nbr, negocio, sep = '.'),
+      split_var = paste(semana_ini, semana_fin, fcst_or_sales, sep = '-')
     )
 }
 
@@ -118,7 +130,6 @@ run_query_once <- function(ch, input_data) {
 # ch <- odbcDriverConnect(sprintf("Driver={Teradata};DBCName=WMG;UID=f0g00bq;AUTHENTICATION=ldap;AUTHENTICATIONPARAMETER=%s", rstudioapi::askForPassword()))
 run_query <- function(ch, input_data) {
   res <- input_data %>% 
-    mutate(split_var = paste(semana_ini, semana_fin, fcst_or_sales, sep = '-')) %>% 
     split(., .$split_var) %>% 
     map(safely(function(x){
       run_query_once(ch, x)

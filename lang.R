@@ -18,7 +18,7 @@ lang <- list(
   ## Validation
   need_items_file = 'Cargar un archivo de items para comenzar.',
   need_auth = 'Iniciar sesión para continuar.',
-  need_input_format = 'Recuerda que debe ser un Excel (xlsx) con una sola hoja y las siguientes columnas: dept_nbr, formato, old_nbr, fecha_ini, fecha_fin.',
+  need_input_format = 'Recuerda que debe ser un Excel (xlsx) con una sola hoja y XXXX',
   need_run = 'Click en *Correr* para empezar.',
   need_query_result = 'El query falló :(',
   need_final_result = 'Los cálculos fallaron :(',
