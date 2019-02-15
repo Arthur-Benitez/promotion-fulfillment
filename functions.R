@@ -88,10 +88,11 @@ prepare_input <- function(data) {
 }
 
 ## Correr query
-prepare_query <- function(query, keys, wk_inicio, wk_final) {
+prepare_query <- function(query, keys, old_nbrs, wk_inicio, wk_final) {
   # browser()
   query %>% 
-    str_replace_all('\\?KEY', paste0("'", paste(keys, collapse = "','"), "'")) %>% 
+    str_replace_all('\\?KEY', paste0("'", paste(keys, collapse = "','"), "'")) %>%
+    str_replace_all('\\?OLD_NBRS', paste(old_nbrs, collapse = ",")) %>%
     str_replace_all('\\?WK_INICIO', as.character(wk_inicio)) %>% 
     str_replace_all('\\?WK_FINAL', as.character(wk_final)) %>% 
     paste(collapse = '\n')
@@ -100,7 +101,6 @@ run_query_once <- function(ch, input_data) {
   # browser()
   wk_inicio <- unique(input_data$semana_ini)
   wk_final <- unique(input_data$semana_fin)
-  keys <- input_data$display_key
   type <- toupper(unique(input_data$fcst_or_sales))
   if (type == 'F') {
     query <- read_lines('sql/exhibiciones-fcst.sql')
@@ -111,7 +111,13 @@ run_query_once <- function(ch, input_data) {
   } else { ## No debería pasar si los datos están validados
     return(NULL)
   }
-  query <- prepare_query(query, keys, wk_inicio, wk_final)
+  query <- prepare_query(
+    query = query,
+    keys = input_data$display_key,
+    old_nbrs = input_data$old_nbr,
+    wk_inicio = wk_inicio,
+    wk_final = wk_final
+  )
   tryCatch({
     if (is.null(ch)) {
       res <- mlutils::dataset.load(name = 'WMG', query = query)
