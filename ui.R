@@ -62,8 +62,15 @@ body <- dashboardBody(
           tabPanel(
             value = 'output_summary',
             title = lang$tab_output_summary,
-            uiOutput('output_feature_select_ui'),
-            plotOutput('feature_histogram')
+            box(
+              width = NULL,
+              DTOutput('summary_table')
+            ),
+            box(
+              width = NULL,
+              uiOutput('output_feature_select_ui'),
+              plotOutput('feature_histogram')
+            )
           ),
           tabPanel(
             value = 'output_table',

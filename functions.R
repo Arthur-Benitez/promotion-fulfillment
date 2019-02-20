@@ -194,6 +194,23 @@ perform_computations <- function(data) {
     mutate_at(new_columns, funs(replace_na(., 0)))
 }
 
+## Tabla de resumen
+summarise_data <- function(data) {
+  data_summary <- data  %>%
+    group_by(cid, feature_nbr, old_nbr, primary_desc) %>%
+    summarise(avg_sales = mean(avg_dly_pos_or_fcst[fcst_or_sales=='S']),
+              avg_forecast = mean(avg_dly_pos_or_fcst[fcst_or_sales=='F']))
+  ## Obtener totales
+  temp <- data_summary %>%
+    ungroup() %>% 
+    summarise_at(.vars = c("avg_sales", "avg_forecast"), funs(sum), na.rm = TRUE)
+  result <- bind_rows(data_summary, temp)
+  
+  result[nrow(result),] <- result[nrow(result),] %>%
+    replace(., is.na(.), "TOTAL")
+  
+  return(result)
+}
 
 ## Función para encadenar condiciones dentro de validate()
 `%then%` <- shiny:::`%OR%`

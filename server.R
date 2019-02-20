@@ -94,6 +94,7 @@ shinyServer(function(input, output, session){
         r$query_result <- purrr::safely(run_query)(r$ch, r$items)$result
         incProgress(0.33, message = lang$running_computations)
         r$final_result <- purrr::safely(perform_computations)(r$query_result)$result
+        r$summary_table <- purrr::safely(summarise_data)(r$final_result)$result
       })
     }
     
@@ -115,7 +116,28 @@ shinyServer(function(input, output, session){
         )
       )
     })
-  }, ignoreNULL = TRUE)
+    
+    output$summary_table <- renderDT({
+      shiny::validate(
+        shiny::need(r$is_open || gl$app_deployment_environment == 'prod', lang$need_auth) %then%
+          shiny::need(!is.null(r$items_file), lang$need_items_file) %then%
+          shiny::need(!is.null(r$items), lang$need_valid_input) %then%
+          shiny::need(r$query_was_tried, lang$need_run) %then%
+          shiny::need(!is.null(r$query_result), lang$need_query_result) %then%
+          shiny::need(!is.null(r$final_result), lang$need_final_result)
+      )
+      datatable(
+        r$summary_table,
+        filter = 'top',
+        options = list(
+          scrollX = TRUE,
+          scrollY = '400px'
+        )
+      )
+    })
+    }, ignoreNULL = TRUE)
+  
+  
   
   output$output_feature_select_ui <- renderUI({
     req(r$items)
