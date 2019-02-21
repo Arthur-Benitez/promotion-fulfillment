@@ -199,7 +199,7 @@ perform_computations <- function(data) {
 ## Tabla de resumen
 summarise_data <- function(data) {
   data_summary <- data  %>%
-    group_by(cid, feature_nbr, old_nbr, primary_desc) %>%
+    group_by(cid, old_nbr, feature_nbr, primary_desc) %>%
     summarise(store_qty = n(), ## Número de tiendas
               avg_sales = mean(avg_dly_pos_or_fcst[fcst_or_sales=='S']),
               avg_forecast = mean(avg_dly_pos_or_fcst[fcst_or_sales=='F']),
