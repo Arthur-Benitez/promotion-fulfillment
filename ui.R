@@ -64,6 +64,7 @@ body <- dashboardBody(
             title = lang$tab_output_summary,
             box(
               width = NULL,
+              uiOutput('download_summary_ui'),
               DTOutput('summary_table')
             ),
             box(

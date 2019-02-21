@@ -227,6 +227,21 @@ shinyServer(function(input, output, session){
     contentType = 'text/csv'
   )
   
+  ## Download results
+  output$download_summary_ui <- renderUI({
+    req(r$summary_table)
+    downloadButton('download_summary', label = lang$download, icon = icon('download'))
+  })
+  output$download_summary <- downloadHandler(
+    filename = function() {
+      sprintf('resumen_%s.csv', Sys.Date())
+    },
+    content = function(file) {
+      write_excel_csv(r$summary_table, path = file, na = '')
+    },
+    contentType = 'text/csv'
+  )
+  
   ## Download template
   output$download_template <- downloadHandler(
     filename = 'promo-fulfillment-sample.xlsx',
