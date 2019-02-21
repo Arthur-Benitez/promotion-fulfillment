@@ -5,6 +5,14 @@ library(RODBC)
 
 shinyServer(function(input, output, session){
   
+  ## Logging
+  flog.logger(
+    name = 'ROOT',
+    threshold = INFO,
+    appender = appender.tee(paste0(gl$app_deployment_environment, '/log/', as.character(Sys.Date()), '.log'))
+  )
+  
+  ## Valores reactivos para usar en observadores
   r <- reactiveValues(
     ch = NULL,
     is_open = FALSE,
@@ -33,13 +41,29 @@ shinyServer(function(input, output, session){
   observeEvent(r$auth_trigger, {
     if (is.null(r$ch) || !r$is_open) {
       tryCatch({
+        flog.info(toJSON(list(
+          message = 'ATTEMPTING USER LOGIN',
+          details = list(
+            user = input$user
+          )
+        )))
         r$ch <- odbcDriverConnect(sprintf("Driver={Teradata};DBCName=WMG;UID=f0g00bq;AUTHENTICATION=ldap;AUTHENTICATIONPARAMETER=%s", paste0(input$user, '@@', input$password)))
         odbcGetInfo(r$ch) ## Truena si no se abrió la conexión
         r$is_open <- TRUE
         updateActionButton(session, 'auth', label = lang$logout, icon = icon('sign-out-alt'))
-        flog.info('LOGGED IN')
+        flog.info(toJSON(list(
+          message = 'USER LOGIN SUCCESSFUL',
+          details = list(
+            user = input$user
+          )
+        )))
       }, error = function(e){
-        flog.warn('ERROR LOGGING IN')
+        flog.info(toJSON(list(
+          message = 'USER LOGIN FAILED',
+          details = list(
+            user = input$user
+          )
+        )))
       })
     } else {
       odbcClose(r$ch)
@@ -47,7 +71,12 @@ shinyServer(function(input, output, session){
       updateActionButton(session, 'auth', label = lang$login, icon = icon('sign-in-alt'))
       updateTextInput(session, 'user', value = '')
       updateTextInput(session, 'password', value = '')
-      flog.info('LOGGED OUT')
+      flog.info(toJSON(list(
+        message = 'USER LOGOUT SUCCESSFUL',
+        details = list(
+          user = input$user
+        )
+      )))
     }
   }, ignoreInit = TRUE)
   
@@ -55,12 +84,24 @@ shinyServer(function(input, output, session){
   observeEvent(input$items, {
     r$items_file <- input$items$datapath
   })
-  observe({
+  observeEvent(r$items_file, {
     # req(input$items)
+    flog.info(toJSON(list(
+      message = 'PARSING ITEMS FILE',
+      details = list(
+        file = r$items_file
+      )
+    )))
     r$items <- parse_input(r$items_file, gl)
-  })
-  items_is_valid <- reactive({
+  }, ignoreNULL = TRUE)
+  items_is_valid <- eventReactive(r$items, {
     # req(r$items)
+    flog.info(toJSON(list(
+      message = 'VALIDATING ITEMS FILE',
+      details = list(
+        file = r$items_file
+      )
+    )))
     validate_input(r$items, gl)
   })
   output$input_table <- renderDT({
@@ -91,8 +132,16 @@ shinyServer(function(input, output, session){
       withProgress(min = 0, max = 1, value = 0, message = lang$running_query, expr = {
         incProgress(0.33, message = lang$running_query)
         r$query_was_tried <- TRUE
+        flog.info(toJSON(list(
+          message = 'RUNNING QUERY',
+          details = list()
+        )))
         r$query_result <- purrr::safely(run_query)(r$ch, r$items)$result
         incProgress(0.33, message = lang$running_computations)
+        flog.info(toJSON(list(
+          message = 'PERFORMING COMPUTATIONS',
+          details = list()
+        )))
         r$final_result <- purrr::safely(perform_computations)(r$query_result)$result
         r$summary_table <- purrr::safely(summarise_data)(r$final_result)$result
       })
