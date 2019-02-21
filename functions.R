@@ -168,7 +168,8 @@ perform_computations <- function(data) {
       feature_ddv_req = feature_qty_req / avg_dly_pos_or_fcst,
       feature_ddv_fin = pmin(feature_ddv_req, max_ddv),
       feature_ddv_bound_active = ifelse(feature_ddv_req > max_ddv, 1, 0),
-      feature_qty_fin = feature_ddv_fin * avg_dly_pos_or_fcst
+      feature_qty_fin = feature_ddv_fin * avg_dly_pos_or_fcst,
+      store_tot_cost = cost * feature_qty_fin
     ) %>% 
     ungroup() %>% 
     select(
@@ -198,8 +199,10 @@ perform_computations <- function(data) {
 summarise_data <- function(data) {
   data_summary <- data  %>%
     group_by(cid, feature_nbr, old_nbr, primary_desc) %>%
-    summarise(avg_sales = mean(avg_dly_pos_or_fcst[fcst_or_sales=='S']),
-              avg_forecast = mean(avg_dly_pos_or_fcst[fcst_or_sales=='F']))
+    summarise(store_qty = n(), ## Número de tiendas
+              avg_sales = mean(avg_dly_pos_or_fcst[fcst_or_sales=='S']),
+              avg_forecast = mean(avg_dly_pos_or_fcst[fcst_or_sales=='F']),
+              total_cost = sum(store_tot_cost))
   ## Obtener totales
   temp <- data_summary %>%
     ungroup() %>% 
