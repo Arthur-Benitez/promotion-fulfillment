@@ -170,7 +170,7 @@ perform_computations <- function(data) {
       feature_ddv_bound_active = ifelse(feature_ddv_req > max_ddv, 1, 0),
       feature_qty_fin = feature_ddv_fin * avg_dly_pos_or_fcst,
       store_tot_cost = cost * feature_qty_fin,
-      vnpk_req = feature_qty_fin / vnpk_qty
+      vnpk_fin = feature_qty_fin / vnpk_qty
     ) %>% 
     ungroup() %>% 
     select(
@@ -205,12 +205,12 @@ summarise_data <- function(data) {
               avg_forecast = mean(avg_dly_pos_or_fcst[fcst_or_sales=='F']),
               total_cost = sum(store_tot_cost),
               avg_cost = mean(store_tot_cost),
-              total_vnpk_req = sum(vnpk_req))
+              total_vnpk_fin = sum(vnpk_fin))
   ## Obtener totales
   temp <- data_summary %>%
     ungroup() %>% 
-    summarise_at(.vars = c("total_cost", "avg_cost", "total_vnpk_req", "avg_sales", "avg_forecast"),
-                 funs(sum), na.rm = TRUE)
+    summarise_at(vars(total_cost, avg_cost, total_vnpk_fin, avg_sales, avg_forecast),
+                 funs(sum(., na.rm = TRUE)))
   result <- bind_rows(data_summary, temp)
   
   result[nrow(result),] <- result[nrow(result),] %>%
