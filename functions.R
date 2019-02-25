@@ -169,7 +169,7 @@ perform_computations <- function(data) {
       feature_ddv_fin = pmin(feature_ddv_req, max_ddv),
       feature_ddv_bound_active = ifelse(feature_ddv_req > max_ddv, 1, 0),
       feature_qty_fin = feature_ddv_fin * avg_dly_pos_or_fcst,
-      store_tot_cost = cost * feature_qty_fin,
+      store_cost = cost * feature_qty_fin,
       vnpk_fin = feature_qty_fin / vnpk_qty
     ) %>% 
     ungroup() %>% 
@@ -197,26 +197,35 @@ perform_computations <- function(data) {
 }
 
 ## Tabla de resumen
-summarise_data <- function(data) {
+summarise_data <- function(data, level = c('item', 'feature', 'total')) {
+  level <- level[1]
+  grp <- switch(
+    level,
+    item = c('feature_nbr', 'feature_name', 'cid', 'old_nbr'),
+    feature = c('feature_nbr', 'feature_name'),
+    total = NULL
+  ) %>% 
+    syms()
   data_summary <- data  %>%
-    group_by(cid, old_nbr, feature_nbr, primary_desc) %>%
-    summarise(store_qty = n(), ## Número de tiendas
-              avg_sales = mean(avg_dly_pos_or_fcst[fcst_or_sales=='S']),
-              avg_forecast = mean(avg_dly_pos_or_fcst[fcst_or_sales=='F']),
-              total_cost = sum(store_tot_cost),
-              avg_cost = mean(store_tot_cost),
-              total_vnpk_fin = sum(vnpk_fin))
-  ## Obtener totales
-  temp <- data_summary %>%
-    ungroup() %>% 
-    summarise_at(vars(total_cost, avg_cost, total_vnpk_fin, avg_sales, avg_forecast),
-                 funs(sum(., na.rm = TRUE)))
-  result <- bind_rows(data_summary, temp)
-  
-  result[nrow(result),] <- result[nrow(result),] %>%
-    replace(., is.na(.), "TOTAL")
-  
-  return(result)
+    group_by(!!!grp, store_nbr) %>%
+    summarise(
+      sales = ifelse(any(fcst_or_sales == 'S'), sum(avg_dly_pos_or_fcst[fcst_or_sales=='S']), NA_real_),
+      forecast = ifelse(any(fcst_or_sales == 'F'), sum(avg_dly_pos_or_fcst[fcst_or_sales=='F']), NA_real_),
+      store_cost = sum(store_cost),
+      total_vnpk_fin = sum(vnpk_fin)
+    ) %>% 
+    group_by(!!!grp) %>%
+    summarise(
+      store_qty = n(), ## Número de tiendas
+      avg_sales = mean(sales, na.rm = TRUE),
+      avg_forecast = mean(forecast, na.rm = TRUE),
+      total_cost = sum(store_cost),
+      avg_store_cost = mean(store_cost),
+      total_vnpk = sum(total_vnpk_fin),
+      avg_store_vnpk = mean(total_vnpk_fin)
+    ) %>% 
+    ungroup()
+  return(data_summary)
 }
 
 ## Función para encadenar condiciones dentro de validate()
