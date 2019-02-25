@@ -50,7 +50,8 @@ shinyServer(function(input, output, session){
         r$ch <- odbcDriverConnect(sprintf("Driver={Teradata};DBCName=WMG;UID=f0g00bq;AUTHENTICATION=ldap;AUTHENTICATIONPARAMETER=%s", paste0(input$user, '@@', input$password)))
         odbcGetInfo(r$ch) ## Truena si no se abrió la conexión
         r$is_open <- TRUE
-        updateActionButton(session, 'auth', label = lang$logout, icon = icon('sign-out-alt'))
+        input$auth
+        actionButton(session, 'auth', label = lang$logout, icon = icon('sign-out-alt'))
         flog.info(toJSON(list(
           message = 'USER LOGIN SUCCESSFUL',
           details = list(
@@ -58,6 +59,11 @@ shinyServer(function(input, output, session){
           )
         )))
       }, error = function(e){
+        showModal(modalDialog(
+          title = "Error al iniciar sesión",
+          "El usuario o la contraseña no son válidos",
+          footer = modalButton("Aceptar")
+        ))
         flog.info(toJSON(list(
           message = 'USER LOGIN FAILED',
           details = list(

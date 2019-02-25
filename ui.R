@@ -27,7 +27,8 @@ if (gl$app_deployment_environment == 'dev') {
   login <- tagList(
     textInput('user', lang$user),
     passwordInput('password', lang$password),
-    actionButton('auth', lang$login, icon = icon('sign-in-alt')),
+    actionButton('auth', lang$login, icon = icon('sign-in-alt'),
+                 style="color: #fff; background-color: #26cc26;"),
     tags$hr()
   )
 } else {
