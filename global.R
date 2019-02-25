@@ -1,5 +1,6 @@
 
 library(magrittr)
+library(plotly)
 library(tidyverse)
 library(readxl)
 library(lubridate)

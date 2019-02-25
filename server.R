@@ -210,7 +210,7 @@ shinyServer(function(input, output, session){
     )
   })
   
-  output$feature_histogram <- renderPlot({
+  output$feature_histogram <- renderPlotly({
     # req(r$final_result)
     # req(input$output_feature_select)
     # req(nchar(input$output_feature_select) > 0)
@@ -229,35 +229,41 @@ shinyServer(function(input, output, session){
       scales::percent(cut_values[-1]),
       sep = ' - '
     )
-    x <- r$final_result %>% 
-      filter(feature_nbr == input$output_feature_select) %>% 
+    filt <- r$final_result %>% 
+      filter(feature_nbr == input$output_feature_select)
+    x <- filt %>% 
       group_by(feature_nbr, feature_name, store_nbr) %>% 
       summarise(
-        feature_perc_qty = round(sum(feature_qty_fin), 5) / mean(max_feature_qty)
+        feature_perc_qty = round(sum(feature_qty_fin), 5) / mean(max_feature_qty),
+        feature_cost = sum(store_tot_cost),
+        feature_qty_fin = sum(feature_qty_fin)
       ) %>% 
       ungroup() %>% 
       mutate(
         feature_perc_qty_bin = cut(feature_perc_qty, breaks = cut_values, labels = cut_labels, include.lowest = TRUE)
       )
+    mfq <- unique(filt$max_feature_qty)
     x %>% 
       group_by(feature_perc_qty_bin) %>% 
       summarise(
-        n = n()
+        n = n(),
+        total_cost = sum(feature_cost),
+        avg_feature_qty_fin = mean(feature_qty_fin)
       ) %>% 
       ungroup() %>% 
       mutate(
         p = n / sum(n),
-        label_y = n + 0.05 * max(n)
+        label_y = n + 0.03 * max(n),
+        label = scales::percent(p),
+        text = sprintf('Tiendas: %s (%s)<br>Costo total: %s<br>Avg. feature qty.: %s', scales::comma(n, digits = 0), scales::percent(p), scales::comma(total_cost, digits = 0), scales::comma(avg_feature_qty_fin, digits = 0))
       ) %>% 
-      ggplot(aes(feature_perc_qty_bin, n)) +
-      geom_col() +
-      geom_text(aes(y = label_y, label = sprintf('%s (%s)', scales::comma(n), scales::percent(p)))) +
-      scale_y_continuous(labels = scales::comma) +
-      theme_bw()+
-      labs(
+      plot_ly(x = ~feature_perc_qty_bin, y = ~n, text = ~text, type = 'bar', name = NULL) %>% 
+      add_text(y = ~label_y, text = ~label, name = NULL) %>% 
+      plotly::layout(
         title = 'Alcance a piezas máximas por tienda',
-        x = 'Alcance (% Max. Feature Qty.)',
-        y = 'Número de tiendas'
+        xaxis = list(title = sprintf('Alcance (%% de Max. Feature Qty. = %s)', scales::comma(mfq, digits = 0))),
+        yaxis = list(title = 'Número de tiendas', separators = '.,'),
+        showlegend = FALSE
       )
   })
   ## Reset
