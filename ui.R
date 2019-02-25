@@ -62,16 +62,14 @@ body <- dashboardBody(
           tabPanel(
             value = 'output_summary',
             title = lang$tab_output_summary,
-            box(
-              width = NULL,
-              uiOutput('download_summary_ui'),
-              DTOutput('summary_table')
-            ),
-            box(
-              width = NULL,
-              uiOutput('output_feature_select_ui'),
-              plotOutput('feature_histogram')
-            )
+            uiOutput('download_summary_ui'),
+            DTOutput('summary_table')
+          ),
+          tabPanel(
+            value = 'output_histogram',
+            title = lang$tab_output_histogram,
+            uiOutput('output_feature_select_ui'),
+            plotlyOutput('feature_histogram')
           ),
           tabPanel(
             value = 'output_table',
