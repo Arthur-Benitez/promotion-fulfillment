@@ -156,16 +156,23 @@ shinyServer(function(input, output, session){
           shiny::need(!is.null(r$query_result), lang$need_query_result) %then%
           shiny::need(!is.null(r$final_result), lang$need_final_result)
       )
-      datatable(
-        r$final_result,
-        filter = 'top',
-        options = list(
-          scrollX = TRUE,
-          scrollY = '400px'
-        )
-      )
-    })
-    
+      percent_columns <- c('feature_perc_pos_or_fcst')
+      decimal_columns <- c('avg_dly_pos_or_fcst',	'feature_qty_req', 'feature_ddv_req','feature_ddv_fin',
+                           'feature_qty_fin', 'display_key', 'store_tot_cost', 'vnpk_fin')
+      r$final_result %>%
+        mutate_at(vars(percent_columns), funs(100 * .)) %>%
+        datatable(
+          filter = 'top',
+          options = list(
+            scrollX = TRUE,
+            scrollY = '400px'
+          )
+        ) %>%
+        formatCurrency(columns = decimal_columns, digits = 0, currency = '') %>%
+        formatCurrency(columns = percent_columns, digits = 1, currency = '%', before = FALSE) %>%
+        formatCurrency(columns = 'cost', digits = 1, currency = '')
+      })
+    #percent_columns <- c('')
     output$summary_table <- renderDT({
       shiny::validate(
         shiny::need(r$is_open || gl$app_deployment_environment == 'prod', lang$need_auth) %then%
@@ -182,7 +189,9 @@ shinyServer(function(input, output, session){
           scrollX = TRUE,
           scrollY = '400px'
         )
-      )
+      ) %>%
+          formatCurrency(columns = c('avg_sales', 'avg_forecast', 'total_cost',	'avg_cost',	'total_vnpk_fin'), digits = 0, currency = '')
+    
     })
     }, ignoreNULL = TRUE)
   
