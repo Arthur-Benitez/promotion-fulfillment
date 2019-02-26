@@ -105,24 +105,7 @@ shinyServer(function(input, output, session){
   })
   observe({
     req(r$items_file, input$date_format)
-    # req(input$items)
-    flog.info(toJSON(list(
-      message = 'PARSING ITEMS FILE',
-      details = list(
-        file = r$items_file
-      )
-    )))
     r$items <- parse_input(r$items_file, gl, input$date_format)
-  })
-  items_is_valid <- eventReactive(r$items, {
-    # req(r$items)
-    flog.info(toJSON(list(
-      message = 'VALIDATING ITEMS FILE',
-      details = list(
-        file = r$items_file
-      )
-    )))
-    validate_input(r$items, gl)
   })
   output$input_table <- renderDT({
     shiny::validate(

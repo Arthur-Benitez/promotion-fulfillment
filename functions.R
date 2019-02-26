@@ -16,26 +16,43 @@ generate_cols_spec <- function(columns, date_format = '%Y-%m-%d') {
 
 ## Leer entrada
 parse_input <- function(input_file, gl, date_format = '%Y-%m-%d') {
-  # browser()
   tryCatch({
+    flog.info(toJSON(list(
+      message = 'PARSING ITEMS FILE',
+      details = list(
+        file = input_file
+      )
+    )))
     x <- read_csv(
       file = input_file,
       col_names = TRUE,
       col_types = generate_cols_spec(gl$cols, date_format = date_format)
-    )
-    x <- x[names(gl$cols)]
-    if (anyNA(x)) {
-      flog.info('MISSING VALUES PRESENT. INPUT PARSING ABORTED.')
+    ) %>% 
+      .[names(gl$cols)] %>% 
+      mutate(
+        display_key = paste(dept_nbr, old_nbr, negocio, sep = '.'),
+        split_var = paste(semana_ini, semana_fin, fcst_or_sales, sep = '-')
+      )
+    if (validate_input(x, gl)) {
+      flog.info(toJSON(list(
+        message = 'INPUT PARSING DONE',
+        details = list(
+          file = input_file
+        )
+      )))
+      return(x)
+    } else {
+      flog.info(toJSON(list(
+        message = 'INPUT PARSING ABORTED',
+        details = list(
+          file = input_file,
+          reason = 'Invalid input'
+        )
+      )))
       return(NULL)
     }
-    x <- prepare_input(x)
-    if (!validate_input(x, gl)) {
-      flog.info('INVALID INPUT. INPUT PARSING ABORTED.')
-      return(NULL)
-    }
-    x
   }, error = function(e){
-    NULL
+    return(NULL)
   })
 }
 
@@ -52,6 +69,8 @@ validate_input <- function(data, gl) {
   } else {
     tryCatch({
       cond <- c(
+        ## Checar que no haya valores faltantes
+        !anyNA(data),
         ## Checar las columnas que deben ser constantes por feature
         data %>% 
           group_by(feature_name) %>% 
@@ -86,15 +105,6 @@ validate_input <- function(data, gl) {
   }
 }
 
-## Preparar inputs
-prepare_input <- function(data) {
-  ## Requiere que data haya pasado validate_input
-  data %>% 
-    mutate(
-      display_key = paste(dept_nbr, old_nbr, negocio, sep = '.'),
-      split_var = paste(semana_ini, semana_fin, fcst_or_sales, sep = '-')
-    )
-}
 
 ## Correr query
 prepare_query <- function(query, keys, old_nbrs, wk_inicio, wk_final) {
