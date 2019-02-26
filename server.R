@@ -162,7 +162,6 @@ shinyServer(function(input, output, session){
           details = list()
         )))
         r$final_result <- purrr::safely(perform_computations)(r$query_result)$result
-        r$summary_table <- purrr::safely(summarise_data)(r$final_result)$result
       })
     }
     
@@ -177,7 +176,7 @@ shinyServer(function(input, output, session){
       )
       percent_columns <- c('feature_perc_pos_or_fcst')
       decimal_columns <- c('avg_dly_pos_or_fcst',	'feature_qty_req', 'feature_ddv_req','feature_ddv_fin',
-                           'feature_qty_fin', 'display_key', 'store_tot_cost', 'vnpk_fin')
+                           'feature_qty_fin', 'display_key', 'store_cost', 'vnpk_fin')
       r$final_result %>%
         mutate_at(vars(percent_columns), funs(100 * .)) %>%
         datatable(
@@ -192,29 +191,31 @@ shinyServer(function(input, output, session){
         formatCurrency(columns = 'cost', digits = 1, currency = '')
       })
     #percent_columns <- c('')
-    output$summary_table <- renderDT({
-      shiny::validate(
-        shiny::need(r$is_open || gl$app_deployment_environment == 'prod', lang$need_auth) %then%
-          shiny::need(!is.null(r$items_file), lang$need_items_file) %then%
-          shiny::need(!is.null(r$items), lang$need_valid_input) %then%
-          shiny::need(r$query_was_tried, lang$need_run) %then%
-          shiny::need(!is.null(r$query_result), lang$need_query_result) %then%
-          shiny::need(!is.null(r$final_result), lang$need_final_result)
+  }, ignoreNULL = TRUE)
+  
+  observe({
+    req(r$final_result)
+    r$summary_table <- purrr::safely(summarise_data)(r$final_result, input$summary_groups)$result
+  })
+  output$summary_table <- renderDT({
+    shiny::validate(
+      shiny::need(r$is_open || gl$app_deployment_environment == 'prod', lang$need_auth) %then%
+        shiny::need(!is.null(r$items_file), lang$need_items_file) %then%
+        shiny::need(!is.null(r$items), lang$need_valid_input) %then%
+        shiny::need(r$query_was_tried, lang$need_run) %then%
+        shiny::need(!is.null(r$query_result), lang$need_query_result) %then%
+        shiny::need(!is.null(r$final_result), lang$need_final_result)
+    )
+    datatable(
+      r$summary_table,
+      filter = 'top',
+      options = list(
+        scrollX = TRUE,
+        scrollY = '400px'
       )
-      datatable(
-        r$summary_table,
-        filter = 'top',
-        options = list(
-          scrollX = TRUE,
-          scrollY = '400px'
-        )
-      ) %>%
-          formatCurrency(columns = c('avg_sales', 'avg_forecast', 'total_cost',	'avg_cost',	'total_vnpk_fin'), digits = 0, currency = '')
-    
-    })
-    }, ignoreNULL = TRUE)
-  
-  
+    ) %>%
+      formatCurrency(columns = c('avg_sales', 'avg_forecast', 'total_cost',	'avg_store_cost',	'total_vnpk', 'avg_store_vnpk'), digits = 0, currency = '')
+  })
   
   output$output_feature_select_ui <- renderUI({
     req(r$items)
@@ -254,7 +255,7 @@ shinyServer(function(input, output, session){
       group_by(feature_nbr, feature_name, store_nbr) %>% 
       summarise(
         feature_perc_qty = round(sum(feature_qty_fin), 5) / mean(max_feature_qty),
-        feature_cost = sum(store_tot_cost),
+        feature_cost = sum(store_cost),
         feature_qty_fin = sum(feature_qty_fin)
       ) %>% 
       ungroup() %>% 

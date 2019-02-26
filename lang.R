@@ -19,6 +19,7 @@ lang <- list(
   tab_output_summary = 'Resultados (resumen)',
   tab_output_table = 'Resultados (tabla)',
   feature = 'Promoción',
+  summary_groups = 'Nivel de detalle',
   ## Validation
   need_items_file = 'Cargar un archivo de items para comenzar.',
   need_auth = 'Iniciar sesión para continuar.',
