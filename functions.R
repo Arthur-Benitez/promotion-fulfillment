@@ -190,7 +190,7 @@ perform_computations <- function(data) {
       starts_with('feature_'),
       everything()
     ) %>% 
-    arrange(feature_nbr, store_nbr)
+    arrange(feature_nbr, store_nbr, old_nbr)
   new_columns <- setdiff(names(data), initial_columns)
   data %>% 
     mutate_at(new_columns, funs(replace_na(., 0)))
@@ -198,25 +198,38 @@ perform_computations <- function(data) {
 
 ## Tabla de resumen
 summarise_data <- function(data, level = c('item', 'feature', 'total')) {
+  ## Nivel de agregación inicial y final
   level <- level[1]
+  grp0 <- c('feature_nbr', 'feature_name', 'cid', 'old_nbr')
   grp <- switch(
     level,
-    item = c('feature_nbr', 'feature_name', 'cid', 'old_nbr'),
+    item = grp0,
     feature = c('feature_nbr', 'feature_name'),
-    total = NULL
-  ) %>% 
-    syms()
+    total = 'feature_name'
+  )
+  if (level == 'total') {
+    data <- data %>% 
+      mutate(feature_name = 'Total')
+  }
+  ## Número de tiendas distintas por grupo
+  n_stores <- data %>% 
+    group_by(!!!syms(grp)) %>% 
+    summarise(
+      n_stores = n_distinct(store_nbr)
+    ) %>% 
+    ungroup()
+  ## Sumarizar a nivel grp
   data_summary <- data  %>%
-    group_by(!!!grp, store_nbr) %>%
+    group_by(!!!syms(grp0), store_nbr) %>%
     summarise(
       sales = ifelse(any(fcst_or_sales == 'S'), sum(avg_dly_pos_or_fcst[fcst_or_sales=='S']), NA_real_),
       forecast = ifelse(any(fcst_or_sales == 'F'), sum(avg_dly_pos_or_fcst[fcst_or_sales=='F']), NA_real_),
       store_cost = sum(store_cost),
       total_vnpk_fin = sum(vnpk_fin)
     ) %>% 
-    group_by(!!!grp) %>%
+    group_by(!!!syms(grp0)) %>%
     summarise(
-      store_qty = n(), ## Número de tiendas
+      #store_qty = n(), ## Ahora se calcula por separado porque no se puede hacer despuÃ©s del paso previo
       avg_sales = mean(sales, na.rm = TRUE),
       avg_forecast = mean(forecast, na.rm = TRUE),
       total_cost = sum(store_cost),
@@ -224,7 +237,27 @@ summarise_data <- function(data, level = c('item', 'feature', 'total')) {
       total_vnpk = sum(total_vnpk_fin),
       avg_store_vnpk = mean(total_vnpk_fin)
     ) %>% 
-    ungroup()
+    replace(., is.na(.), NA) %>% 
+    ungroup() %>% 
+    select(-one_of(setdiff(grp0, grp)))
+  if (all.equal(grp, grp0) != TRUE) {
+    data_summary <- data_summary %>% 
+      group_by(!!!syms(grp)) %>% 
+      summarise_all(function(x){
+        if (all(is.na(x))) {
+          NA
+        } else {
+          sum(x, na.rm = TRUE)
+        }
+      })
+  }
+  ## Juntar todo
+  data_summary <- data_summary %>% 
+    left_join(n_stores, by = grp) %>% 
+    ungroup() %>% 
+    arrange(!!!syms(grp)) %>% 
+    select(!!!grp, n_stores, everything())
+  
   return(data_summary)
 }
 

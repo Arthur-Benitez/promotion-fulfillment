@@ -175,6 +175,7 @@ shinyServer(function(input, output, session){
   }, ignoreNULL = TRUE)
   
   observe({
+    req(r$final_result)
     r$summary_table <- purrr::safely(summarise_data)(r$final_result, input$summary_groups)$result
   })
   output$summary_table <- renderDT({
