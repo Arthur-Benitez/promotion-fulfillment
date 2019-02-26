@@ -46,6 +46,9 @@ body <- dashboardBody(
         box(
           width = 3,
           login,
+          selectInput('date_format', lang$date_format, c('yyyy-mm-dd' = '%Y-%m-%d',
+                                                         'dd/mm/yyyy' = '%d/%m/%Y',
+                                                         'mm/dd/yyyy' = '%m/%d/%Y')),
           uiOutput('items_ui'),
           actionButton('run', lang$run, icon = icon('play')),
           actionButton('reset', lang$reset, icon = icon('redo-alt')),

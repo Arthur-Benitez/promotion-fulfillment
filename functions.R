@@ -1,19 +1,29 @@
 
+## Generar espeficicación de columnas para readr
+generate_cols_spec <- function(columns, date_format = '%Y-%m-%d') {
+  cs <- cols(.default = col_character())
+  for (x in names(columns)) {
+    cs$cols[[x]] <- switch(
+      columns[x],
+      'integer' = col_integer(),
+      'numeric' = col_double(),
+      'character' = col_character(),
+      'date' = col_date(format = date_format)
+    )
+  }
+  cs
+}
+
 ## Leer entrada
-parse_input <- function(input_file, gl) {
+parse_input <- function(input_file, gl, date_format = '%Y-%m-%d') {
+  # browser()
   tryCatch({
-    x <- read_excel(
-      path = input_file,
-      sheet = 1,
+    x <- read_csv(
+      file = input_file,
       col_names = TRUE,
-      col_types = 'guess',
-      guess_max = 50000
-    ) %>% 
-      set_names(tolower(names(.)))
+      col_types = generate_cols_spec(gl$cols, date_format = date_format)
+    )
     x <- x[names(gl$cols)]
-    for (v in names(x)) {
-      x[[v]] <- as(x[[v]], gl$cols[[v]])
-    }
     if (anyNA(x)) {
       flog.info('MISSING VALUES PRESENT. INPUT PARSING ABORTED.')
       return(NULL)
@@ -36,8 +46,7 @@ validate_input <- function(data, gl) {
     ## Condiciones básicas
     !is.data.frame(data) ||
     nrow(data) == 0 ||
-    length(setdiff(names(gl$cols), names(data))) > 0 ||
-    any(map_chr(data[names(gl$cols)], class) != gl$cols)
+    length(setdiff(names(gl$cols), names(data))) > 0
   ) {
     return(FALSE)
   } else {

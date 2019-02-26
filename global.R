@@ -39,7 +39,9 @@ gl <- list(
     'max_ddv' = 'numeric',
     'semana_ini' = 'numeric',
     'semana_fin' = 'numeric',
-    'fcst_or_sales' = 'character'
+    'fcst_or_sales' = 'character',
+    'StartDate' = 'date',
+    'EndDate' = 'date'
   ),
   feature_const_cols = c(
     'dept_nbr',
@@ -47,7 +49,9 @@ gl <- list(
     'max_feature_qty',
     'semana_ini',
     'semana_fin',
-    'fcst_or_sales'
+    'fcst_or_sales',
+    'StartDate',
+    'EndDate'
   ),
   negocios = c(
     'SUPERCENTER',

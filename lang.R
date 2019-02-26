@@ -9,6 +9,7 @@ lang <- list(
   password = 'Contraseña',
   run = 'Correr',
   reset = 'Reset',
+  date_format = 'Formato de fechas',
   items = 'Items',
   browse = 'Archivo...',
   browse_empty = 'Seleccionar un archivo',

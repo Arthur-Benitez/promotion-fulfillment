@@ -103,7 +103,8 @@ shinyServer(function(input, output, session){
   observeEvent(input$items, {
     r$items_file <- input$items$datapath
   })
-  observeEvent(r$items_file, {
+  observe({
+    req(r$items_file, input$date_format)
     # req(input$items)
     flog.info(toJSON(list(
       message = 'PARSING ITEMS FILE',
@@ -111,8 +112,8 @@ shinyServer(function(input, output, session){
         file = r$items_file
       )
     )))
-    r$items <- parse_input(r$items_file, gl)
-  }, ignoreNULL = TRUE)
+    r$items <- parse_input(r$items_file, gl, input$date_format)
+  })
   items_is_valid <- eventReactive(r$items, {
     # req(r$items)
     flog.info(toJSON(list(
@@ -293,6 +294,7 @@ shinyServer(function(input, output, session){
     r$items <- NULL
     r$query_result <- NULL
     r$final_result <- NULL
+    r$summary_table <- NULL
     r$query_was_tried <- NULL
   })
   
