@@ -27,8 +27,7 @@ if (gl$app_deployment_environment == 'dev') {
   login <- tagList(
     textInput('user', lang$user),
     passwordInput('password', lang$password),
-    actionButton('auth', lang$login, icon = icon('sign-in-alt'),
-                 style="color: #fff; background-color: #26cc26;"),
+    uiOutput('auth_ui'),
     tags$hr()
   )
 } else {
@@ -36,6 +35,7 @@ if (gl$app_deployment_environment == 'dev') {
 }
 body <- dashboardBody(
   useShinyjs(),
+  useShinyalert(),
   tags$head(
     tags$link(rel = 'stylesheet', type = 'text/css', href = 'theme.css')
   ),

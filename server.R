@@ -30,6 +30,11 @@ shinyServer(function(input, output, session){
     fileInput('items', label = lang$items, buttonLabel = lang$browse, placeholder = lang$browse_empty)
   })
   
+  output$auth_ui <- renderUI({
+    actionButton('auth', label = lang$login, icon = icon('sign-out-alt'),
+                 style="color: #fff; background-color: #3BC136;")
+  })
+  
   ## Login a Teradata
   observeEvent(input$auth, {
     r$is_open <- tryCatch({
@@ -50,8 +55,10 @@ shinyServer(function(input, output, session){
         r$ch <- odbcDriverConnect(sprintf("Driver={Teradata};DBCName=WMG;UID=f0g00bq;AUTHENTICATION=ldap;AUTHENTICATIONPARAMETER=%s", paste0(input$user, '@@', input$password)))
         odbcGetInfo(r$ch) ## Truena si no se abrió la conexión
         r$is_open <- TRUE
-        input$auth
-        actionButton(session, 'auth', label = lang$logout, icon = icon('sign-out-alt'))
+        output$auth_ui <- renderUI({
+          actionButton('auth', label = lang$logout, icon = icon('sign-out-alt'),
+                       style="color: #fff; background-color: #f42e2e;")
+        })
         flog.info(toJSON(list(
           message = 'USER LOGIN SUCCESSFUL',
           details = list(
@@ -59,11 +66,12 @@ shinyServer(function(input, output, session){
           )
         )))
       }, error = function(e){
-        showModal(modalDialog(
-          title = "Error al iniciar sesión",
-          "El usuario o la contraseña no son válidos",
-          footer = modalButton("Aceptar")
-        ))
+        # showModal(modalDialog(
+        #   title = "Error al iniciar sesión",
+        #   "El usuario o la contraseña no son válidos",
+        #   footer = modalButton("Aceptar")
+        # ))
+        shinyalert("Error", "El usuario o la contraseña no son válidos", type = "error")
         flog.info(toJSON(list(
           message = 'USER LOGIN FAILED',
           details = list(
@@ -74,9 +82,14 @@ shinyServer(function(input, output, session){
     } else {
       odbcClose(r$ch)
       r$is_open <- FALSE
+      
       updateActionButton(session, 'auth', label = lang$login, icon = icon('sign-in-alt'))
       updateTextInput(session, 'user', value = '')
       updateTextInput(session, 'password', value = '')
+      output$auth_ui <- renderUI({
+        actionButton('auth', label = lang$login, icon = icon('sign-out-alt'),
+                     style="color: #fff; background-color: #3BC136;")
+      })
       flog.info(toJSON(list(
         message = 'USER LOGOUT SUCCESSFUL',
         details = list(
