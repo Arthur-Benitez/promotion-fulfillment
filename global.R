@@ -12,6 +12,7 @@ library(shinycssloaders)
 library(DT)
 library(shinydashboard)
 library(futile.logger)
+library(shinyalert)
 
 
 options(readr.default_locale=readr::locale(tz = ''))
