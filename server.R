@@ -220,9 +220,9 @@ shinyServer(function(input, output, session){
   output$output_feature_select_ui <- renderUI({
     req(r$items)
     choices <- r$items %>% 
-      select(feature_nbr, feature_name) %>%
-      distinct() %>% 
-      with(feature_nbr %>% set_names(paste(feature_nbr, feature_name, sep = ' - ')))
+      pull(feature_name) %>%
+      unique() %>% 
+      sort()
     selectInput(
       inputId = 'output_feature_select',
       label = lang$feature,
@@ -250,9 +250,9 @@ shinyServer(function(input, output, session){
       sep = ' - '
     )
     filt <- r$final_result %>% 
-      filter(feature_nbr == input$output_feature_select)
+      filter(feature_name == input$output_feature_select)
     x <- filt %>% 
-      group_by(feature_nbr, feature_name, store_nbr) %>% 
+      group_by(feature_name, store_nbr) %>% 
       summarise(
         feature_perc_qty = round(sum(feature_qty_fin), 5) / mean(max_feature_qty),
         feature_cost = sum(store_cost),

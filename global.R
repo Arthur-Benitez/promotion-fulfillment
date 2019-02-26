@@ -31,7 +31,6 @@ gl <- list(
   app_version = '0.1.3',
   app_version_date = '2019-02-21',
   cols = c(
-    'feature_nbr' = 'character',
     'feature_name' = 'character',
     'dept_nbr' = 'numeric',
     'negocio' = 'character',
@@ -43,7 +42,6 @@ gl <- list(
     'fcst_or_sales' = 'character'
   ),
   feature_const_cols = c(
-    'feature_name',
     'dept_nbr',
     'negocio',
     'max_feature_qty',

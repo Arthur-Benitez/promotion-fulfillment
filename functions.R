@@ -10,6 +10,7 @@ parse_input <- function(input_file, gl) {
       guess_max = 50000
     ) %>% 
       set_names(tolower(names(.)))
+    x <- x[names(gl$cols)]
     for (v in names(x)) {
       x[[v]] <- as(x[[v]], gl$cols[[v]])
     }
@@ -31,7 +32,6 @@ parse_input <- function(input_file, gl) {
 
 ## Validar inputs
 validate_input <- function(data, gl) {
-  # browser()
   if (
     ## Condiciones básicas
     !is.data.frame(data) ||
@@ -45,7 +45,7 @@ validate_input <- function(data, gl) {
       cond <- c(
         ## Checar las columnas que deben ser constantes por feature
         data %>% 
-          group_by(feature_nbr) %>% 
+          group_by(feature_name) %>% 
           summarise_at(gl$feature_const_cols, funs(length(unique(.)))) %>% 
           ungroup() %>% 
           select_at(gl$feature_const_cols) %>% 
@@ -55,7 +55,7 @@ validate_input <- function(data, gl) {
         all(data$negocio %in% gl$negocios),
         ## No se deben repetir artículos por feature
         data %>% 
-          group_by(feature_nbr) %>% 
+          group_by(feature_name) %>% 
           summarise(n_dups = sum(duplicated(old_nbr))) %>% 
           pull(n_dups) %>% 
           sum() %>% 
@@ -158,7 +158,7 @@ run_query <- function(ch, input_data) {
 perform_computations <- function(data) {
   initial_columns <- names(data)
   data <- data %>% 
-    group_by(feature_nbr, store_nbr) %>% 
+    group_by(feature_name, store_nbr) %>% 
     mutate(
       feature_perc_pos_or_fcst = avg_dly_pos_or_fcst / sum(avg_dly_pos_or_fcst)
     ) %>% 
@@ -174,7 +174,6 @@ perform_computations <- function(data) {
     ) %>% 
     ungroup() %>% 
     select(
-      feature_nbr,
       feature_name,
       store_nbr,
       dept_nbr,
@@ -190,7 +189,7 @@ perform_computations <- function(data) {
       starts_with('feature_'),
       everything()
     ) %>% 
-    arrange(feature_nbr, store_nbr, old_nbr)
+    arrange(feature_name, store_nbr, old_nbr)
   new_columns <- setdiff(names(data), initial_columns)
   data %>% 
     mutate_at(new_columns, funs(replace_na(., 0)))
@@ -200,11 +199,12 @@ perform_computations <- function(data) {
 summarise_data <- function(data, level = c('item', 'feature', 'total')) {
   ## Nivel de agregación inicial y final
   level <- level[1]
-  grp0 <- c('feature_nbr', 'feature_name', 'cid', 'old_nbr')
+  stopifnot(level %in% c('item', 'feature', 'total'))
+  grp0 <- c('feature_name', 'cid', 'old_nbr')
   grp <- switch(
     level,
     item = grp0,
-    feature = c('feature_nbr', 'feature_name'),
+    feature = 'feature_name',
     total = 'feature_name'
   )
   if (level == 'total') {
