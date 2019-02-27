@@ -14,6 +14,7 @@ lang <- list(
   browse = 'Archivo...',
   browse_empty = 'Seleccionar un archivo',
   download = 'Descargar',
+  download_summary = 'Descargar resumen',
   download_template = 'Descargar formato',
   tab_input = 'Entradas',
   tab_output_histogram = 'Alcance',

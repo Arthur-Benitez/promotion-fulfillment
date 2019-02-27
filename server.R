@@ -282,11 +282,7 @@ shinyServer(function(input, output, session){
     r$query_was_tried <- NULL
   })
   
-  ## Download results
-  output$download_ui <- renderUI({
-    req(r$final_result)
-    downloadButton('download', label = lang$download, icon = icon('download'))
-  })
+  ## Descargar cálculos
   output$download <- downloadHandler(
     filename = function() {
       sprintf('estrategias_%s.csv', Sys.Date())
@@ -297,11 +293,7 @@ shinyServer(function(input, output, session){
     contentType = 'text/csv'
   )
   
-  ## Download results
-  output$download_summary_ui <- renderUI({
-    req(r$summary_table)
-    downloadButton('download_summary', label = lang$download, icon = icon('download'))
-  })
+  ## Descargar resumen
   output$download_summary <- downloadHandler(
     filename = function() {
       sprintf('resumen_%s.csv', Sys.Date())
@@ -312,7 +304,7 @@ shinyServer(function(input, output, session){
     contentType = 'text/csv'
   )
   
-  ## Download template
+  ## Descargar template
   output$download_template <- downloadHandler(
     filename = 'promo-fulfillment-sample.xlsx',
     content = function(file) {
