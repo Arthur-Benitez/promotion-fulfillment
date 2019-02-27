@@ -160,7 +160,7 @@ shinyServer(function(input, output, session){
       )
       percent_columns <- c('feature_perc_pos_or_fcst')
       decimal_columns <- c('avg_dly_pos_or_fcst',	'feature_qty_req', 'feature_ddv_req','feature_ddv_fin',
-                           'feature_qty_fin', 'display_key', 'store_cost', 'vnpk_fin')
+                           'feature_qty_fin', 'display_key', 'store_cost', 'vnpk_fin', 'cost')
       r$final_result %>%
         mutate_at(vars(percent_columns), funs(100 * .)) %>%
         datatable(
@@ -170,9 +170,8 @@ shinyServer(function(input, output, session){
             scrollY = '400px'
           )
         ) %>%
-        formatCurrency(columns = decimal_columns, digits = 0, currency = '') %>%
-        formatCurrency(columns = percent_columns, digits = 1, currency = '%', before = FALSE) %>%
-        formatCurrency(columns = 'cost', digits = 1, currency = '')
+        formatCurrency(columns = decimal_columns, digits = 1, currency = '') %>%
+        formatCurrency(columns = percent_columns, digits = 1, currency = '%', before = FALSE)
       })
     #percent_columns <- c('')
   }, ignoreNULL = TRUE)
@@ -271,6 +270,7 @@ shinyServer(function(input, output, session){
         showlegend = FALSE
       )
   })
+  
   ## Reset
   observeEvent(input$reset, {
     ## Esto es necesario porque al resetear la UI de input$items, no cambia el datapath
