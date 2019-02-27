@@ -76,7 +76,7 @@ body <- dashboardBody(
                 'summary_groups',
                 label = lang$summary_groups,
                 choices = c('feature_name', 'cid', 'store_nbr') %>% 
-                  set_names(c('Promo', 'Artículo', 'Tienda')),
+                  set_names(c(lang$feature_name, lang$cid, lang$store_nbr)),
                 selected = c('feature_name', 'cid'),
                 inline = TRUE
               ),
