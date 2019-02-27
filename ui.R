@@ -66,8 +66,14 @@ body <- dashboardBody(
           tabPanel(
             value = 'output_summary',
             title = lang$tab_output_summary,
-            uiOutput('download_summary_ui'),
-            selectInput('summary_groups', lang$summary_groups, choices = c('detail', 'item', 'feature', 'total'), selected = 'item'),
+            tags$div(
+              class = 'inline-inputs',
+              selectInput('summary_groups', lang$summary_groups, choices = c('detail', 'item', 'feature', 'total'), selected = 'item'),
+              tags$div(
+                class = 'inline-button-wrapper',
+                downloadButton('download_summary', label = lang$download, icon = icon('download'))
+              )
+            ),
             DTOutput('summary_table')
           ),
           tabPanel(
