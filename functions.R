@@ -71,6 +71,8 @@ validate_input <- function(data, gl) {
       cond <- c(
         ## Checar que no haya valores faltantes
         !anyNA(data),
+        ## Checar que feature_name no tenga espacios
+        all(!str_detect(data$feature_name, ' ')),
         ## Checar las columnas que deben ser constantes por feature
         data %>% 
           group_by(feature_name) %>% 
