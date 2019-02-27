@@ -314,9 +314,18 @@ shinyServer(function(input, output, session){
   
   ## Descargar template
   output$download_template <- downloadHandler(
-    filename = 'promo-fulfillment-sample.xlsx',
+    filename = 'promo-fulfillment-template.csv',
     content = function(file) {
-      file.copy('data/sample-input.xlsx', file)
+      file.copy('data/sample-input.csv', file)
+    },
+    contentType = 'text/csv'
+  )
+  
+  ## Descargar instrucciones
+  output$download_instructions <- downloadHandler(
+    filename = 'promo-fulfillment-instructions.xlsx',
+    content = function(file) {
+      file.copy('data/instructions.xlsx', file)
     },
     contentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
   )
