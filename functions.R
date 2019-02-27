@@ -71,6 +71,8 @@ validate_input <- function(data, gl) {
       cond <- c(
         ## Checar que no haya valores faltantes
         !anyNA(data),
+        ## Checar que feature_name sea de longitid <= 22 caracteres (para que en total sean <= 40 para GRS)
+        all(nchar(data$feature_name) <= 22),
         ## Checar que feature_name no tenga espacios
         all(!str_detect(data$feature_name, ' ')),
         ## Checar las columnas que deben ser constantes por feature
