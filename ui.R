@@ -46,10 +46,17 @@ body <- dashboardBody(
         box(
           width = 3,
           login,
+          selectInput('date_format', lang$date_format, c('yyyy-mm-dd' = '%Y-%m-%d',
+                                                         'dd/mm/yyyy' = '%d/%m/%Y',
+                                                         'mm/dd/yyyy' = '%m/%d/%Y')),
           uiOutput('items_ui'),
+          tags$div(
+            style = 'margin-bottom: 20px;',
+            downloadButton('download_instructions', lang$download_instructions, icon = icon('download')),
+            downloadButton('download_template', lang$download_template, icon = icon('download'))
+          ),
           actionButton('run', lang$run, icon = icon('play')),
-          actionButton('reset', lang$reset, icon = icon('redo-alt')),
-          downloadButton('download_template', lang$download_template, icon = icon('download'))
+          actionButton('reset', lang$reset, icon = icon('redo-alt'))
         ),
         tabBox(
           id = 'io',
@@ -63,8 +70,29 @@ body <- dashboardBody(
           tabPanel(
             value = 'output_summary',
             title = lang$tab_output_summary,
-            uiOutput('download_summary_ui'),
-            selectInput('summary_groups', lang$summary_groups, choices = c('item', 'feature', 'total'), selected = 'item'),
+            tags$div(
+              class = 'inline-inputs',
+              checkboxGroupInput(
+                'summary_groups',
+                label = lang$summary_groups,
+                choices = c('feature_name', 'cid', 'store_nbr') %>% 
+                  set_names(c(lang$feature_name, lang$cid, lang$store_nbr)),
+                selected = c('feature_name', 'cid'),
+                inline = TRUE
+              ),
+              tags$div(
+                class = 'inline-button-wrapper',
+                uiOutput('download_summary_ui')
+              ),
+              tags$div(
+                class = 'inline-button-wrapper',
+                uiOutput('download_header_ui')
+              ),
+              tags$div(
+                class = 'inline-button-wrapper',
+                uiOutput('download_detail_ui')
+              )
+            ),
             DTOutput('summary_table')
           ),
           tabPanel(

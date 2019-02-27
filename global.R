@@ -31,8 +31,8 @@ gl <- list(
   app_version = '0.1.3',
   app_version_date = '2019-02-21',
   cols = c(
-    'feature_nbr' = 'character',
     'feature_name' = 'character',
+    'user' = 'character',
     'dept_nbr' = 'numeric',
     'negocio' = 'character',
     'old_nbr' = 'numeric',
@@ -40,16 +40,20 @@ gl <- list(
     'max_ddv' = 'numeric',
     'semana_ini' = 'numeric',
     'semana_fin' = 'numeric',
-    'fcst_or_sales' = 'character'
+    'fcst_or_sales' = 'character',
+    'StartDate' = 'date',
+    'EndDate' = 'date'
   ),
   feature_const_cols = c(
-    'feature_name',
+    'user',
     'dept_nbr',
     'negocio',
     'max_feature_qty',
     'semana_ini',
     'semana_fin',
-    'fcst_or_sales'
+    'fcst_or_sales',
+    'StartDate',
+    'EndDate'
   ),
   negocios = c(
     'SUPERCENTER',

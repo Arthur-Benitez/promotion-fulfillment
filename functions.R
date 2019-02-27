@@ -1,51 +1,83 @@
 
+## Generar espeficicación de columnas para readr
+generate_cols_spec <- function(columns, date_format = '%Y-%m-%d') {
+  cs <- cols(.default = col_character())
+  for (x in names(columns)) {
+    cs$cols[[x]] <- switch(
+      columns[x],
+      'integer' = col_integer(),
+      'numeric' = col_double(),
+      'character' = col_character(),
+      'date' = col_date(format = date_format)
+    )
+  }
+  cs
+}
+
 ## Leer entrada
-parse_input <- function(input_file, gl) {
+parse_input <- function(input_file, gl, date_format = '%Y-%m-%d') {
   tryCatch({
-    x <- read_excel(
-      path = input_file,
-      sheet = 1,
+    flog.info(toJSON(list(
+      message = 'PARSING ITEMS FILE',
+      details = list(
+        file = input_file
+      )
+    )))
+    x <- read_csv(
+      file = input_file,
       col_names = TRUE,
-      col_types = 'guess',
-      guess_max = 50000
+      col_types = generate_cols_spec(gl$cols, date_format = date_format)
     ) %>% 
-      set_names(tolower(names(.)))
-    for (v in names(x)) {
-      x[[v]] <- as(x[[v]], gl$cols[[v]])
-    }
-    if (anyNA(x)) {
-      flog.info('MISSING VALUES PRESENT. INPUT PARSING ABORTED.')
+      .[names(gl$cols)] %>% 
+      mutate(
+        display_key = paste(dept_nbr, old_nbr, negocio, sep = '.'),
+        split_var = paste(semana_ini, semana_fin, fcst_or_sales, sep = '-')
+      )
+    if (validate_input(x, gl)) {
+      flog.info(toJSON(list(
+        message = 'INPUT PARSING DONE',
+        details = list(
+          file = input_file
+        )
+      )))
+      return(x)
+    } else {
+      flog.info(toJSON(list(
+        message = 'INPUT PARSING ABORTED',
+        details = list(
+          file = input_file,
+          reason = 'Invalid input'
+        )
+      )))
       return(NULL)
     }
-    x <- prepare_input(x)
-    if (!validate_input(x, gl)) {
-      flog.info('INVALID INPUT. INPUT PARSING ABORTED.')
-      return(NULL)
-    }
-    x
   }, error = function(e){
-    NULL
+    return(NULL)
   })
 }
 
 
 ## Validar inputs
 validate_input <- function(data, gl) {
-  # browser()
   if (
     ## Condiciones básicas
     !is.data.frame(data) ||
     nrow(data) == 0 ||
-    length(setdiff(names(gl$cols), names(data))) > 0 ||
-    any(map_chr(data[names(gl$cols)], class) != gl$cols)
+    length(setdiff(names(gl$cols), names(data))) > 0
   ) {
     return(FALSE)
   } else {
     tryCatch({
       cond <- c(
+        ## Checar que no haya valores faltantes
+        !anyNA(data),
+        ## Checar que feature_name sea de longitid <= 22 caracteres (para que en total sean <= 40 para GRS)
+        all(nchar(data$feature_name) <= 22),
+        ## Checar que feature_name no tenga espacios
+        all(!str_detect(data$feature_name, ' ')),
         ## Checar las columnas que deben ser constantes por feature
         data %>% 
-          group_by(feature_nbr) %>% 
+          group_by(feature_name) %>% 
           summarise_at(gl$feature_const_cols, funs(length(unique(.)))) %>% 
           ungroup() %>% 
           select_at(gl$feature_const_cols) %>% 
@@ -55,7 +87,7 @@ validate_input <- function(data, gl) {
         all(data$negocio %in% gl$negocios),
         ## No se deben repetir artículos por feature
         data %>% 
-          group_by(feature_nbr) %>% 
+          group_by(feature_name) %>% 
           summarise(n_dups = sum(duplicated(old_nbr))) %>% 
           pull(n_dups) %>% 
           sum() %>% 
@@ -77,15 +109,6 @@ validate_input <- function(data, gl) {
   }
 }
 
-## Preparar inputs
-prepare_input <- function(data) {
-  ## Requiere que data haya pasado validate_input
-  data %>% 
-    mutate(
-      display_key = paste(dept_nbr, old_nbr, negocio, sep = '.'),
-      split_var = paste(semana_ini, semana_fin, fcst_or_sales, sep = '-')
-    )
-}
 
 ## Correr query
 prepare_query <- function(query, keys, old_nbrs, wk_inicio, wk_final) {
@@ -158,7 +181,7 @@ run_query <- function(ch, input_data) {
 perform_computations <- function(data) {
   initial_columns <- names(data)
   data <- data %>% 
-    group_by(feature_nbr, store_nbr) %>% 
+    group_by(feature_name, store_nbr) %>% 
     mutate(
       feature_perc_pos_or_fcst = avg_dly_pos_or_fcst / sum(avg_dly_pos_or_fcst)
     ) %>% 
@@ -174,7 +197,6 @@ perform_computations <- function(data) {
     ) %>% 
     ungroup() %>% 
     select(
-      feature_nbr,
       feature_name,
       store_nbr,
       dept_nbr,
@@ -190,76 +212,100 @@ perform_computations <- function(data) {
       starts_with('feature_'),
       everything()
     ) %>% 
-    arrange(feature_nbr, store_nbr, old_nbr)
+    arrange(feature_name, store_nbr, old_nbr)
   new_columns <- setdiff(names(data), initial_columns)
   data %>% 
     mutate_at(new_columns, funs(replace_na(., 0)))
 }
 
 ## Tabla de resumen
-summarise_data <- function(data, level = c('item', 'feature', 'total')) {
-  ## Nivel de agregación inicial y final
-  level <- level[1]
-  grp0 <- c('feature_nbr', 'feature_name', 'cid', 'old_nbr')
-  grp <- switch(
-    level,
-    item = grp0,
-    feature = c('feature_nbr', 'feature_name'),
-    total = 'feature_name'
-  )
-  if (level == 'total') {
+summarise_data <- function(data, group = c('feature_name', 'cid')) {
+  ## Checks
+  stopifnot(is.null(group) || all(group %in% c('feature_name', 'store_nbr', 'cid')))
+  ## Cambios a combinaciones específicas
+  if ('cid' %in% group) {
+    group <- c(group, 'old_nbr')
+  }
+  if (is.null(group)) {
+    group <- 'feature_name'
     data <- data %>% 
       mutate(feature_name = 'Total')
   }
-  ## Número de tiendas distintas por grupo
-  n_stores <- data %>% 
-    group_by(!!!syms(grp)) %>% 
-    summarise(
-      n_stores = n_distinct(store_nbr)
-    ) %>% 
-    ungroup()
-  ## Sumarizar a nivel grp
-  data_summary <- data  %>%
-    group_by(!!!syms(grp0), store_nbr) %>%
-    summarise(
-      sales = ifelse(any(fcst_or_sales == 'S'), sum(avg_dly_pos_or_fcst[fcst_or_sales=='S']), NA_real_),
-      forecast = ifelse(any(fcst_or_sales == 'F'), sum(avg_dly_pos_or_fcst[fcst_or_sales=='F']), NA_real_),
-      store_cost = sum(store_cost),
-      total_vnpk_fin = sum(vnpk_fin)
-    ) %>% 
-    group_by(!!!syms(grp0)) %>%
-    summarise(
-      #store_qty = n(), ## Ahora se calcula por separado porque no se puede hacer despuÃ©s del paso previo
-      avg_sales = mean(sales, na.rm = TRUE),
-      avg_forecast = mean(forecast, na.rm = TRUE),
-      total_cost = sum(store_cost),
-      avg_store_cost = mean(store_cost),
-      total_vnpk = sum(total_vnpk_fin),
-      avg_store_vnpk = mean(total_vnpk_fin)
-    ) %>% 
-    replace(., is.na(.), NA) %>% 
-    ungroup() %>% 
-    select(-one_of(setdiff(grp0, grp)))
-  if (all.equal(grp, grp0) != TRUE) {
-    data_summary <- data_summary %>% 
-      group_by(!!!syms(grp)) %>% 
-      summarise_all(function(x){
-        if (all(is.na(x))) {
-          NA
-        } else {
-          sum(x, na.rm = TRUE)
-        }
-      })
+  ## Grupos de tabla de salida
+  group_order <- c('feature_name', 'store_nbr', 'cid', 'old_nbr')
+  grp <- group_order[group_order %in% group]
+  ## Variables numéricas de tabla de salida
+  vv <- c('avg_sales', 'avg_forecast', 'total_cost', 'total_qty', 'total_ddv', 'total_vnpk')
+  if ('store_nbr' %in% grp) {
+    val_vars <- vv
+  } else {
+    val_vars <- c('n_stores', vv)
   }
-  ## Juntar todo
-  data_summary <- data_summary %>% 
-    left_join(n_stores, by = grp) %>% 
+  ## Sumarizar
+  data_summary <- data  %>%
+    group_by(!!!syms(grp)) %>%
+    summarise(
+      n_stores = n_distinct(store_nbr),
+      avg_sales = ifelse(any(fcst_or_sales == 'S'), mean(avg_dly_pos_or_fcst[fcst_or_sales=='S']), NA_real_),
+      avg_forecast = ifelse(any(fcst_or_sales == 'F'), mean(avg_dly_pos_or_fcst[fcst_or_sales=='F']), NA_real_),
+      total_cost = sum(store_cost),
+      total_qty = sum(feature_qty_fin),
+      total_ddv = sum(feature_qty_fin) / sum(avg_dly_pos_or_fcst),
+      total_vnpk = sum(vnpk_fin)
+    ) %>% 
     ungroup() %>% 
     arrange(!!!syms(grp)) %>% 
-    select(!!!grp, n_stores, everything())
+    select(!!!syms(grp), !!!syms(val_vars))
   
   return(data_summary)
 }
 
 ## Función para encadenar condiciones dentro de validate()
 `%then%` <- shiny:::`%OR%`
+
+## Generar el nombre de la promo para GRS
+generate_promo_name <- function(dept_nbr, user, feature_name) {
+  sprintf('MX_D%d_CM_%s_%s', dept_nbr, toupper(user), feature_name)
+}
+
+## Generar el id de tienda en formato para GRS
+generate_loc_id <- function(store_nbr) {
+  sprintf('MX_WMT_ST_%s', str_pad(store_nbr, 5, 'left', '0'))
+}
+
+## Generar el HEADER.csv para cargar al sistema
+generate_header <- function(input_data, priority = 15) {
+  input_data %>% 
+    transmute(
+      `*Promotion` = generate_promo_name(dept_nbr, user, feature_name),
+      Description = '',
+      StartDate,
+      EndDate,
+      ApprovedSw = 'TRUE',
+      AdditiveSw = 'TRUE',
+      `CLEANSE HIST` = 'TRUE',
+      `REPLACE PRES/DISPLAY` = 'FALSE',
+      Priority = priority,
+      LiftType = 0,
+      Cal = 'DMDWK',
+      Lift = 0
+    )
+}
+
+## Generar el DETAIL.csv para cargar al sistema
+generate_detail <- function(output_data) {
+  output_data %>% 
+    transmute(
+      `*Promotion` = generate_promo_name(dept_nbr, user, feature_name),
+      `*StartDate` = StartDate,
+      `*CID DMDUNIT NBR` = cid,
+      `*DMDGroup` = '-',
+      `*Loc` = generate_loc_id(store_nbr),
+      `PRESENTATION PCT` = 0,
+      `PRESENTATION QTY ` = feature_qty_fin,
+      `OFFSET START DAYS` = 0,
+      `OFFSET END DAYS` = 0,
+      `SPMTL ORDER QTY` = 0,
+      `DISPLAY QTY` = 0,
+    )
+}

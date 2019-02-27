@@ -2,22 +2,27 @@
 lang <- list(
   ## UI
   app_name = 'Promo Fulfillment',
-  promo = 'Promo',
+  promo = 'Calculadora de Promociones',
   login = 'Login',
   logout = 'Logout',
   user = 'Usuario',
   password = 'Contraseña',
   run = 'Correr',
   reset = 'Reset',
+  date_format = 'Formato de fechas',
   items = 'Items',
   browse = 'Archivo...',
   browse_empty = 'Seleccionar un archivo',
   download = 'Descargar',
-  download_template = 'Descargar formato',
+  download_summary = 'Resumen',
+  download_header = 'HEADER',
+  download_detail = 'DETAIL',
+  download_template = 'Formato',
+  download_instructions = 'Instrucciones',
   tab_input = 'Entradas',
-  tab_output_histogram = 'Resultados (alcance)',
-  tab_output_summary = 'Resultados (resumen)',
-  tab_output_table = 'Resultados (tabla)',
+  tab_output_histogram = 'Alcance',
+  tab_output_summary = 'Resultados',
+  tab_output_table = 'Cálculos',
   feature = 'Promoción',
   summary_groups = 'Nivel de detalle',
   ## Validation
@@ -30,7 +35,12 @@ lang <- list(
   need_select_feature = 'Selecciona una promoción para continuar.',
   ## Misc
   running_query = 'Ejecutando consulta...',
-  running_computations = 'Realizando cálculos...'
+  running_computations = 'Realizando cálculos...',
+  ## Variables
+  store_nbr = 'Tienda',
+  cid = 'Artículo',
+  old_nbr = 'Artículo',
+  feature_name = 'Promoción'
 )
 
 lang$need_valid_input <- paste0('El archivo de items no está en el formato correcto.\n', lang$need_input_format)

@@ -103,25 +103,9 @@ shinyServer(function(input, output, session){
   observeEvent(input$items, {
     r$items_file <- input$items$datapath
   })
-  observeEvent(r$items_file, {
-    # req(input$items)
-    flog.info(toJSON(list(
-      message = 'PARSING ITEMS FILE',
-      details = list(
-        file = r$items_file
-      )
-    )))
-    r$items <- parse_input(r$items_file, gl)
-  }, ignoreNULL = TRUE)
-  items_is_valid <- eventReactive(r$items, {
-    # req(r$items)
-    flog.info(toJSON(list(
-      message = 'VALIDATING ITEMS FILE',
-      details = list(
-        file = r$items_file
-      )
-    )))
-    validate_input(r$items, gl)
+  observe({
+    req(r$items_file, input$date_format)
+    r$items <- parse_input(r$items_file, gl, input$date_format)
   })
   output$input_table <- renderDT({
     shiny::validate(
@@ -176,7 +160,7 @@ shinyServer(function(input, output, session){
       )
       percent_columns <- c('feature_perc_pos_or_fcst')
       decimal_columns <- c('avg_dly_pos_or_fcst',	'feature_qty_req', 'feature_ddv_req','feature_ddv_fin',
-                           'feature_qty_fin', 'display_key', 'store_cost', 'vnpk_fin')
+                           'feature_qty_fin', 'display_key', 'store_cost', 'vnpk_fin', 'cost')
       r$final_result %>%
         mutate_at(vars(percent_columns), funs(100 * .)) %>%
         datatable(
@@ -186,9 +170,8 @@ shinyServer(function(input, output, session){
             scrollY = '400px'
           )
         ) %>%
-        formatCurrency(columns = decimal_columns, digits = 0, currency = '') %>%
-        formatCurrency(columns = percent_columns, digits = 1, currency = '%', before = FALSE) %>%
-        formatCurrency(columns = 'cost', digits = 1, currency = '')
+        formatCurrency(columns = decimal_columns, digits = 1, currency = '') %>%
+        formatCurrency(columns = percent_columns, digits = 1, currency = '%', before = FALSE)
       })
     #percent_columns <- c('')
   }, ignoreNULL = TRUE)
@@ -214,15 +197,15 @@ shinyServer(function(input, output, session){
         scrollY = '400px'
       )
     ) %>%
-      formatCurrency(columns = c('avg_sales', 'avg_forecast', 'total_cost',	'avg_store_cost',	'total_vnpk', 'avg_store_vnpk'), digits = 0, currency = '')
+      formatCurrency(columns = str_subset(names(r$summary_table), '^(total|avg)_'), digits = 1, currency = '')
   })
   
   output$output_feature_select_ui <- renderUI({
     req(r$items)
     choices <- r$items %>% 
-      select(feature_nbr, feature_name) %>%
-      distinct() %>% 
-      with(feature_nbr %>% set_names(paste(feature_nbr, feature_name, sep = ' - ')))
+      pull(feature_name) %>%
+      unique() %>% 
+      sort()
     selectInput(
       inputId = 'output_feature_select',
       label = lang$feature,
@@ -243,41 +226,42 @@ shinyServer(function(input, output, session){
         shiny::need(!is.null(r$final_result), lang$need_final_result) %then%
         shiny::need(nchar(input$output_feature_select) > 0, lang$need_select_feature)
     )
-    cut_values <- c(0, 0.25, 0.50, 0.75, 1.00)
+    cut_values <- seq(0, 1, 0.2)
     cut_labels <- paste(
       scales::percent(head(cut_values, -1)),
       scales::percent(cut_values[-1]),
       sep = ' - '
     )
     filt <- r$final_result %>% 
-      filter(feature_nbr == input$output_feature_select)
-    x <- filt %>% 
-      group_by(feature_nbr, feature_name, store_nbr) %>% 
-      summarise(
-        feature_perc_qty = round(sum(feature_qty_fin), 5) / mean(max_feature_qty),
-        feature_cost = sum(store_cost),
-        feature_qty_fin = sum(feature_qty_fin)
-      ) %>% 
-      ungroup() %>% 
-      mutate(
-        feature_perc_qty_bin = cut(feature_perc_qty, breaks = cut_values, labels = cut_labels, include.lowest = TRUE)
-      )
+      filter(feature_name == input$output_feature_select)
     mfq <- unique(filt$max_feature_qty)
-    x %>% 
-      group_by(feature_perc_qty_bin) %>% 
+    filt %>% 
+      group_by(feature_name, store_nbr) %>% 
       summarise(
-        n = n(),
-        total_cost = sum(feature_cost),
-        avg_feature_qty_fin = mean(feature_qty_fin)
+        perc_max_feature_qty = round(sum(feature_qty_fin) / mean(max_feature_qty), 5),
+        store_cost = sum(store_cost),
+        store_qty = sum(feature_qty_fin)
       ) %>% 
       ungroup() %>% 
       mutate(
-        p = n / sum(n),
-        label_y = n + 0.03 * max(n),
-        label = scales::percent(p),
-        text = sprintf('Tiendas: %s (%s)<br>Costo total: %s<br>Avg. feature qty.: %s', scales::comma(n, digits = 0), scales::percent(p), scales::comma(total_cost, digits = 0), scales::comma(avg_feature_qty_fin, digits = 0))
+        perc_max_feature_qty_bin = cut(perc_max_feature_qty, breaks = cut_values, labels = cut_labels, include.lowest = TRUE)
       ) %>% 
-      plot_ly(x = ~feature_perc_qty_bin, y = ~n, text = ~text, type = 'bar', name = NULL) %>% 
+      group_by(perc_max_feature_qty_bin) %>% 
+      summarise(
+        n_stores = n(),
+        total_cost = sum(store_cost),
+        avg_store_cost = mean(store_cost),
+        total_qty = sum(store_qty),
+        avg_store_qty = mean(store_qty)
+      ) %>% 
+      ungroup() %>% 
+      mutate(
+        p_stores = n_stores / sum(n_stores),
+        label_y = n_stores + 0.03 * max(n_stores),
+        label = scales::percent(p_stores),
+        text = sprintf('Tiendas: %s (%s)<br>Costo total: %s<br>Costo promedio: %s<br>Cant. total: %s<br>Cant. promedio: %s', scales::comma(n_stores, digits = 0), scales::percent(p_stores), scales::comma(total_cost, digits = 0), scales::comma(avg_store_cost, digits = 0), scales::comma(total_qty, digits = 0), scales::comma(avg_store_qty, digits = 0))
+      ) %>% 
+      plot_ly(x = ~perc_max_feature_qty_bin, y = ~n_stores, text = ~text, type = 'bar', name = NULL) %>% 
       add_text(y = ~label_y, text = ~label, name = NULL) %>% 
       plotly::layout(
         title = 'Alcance a piezas máximas por tienda',
@@ -286,6 +270,7 @@ shinyServer(function(input, output, session){
         showlegend = FALSE
       )
   })
+  
   ## Reset
   observeEvent(input$reset, {
     ## Esto es necesario porque al resetear la UI de input$items, no cambia el datapath
@@ -293,10 +278,11 @@ shinyServer(function(input, output, session){
     r$items <- NULL
     r$query_result <- NULL
     r$final_result <- NULL
+    r$summary_table <- NULL
     r$query_was_tried <- NULL
   })
   
-  ## Download results
+  ## Descargar cálculos
   output$download_ui <- renderUI({
     req(r$final_result)
     downloadButton('download', label = lang$download, icon = icon('download'))
@@ -311,10 +297,10 @@ shinyServer(function(input, output, session){
     contentType = 'text/csv'
   )
   
-  ## Download results
+  ## Descargar resumen
   output$download_summary_ui <- renderUI({
     req(r$summary_table)
-    downloadButton('download_summary', label = lang$download, icon = icon('download'))
+    downloadButton('download_summary', label = lang$download_summary, icon = icon('download'))
   })
   output$download_summary <- downloadHandler(
     filename = function() {
@@ -326,13 +312,53 @@ shinyServer(function(input, output, session){
     contentType = 'text/csv'
   )
   
-  ## Download template
+  ## Descargar template
   output$download_template <- downloadHandler(
-    filename = 'promo-fulfillment-sample.xlsx',
+    filename = 'promo-fulfillment-template.csv',
     content = function(file) {
-      file.copy('data/sample-input.xlsx', file)
+      file.copy('data/sample-input.csv', file)
+    },
+    contentType = 'text/csv'
+  )
+  
+  ## Descargar instrucciones
+  output$download_instructions <- downloadHandler(
+    filename = 'promo-fulfillment-instructions.xlsx',
+    content = function(file) {
+      file.copy('data/instructions.xlsx', file)
     },
     contentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
   )
+  
+  ## Descargar HEADER
+  output$download_header_ui <- renderUI({
+    req(r$items)
+    downloadButton('download_header', label = lang$download_header, icon = icon('download'))
+  })
+  output$download_header <- downloadHandler(
+    filename = sprintf('HEADER_%s.csv', Sys.Date()),
+    content = function(file) {
+      r$items %>% 
+        generate_header(priority = 15) %>% 
+        write_excel_csv(path = file, na = '')
+    },
+    contentType = 'text/csv'
+  )
+  
+  ## Descargar DETAIL
+  output$download_detail_ui <- renderUI({
+    req(r$final_result)
+    downloadButton('download_detail', label = lang$download_detail, icon = icon('download'))
+  })
+  output$download_detail <- downloadHandler(
+    filename = sprintf('DETAIL_%s.csv', Sys.Date()),
+    content = function(file) {
+      r$final_result %>% 
+        generate_detail() %>% 
+        write_excel_csv(path = file, na = '')
+    },
+    contentType = 'text/csv'
+  )
+  
 })
 
