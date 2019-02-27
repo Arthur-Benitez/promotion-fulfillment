@@ -283,6 +283,10 @@ shinyServer(function(input, output, session){
   })
   
   ## Descargar cálculos
+  output$download_ui <- renderUI({
+    req(r$final_result)
+    downloadButton('download', label = lang$download, icon = icon('download'))
+  })
   output$download <- downloadHandler(
     filename = function() {
       sprintf('estrategias_%s.csv', Sys.Date())
@@ -294,6 +298,10 @@ shinyServer(function(input, output, session){
   )
   
   ## Descargar resumen
+  output$download_summary_ui <- renderUI({
+    req(r$summary_table)
+    downloadButton('download_summary', label = lang$download, icon = icon('download'))
+  })
   output$download_summary <- downloadHandler(
     filename = function() {
       sprintf('resumen_%s.csv', Sys.Date())

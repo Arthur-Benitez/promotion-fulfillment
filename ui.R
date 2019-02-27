@@ -71,7 +71,7 @@ body <- dashboardBody(
               selectInput('summary_groups', lang$summary_groups, choices = c('detail', 'store', 'item', 'feature', 'total'), selected = 'item'),
               tags$div(
                 class = 'inline-button-wrapper',
-                downloadButton('download_summary', label = lang$download_summary, icon = icon('download'))
+                uiOutput('download_summary_ui')
               )
             ),
             DTOutput('summary_table')
@@ -85,7 +85,7 @@ body <- dashboardBody(
           tabPanel(
             value = 'output_table',
             title = lang$tab_output_table,
-            downloadButton('download', label = lang$download, icon = icon('download')),
+            uiOutput('download_ui'),
             DTOutput('output_table') #%>% withSpinner(type = 8)
           )
         )
