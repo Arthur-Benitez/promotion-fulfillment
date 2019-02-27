@@ -300,7 +300,7 @@ shinyServer(function(input, output, session){
   ## Descargar resumen
   output$download_summary_ui <- renderUI({
     req(r$summary_table)
-    downloadButton('download_summary', label = lang$download, icon = icon('download'))
+    downloadButton('download_summary', label = lang$download_summary, icon = icon('download'))
   })
   output$download_summary <- downloadHandler(
     filename = function() {
@@ -320,5 +320,36 @@ shinyServer(function(input, output, session){
     },
     contentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
   )
+  
+  ## Descargar HEADER
+  output$download_header_ui <- renderUI({
+    req(r$items)
+    downloadButton('download_header', label = lang$download_header, icon = icon('download'))
+  })
+  output$download_header <- downloadHandler(
+    filename = sprintf('HEADER_%s.csv', Sys.Date()),
+    content = function(file) {
+      r$items %>% 
+        generate_header(priority = 15) %>% 
+        write_excel_csv(path = file, na = '')
+    },
+    contentType = 'text/csv'
+  )
+  
+  ## Descargar DETAIL
+  output$download_detail_ui <- renderUI({
+    req(r$final_result)
+    downloadButton('download_detail', label = lang$download_detail, icon = icon('download'))
+  })
+  output$download_detail <- downloadHandler(
+    filename = sprintf('DETAIL_%s.csv', Sys.Date()),
+    content = function(file) {
+      r$final_result %>% 
+        generate_detail() %>% 
+        write_excel_csv(path = file, na = '')
+    },
+    contentType = 'text/csv'
+  )
+  
 })
 

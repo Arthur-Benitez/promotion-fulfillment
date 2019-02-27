@@ -72,6 +72,14 @@ body <- dashboardBody(
               tags$div(
                 class = 'inline-button-wrapper',
                 uiOutput('download_summary_ui')
+              ),
+              tags$div(
+                class = 'inline-button-wrapper',
+                uiOutput('download_header_ui')
+              ),
+              tags$div(
+                class = 'inline-button-wrapper',
+                uiOutput('download_detail_ui')
               )
             ),
             DTOutput('summary_table')
