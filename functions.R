@@ -263,3 +263,22 @@ summarise_data <- function(data, level = c('detail', 'store', 'item', 'feature',
 
 ## Función para encadenar condiciones dentro de validate()
 `%then%` <- shiny:::`%OR%`
+
+## Generar el HEADER.csv para cargar al sistema
+generate_header <- function(data, priority = 15) {
+  data %>% 
+    transmute(
+      `*Promotion` = sprintf('MX_D%d_GM_%s_%s', dept_nbr, toupper(user), feature_name),
+      Description = '',
+      StartDate,
+      EndDate,
+      ApprovedSw = 'TRUE',
+      AdditiveSw = 'TRUE',
+      `CLEANSE HIST` = 'TRUE',
+      `REPLACE PRES/DISPLAY` = 'FALSE',
+      Priority = priority,
+      LiftType = 0,
+      Cal = 'DMDWK',
+      Lift = 0
+    )
+}
