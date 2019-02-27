@@ -263,7 +263,7 @@ summarise_data <- function(data, group = c('feature_name', 'cid')) {
 
 ## Generar el nombre de la promo para GRS
 generate_promo_name <- function(dept_nbr, user, feature_name) {
-  sprintf('MX_D%d_GM_%s_%s', dept_nbr, toupper(user), feature_name)
+  sprintf('MX_D%d_CM_%s_%s', dept_nbr, toupper(user), feature_name)
 }
 
 ## Generar el id de tienda en formato para GRS
