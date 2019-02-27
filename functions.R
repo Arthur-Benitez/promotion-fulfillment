@@ -264,11 +264,21 @@ summarise_data <- function(data, level = c('detail', 'store', 'item', 'feature',
 ## Función para encadenar condiciones dentro de validate()
 `%then%` <- shiny:::`%OR%`
 
+## Generar el nombre de la promo para GRS
+generate_promo_name <- function(dept_nbr, user, feature_name) {
+  sprintf('MX_D%d_GM_%s_%s', dept_nbr, toupper(user), feature_name)
+}
+
+## Generar el id de tienda en formato para GRS
+generate_loc_id <- function(store_nbr) {
+  sprintf('MX_WMT_ST_%s', str_pad(store_nbr, 5, 'left', '0'))
+}
+
 ## Generar el HEADER.csv para cargar al sistema
-generate_header <- function(data, priority = 15) {
-  data %>% 
+generate_header <- function(input_data, priority = 15) {
+  input_data %>% 
     transmute(
-      `*Promotion` = sprintf('MX_D%d_GM_%s_%s', dept_nbr, toupper(user), feature_name),
+      `*Promotion` = generate_promo_name(dept_nbr, user, feature_name),
       Description = '',
       StartDate,
       EndDate,
@@ -280,5 +290,23 @@ generate_header <- function(data, priority = 15) {
       LiftType = 0,
       Cal = 'DMDWK',
       Lift = 0
+    )
+}
+
+## Generar el DETAIL.csv para cargar al sistema
+generate_detail <- function(output_data) {
+  output_data %>% 
+    transmute(
+      `*Promotion` = generate_promo_name(dept_nbr, user, feature_name),
+      `*StartDate` = StartDate,
+      `*CID DMDUNIT NBR` = cid,
+      `*DMDGroup` = '-',
+      `*Loc` = generate_loc_id(store_nbr),
+      `PRESENTATION PCT` = 0,
+      `PRESENTATION QTY ` = feature_qty_fin,
+      `OFFSET START DAYS` = 0,
+      `OFFSET END DAYS` = 0,
+      `SPMTL ORDER QTY` = 0,
+      `DISPLAY QTY` = 0,
     )
 }
