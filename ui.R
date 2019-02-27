@@ -67,7 +67,7 @@ body <- dashboardBody(
             value = 'output_summary',
             title = lang$tab_output_summary,
             uiOutput('download_summary_ui'),
-            selectInput('summary_groups', lang$summary_groups, choices = c('item', 'feature', 'total'), selected = 'item'),
+            selectInput('summary_groups', lang$summary_groups, choices = c('detail', 'item', 'feature', 'total'), selected = 'item'),
             DTOutput('summary_table')
           ),
           tabPanel(

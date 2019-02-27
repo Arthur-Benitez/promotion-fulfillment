@@ -198,7 +198,7 @@ shinyServer(function(input, output, session){
         scrollY = '400px'
       )
     ) %>%
-      formatCurrency(columns = c('avg_sales', 'avg_forecast', 'total_cost',	'avg_store_cost',	'total_vnpk', 'avg_store_vnpk'), digits = 0, currency = '')
+      formatCurrency(columns = str_subset(names(r$summary_table), '^(total|avg)_'), digits = 0, currency = '')
   })
   
   output$output_feature_select_ui <- renderUI({
