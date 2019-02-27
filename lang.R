@@ -16,9 +16,9 @@ lang <- list(
   download = 'Descargar',
   download_template = 'Descargar formato',
   tab_input = 'Entradas',
-  tab_output_histogram = 'Resultados (alcance)',
-  tab_output_summary = 'Resultados (resumen)',
-  tab_output_table = 'Resultados (tabla)',
+  tab_output_histogram = 'Alcance',
+  tab_output_summary = 'Resultados',
+  tab_output_table = 'Cálculos',
   feature = 'Promoción',
   summary_groups = 'Nivel de detalle',
   ## Validation

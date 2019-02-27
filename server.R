@@ -227,7 +227,7 @@ shinyServer(function(input, output, session){
         shiny::need(!is.null(r$final_result), lang$need_final_result) %then%
         shiny::need(nchar(input$output_feature_select) > 0, lang$need_select_feature)
     )
-    cut_values <- c(0, 0.25, 0.50, 0.75, 1.00)
+    cut_values <- seq(0, 1, 0.2)
     cut_labels <- paste(
       scales::percent(head(cut_values, -1)),
       scales::percent(cut_values[-1]),
@@ -235,33 +235,34 @@ shinyServer(function(input, output, session){
     )
     filt <- r$final_result %>% 
       filter(feature_name == input$output_feature_select)
-    x <- filt %>% 
+    mfq <- unique(filt$max_feature_qty)
+    filt %>% 
       group_by(feature_name, store_nbr) %>% 
       summarise(
-        feature_perc_qty = round(sum(feature_qty_fin), 5) / mean(max_feature_qty),
-        feature_cost = sum(store_cost),
-        feature_qty_fin = sum(feature_qty_fin)
+        perc_max_feature_qty = round(sum(feature_qty_fin) / mean(max_feature_qty), 5),
+        store_cost = sum(store_cost),
+        store_qty = sum(feature_qty_fin)
       ) %>% 
       ungroup() %>% 
       mutate(
-        feature_perc_qty_bin = cut(feature_perc_qty, breaks = cut_values, labels = cut_labels, include.lowest = TRUE)
-      )
-    mfq <- unique(filt$max_feature_qty)
-    x %>% 
-      group_by(feature_perc_qty_bin) %>% 
+        perc_max_feature_qty_bin = cut(perc_max_feature_qty, breaks = cut_values, labels = cut_labels, include.lowest = TRUE)
+      ) %>% 
+      group_by(perc_max_feature_qty_bin) %>% 
       summarise(
-        n = n(),
-        total_cost = sum(feature_cost),
-        avg_feature_qty_fin = mean(feature_qty_fin)
+        n_stores = n(),
+        total_cost = sum(store_cost),
+        avg_store_cost = mean(store_cost),
+        total_qty = sum(store_qty),
+        avg_store_qty = mean(store_qty)
       ) %>% 
       ungroup() %>% 
       mutate(
-        p = n / sum(n),
-        label_y = n + 0.03 * max(n),
-        label = scales::percent(p),
-        text = sprintf('Tiendas: %s (%s)<br>Costo total: %s<br>Avg. feature qty.: %s', scales::comma(n, digits = 0), scales::percent(p), scales::comma(total_cost, digits = 0), scales::comma(avg_feature_qty_fin, digits = 0))
+        p_stores = n_stores / sum(n_stores),
+        label_y = n_stores + 0.03 * max(n_stores),
+        label = scales::percent(p_stores),
+        text = sprintf('Tiendas: %s (%s)<br>Costo total: %s<br>Costo promedio: %s<br>Cant. total: %s<br>Cant. promedio: %s', scales::comma(n_stores, digits = 0), scales::percent(p_stores), scales::comma(total_cost, digits = 0), scales::comma(avg_store_cost, digits = 0), scales::comma(total_qty, digits = 0), scales::comma(avg_store_qty, digits = 0))
       ) %>% 
-      plot_ly(x = ~feature_perc_qty_bin, y = ~n, text = ~text, type = 'bar', name = NULL) %>% 
+      plot_ly(x = ~perc_max_feature_qty_bin, y = ~n_stores, text = ~text, type = 'bar', name = NULL) %>% 
       add_text(y = ~label_y, text = ~label, name = NULL) %>% 
       plotly::layout(
         title = 'Alcance a piezas máximas por tienda',
