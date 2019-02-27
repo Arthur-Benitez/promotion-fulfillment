@@ -217,15 +217,15 @@ perform_computations <- function(data) {
 }
 
 ## Tabla de resumen
-summarise_data <- function(data, level = c('detail', 'item', 'feature', 'total')) {
+summarise_data <- function(data, level = c('detail', 'store', 'item', 'feature', 'total')) {
   ## Nivel de agregación
   level <- level[1]
-  stopifnot(level %in% c('detail', 'item', 'feature', 'total'))
-  grp0 <- c('feature_name', 'cid', 'old_nbr')
+  stopifnot(level %in% c('detail', 'store', 'item', 'feature', 'total'))
   grp <- switch(
     level,
-    detail = c('store_nbr', grp0),
-    item = grp0,
+    detail = c('feature_name', 'store_nbr', 'cid', 'old_nbr'),
+    store = c('feature_name', 'store_nbr'),
+    item = c('feature_name', 'cid', 'old_nbr'),
     feature = 'feature_name',
     total = 'feature_name'
   )
@@ -233,6 +233,7 @@ summarise_data <- function(data, level = c('detail', 'item', 'feature', 'total')
   val_vars <- switch(
     level,
     detail = vv,
+    store = vv,
     item = c('n_stores', vv),
     feature = c('n_stores', vv),
     total = c('n_stores', vv)

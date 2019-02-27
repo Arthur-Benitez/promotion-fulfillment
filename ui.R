@@ -68,7 +68,7 @@ body <- dashboardBody(
             title = lang$tab_output_summary,
             tags$div(
               class = 'inline-inputs',
-              selectInput('summary_groups', lang$summary_groups, choices = c('detail', 'item', 'feature', 'total'), selected = 'item'),
+              selectInput('summary_groups', lang$summary_groups, choices = c('detail', 'store', 'item', 'feature', 'total'), selected = 'item'),
               tags$div(
                 class = 'inline-button-wrapper',
                 downloadButton('download_summary', label = lang$download, icon = icon('download'))
