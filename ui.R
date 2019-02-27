@@ -68,7 +68,14 @@ body <- dashboardBody(
             title = lang$tab_output_summary,
             tags$div(
               class = 'inline-inputs',
-              selectInput('summary_groups', lang$summary_groups, choices = c('detail', 'store', 'item', 'feature', 'total'), selected = 'item'),
+              checkboxGroupInput(
+                'summary_groups',
+                label = lang$summary_groups,
+                choices = c('feature_name', 'cid', 'store_nbr') %>% 
+                  set_names(c('Promo', 'Artículo', 'Tienda')),
+                selected = c('feature_name', 'cid'),
+                inline = TRUE
+              ),
               tags$div(
                 class = 'inline-button-wrapper',
                 uiOutput('download_summary_ui')

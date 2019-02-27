@@ -12,7 +12,7 @@
 }
 
 .inline-button-wrapper {
-  margin: auto 0 30px 15px;
+  margin: auto 0 20px 15px;
 }
 
 /* Para que el botón de descargar esté inline (meterlo en renderUI le pone un div extra con display: block) */

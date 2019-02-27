@@ -217,32 +217,29 @@ perform_computations <- function(data) {
 }
 
 ## Tabla de resumen
-summarise_data <- function(data, level = c('detail', 'store', 'item', 'feature', 'total')) {
-  ## Nivel de agregación
-  level <- level[1]
-  stopifnot(level %in% c('detail', 'store', 'item', 'feature', 'total'))
-  grp <- switch(
-    level,
-    detail = c('feature_name', 'store_nbr', 'cid', 'old_nbr'),
-    store = c('feature_name', 'store_nbr'),
-    item = c('feature_name', 'cid', 'old_nbr'),
-    feature = 'feature_name',
-    total = 'feature_name'
-  )
-  vv <- c('avg_sales', 'avg_forecast', 'total_cost', 'total_qty', 'total_ddv', 'total_vnpk')
-  val_vars <- switch(
-    level,
-    detail = vv,
-    store = vv,
-    item = c('n_stores', vv),
-    feature = c('n_stores', vv),
-    total = c('n_stores', vv)
-  )
-  ## Etiqueta de totales
-  if (level == 'total') {
+summarise_data <- function(data, group = c('feature_name', 'cid')) {
+  ## Checks
+  stopifnot(is.null(group) || all(group %in% c('feature_name', 'store_nbr', 'cid')))
+  ## Cambios a combinaciones específicas
+  if ('cid' %in% group) {
+    group <- c(group, 'old_nbr')
+  }
+  if (is.null(group)) {
+    group <- 'feature_name'
     data <- data %>% 
       mutate(feature_name = 'Total')
   }
+  ## Grupos de tabla de salida
+  group_order <- c('feature_name', 'store_nbr', 'cid', 'old_nbr')
+  grp <- group_order[group_order %in% group]
+  ## Variables numéricas de tabla de salida
+  vv <- c('avg_sales', 'avg_forecast', 'total_cost', 'total_qty', 'total_ddv', 'total_vnpk')
+  if ('store_nbr' %in% grp) {
+    val_vars <- vv
+  } else {
+    val_vars <- c('n_stores', vv)
+  }
+  ## Sumarizar
   data_summary <- data  %>%
     group_by(!!!syms(grp)) %>%
     summarise(
