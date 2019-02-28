@@ -240,6 +240,7 @@ shinyServer(function(input, output, session){
         shiny::need(r$query_was_tried, lang$need_run) %then%
         shiny::need(!is.null(r$query_result), lang$need_query_result) %then%
         shiny::need(!is.null(r$final_result), lang$need_final_result) %then%
+        shiny::need(!is.null(hd$histogram_data), lang$need_final_result) %then%
         shiny::need(nchar(input$output_feature_select) > 0, lang$need_select_feature)
     )
     mfq <- unique(hd$final_results_filt$max_feature_qty)
@@ -261,14 +262,14 @@ shinyServer(function(input, output, session){
   
   ## Tabla de alcance (output)
   output$feature_histogram_table <- renderDT({
-    shiny::validate(
-      shiny::need(r$is_open || gl$app_deployment_environment == 'prod', lang$need_auth) %then%
-        shiny::need(!is.null(r$items_file), lang$need_items_file) %then%
-        shiny::need(!is.null(r$items), lang$need_valid_input) %then%
-        shiny::need(r$query_was_tried, lang$need_run) %then%
-        shiny::need(!is.null(r$query_result), lang$need_query_result) %then%
-        shiny::need(!is.null(r$final_result), lang$need_final_result) %then%
-        shiny::need(!is.null(hd$histogram_data), lang$need_final_result)
+    req(
+      r$is_open || gl$app_deployment_environment == 'prod',
+      !is.null(r$items_file),
+      !is.null(r$items),
+      r$query_was_tried,
+      !is.null(r$query_result),
+      !is.null(r$final_result),
+      !is.null(hd$histogram_data)
     )
     percent_columns <- c('p_stores')
     decimal_columns <- str_subset(names(hd$histogram_data), '^(n|total|avg)_')
@@ -278,7 +279,7 @@ shinyServer(function(input, output, session){
         filter = 'none',
         options = list(
           scrollX = TRUE,
-          scrollY = '400px'
+          scrollY = '200px'
         )
       ) %>%
       formatCurrency(columns = decimal_columns, digits = 1, currency = '') %>%
