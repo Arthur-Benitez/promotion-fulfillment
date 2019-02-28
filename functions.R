@@ -246,8 +246,9 @@ summarise_data <- function(data, group = c('feature_name', 'cid')) {
     group_by(!!!syms(grp)) %>%
     summarise(
       n_stores = n_distinct(store_nbr),
-      avg_sales = ifelse(any(fcst_or_sales == 'S'), mean(avg_dly_pos_or_fcst[fcst_or_sales=='S']), NA_real_),
-      avg_forecast = ifelse(any(fcst_or_sales == 'F'), mean(avg_dly_pos_or_fcst[fcst_or_sales=='F']), NA_real_),
+      ## Las ventas ya son promedio, así que sumándolas dan las ventas promedio de una entidad más grande
+      avg_sales = ifelse(any(fcst_or_sales == 'S'), sum(avg_dly_pos_or_fcst[fcst_or_sales=='S']), NA_real_),
+      avg_forecast = ifelse(any(fcst_or_sales == 'F'), sum(avg_dly_pos_or_fcst[fcst_or_sales=='F']), NA_real_),
       total_cost = sum(store_cost),
       total_qty = sum(feature_qty_fin),
       total_ddv = sum(feature_qty_fin) / sum(avg_dly_pos_or_fcst),

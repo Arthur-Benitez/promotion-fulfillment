@@ -67,7 +67,7 @@ gl <- list(
   max_input_rows = 100,
   max_input_queries = 10
 )
-gl$app_version_text <- sprintf('%s, (%s)', gl$app_version, gl$app_version_date)
+gl$app_version_text <- sprintf('%s (%s)', gl$app_version, gl$app_version_date)
 
 
 # Llamar módulos ----------------------------------------------------------
