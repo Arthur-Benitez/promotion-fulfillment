@@ -33,7 +33,8 @@ parse_input <- function(input_file, gl, date_format = '%Y-%m-%d') {
         display_key = paste(dept_nbr, old_nbr, negocio, sep = '.'),
         split_var = paste(semana_ini, semana_fin, fcst_or_sales, sep = '-')
       )
-    if (validate_input(x, gl)) {
+    val <- validate_input(x, gl)
+    if (isTRUE(val)) {
       flog.info(toJSON(list(
         message = 'INPUT PARSING DONE',
         details = list(
@@ -46,13 +47,20 @@ parse_input <- function(input_file, gl, date_format = '%Y-%m-%d') {
         message = 'INPUT PARSING ABORTED',
         details = list(
           file = input_file,
-          reason = 'Invalid input'
+          reason = val
         )
       )))
-      return(NULL)
+      return(val)
     }
   }, error = function(e){
-    return(NULL)
+    flog.info(toJSON(list(
+      message = 'INPUT PARSING ABORTED',
+      details = list(
+        file = input_file,
+        reason = 'Error parsing file'
+      )
+    )))
+    return('Error leyendo el archivo')
   })
 }
 
@@ -68,14 +76,20 @@ validate_input <- function(data, gl) {
     return(FALSE)
   } else {
     tryCatch({
-      cond <- c(
+      cond <- tribble(
+        ~message, ~passed,
         ## Checar que no haya valores faltantes
+        'No puede haber valores faltantes (blanks)',
         !anyNA(data),
         ## Checar que feature_name sea de longitid <= 22 caracteres (para que en total sean <= 40 para GRS)
+        'feature_name no puede tener más de 22 caracteres',
         all(nchar(data$feature_name) <= 22),
         ## Checar que feature_name no tenga espacios
+        'feature_name no puede tener espacios',
         all(!str_detect(data$feature_name, ' ')),
         ## Checar las columnas que deben ser constantes por feature
+        sprintf('Las siguientes columnas no deben variar para el mismo feature_name: %s',
+                 paste(gl$feature_const_cols, collapse = ', ')),
         data %>% 
           group_by(feature_name) %>% 
           summarise_at(gl$feature_const_cols, funs(length(unique(.)))) %>% 
@@ -83,9 +97,11 @@ validate_input <- function(data, gl) {
           select_at(gl$feature_const_cols) %>% 
           equals(1) %>% 
           all(),
-        ## Checar los negocios
+        ## Checar los negociosn
+        sprintf('Los formatos de negocio deben ser uno de: %s', paste(gl$negocios, collapse = ', ')),
         all(data$negocio %in% gl$negocios),
         ## No se deben repetir artículos por feature
+        'No se deben repetir artículos por feature_name',
         data %>% 
           group_by(feature_name) %>% 
           summarise(n_dups = sum(duplicated(old_nbr))) %>% 
@@ -93,18 +109,28 @@ validate_input <- function(data, gl) {
           sum() %>% 
           equals(0),
         ## Checar que el tipo sea F ó S
+        'fcst_or_sales debe ser F ó S',
         all(toupper(data$fcst_or_sales) %in% c('F', 'S')),
         ## Máximo de renglones
+        sprintf('El archivo de entrada no puede tener más de %d renglones', gl$max_input_rows),
         nrow(data) <= gl$max_input_rows,
         ## Máximo de queries a correr
+        sprintf('El archivo de entrada no puede tener más de %d combinaciones semana_ini-semana_fin-fcst_or_sales',
+                gl$max_input_queries),
         length(unique(data$split_var)) <= gl$max_input_queries,
         ## Semana ini <= semana fin
+        'semana_ini debe ser menor o igual a semana_fin',
         with(data, all(semana_ini <= semana_fin))
       )
-      
+      failed_idx <- which(!cond$passed)
+      if (length(failed_idx) == 0) {
+        return(TRUE)
+      } else {
+        return(cond$message[failed_idx[[1]]])
+      }
       return(all(cond))
     }, error = function(e){
-      return(FALSE)
+      return('Las pruebas fallaron')
     })
   }
 }

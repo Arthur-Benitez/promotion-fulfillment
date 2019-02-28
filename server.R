@@ -105,7 +105,13 @@ shinyServer(function(input, output, session){
   })
   observe({
     req(r$items_file, input$date_format)
-    r$items <- parse_input(r$items_file, gl, input$date_format)
+    val <- parse_input(r$items_file, gl, input$date_format)
+    if (!is.data.frame(val)) {
+      shinyalert("Error", val, type = "error", closeOnEsc = TRUE, closeOnClickOutside = TRUE)
+      r$items <- NULL
+    } else {
+      r$items <- val
+    }
   })
   output$input_table <- renderDT({
     shiny::validate(
