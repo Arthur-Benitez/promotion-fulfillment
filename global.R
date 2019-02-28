@@ -28,8 +28,8 @@ gl <- list(
     else if (dir.exists('dev')) 'dev'
     else stop('Either a directory named "dev" or a directory "prod" must exist.')
   },
-  app_version = '0.1.4',
-  app_version_date = '2019-02-27',
+  app_version = '0.1.5',
+  app_version_date = '2019-02-28',
   cols = c(
     'feature_name' = 'character',
     'user' = 'character',
