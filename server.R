@@ -213,10 +213,20 @@ shinyServer(function(input, output, session){
     )
   })
   
+  ## Tabla de alcance
+  hd <- reactiveValues(
+    final_results_filt = NULL,
+    histogram_data = NULL
+  )
+  observe({
+    req(r$final_result, input$output_feature_select)
+    hd$final_results_filt <- r$final_result %>% 
+      filter(feature_name == input$output_feature_select)
+    hd$histogram_data <- generate_histogram_data(hd$final_results_filt)
+  })
+  
+  ## Histograma de alcance
   output$feature_histogram <- renderPlotly({
-    # req(r$final_result)
-    # req(input$output_feature_select)
-    # req(nchar(input$output_feature_select) > 0)
     shiny::validate(
       shiny::need(r$is_open || gl$app_deployment_environment == 'prod', lang$need_auth) %then%
         shiny::need(!is.null(r$items_file), lang$need_items_file) %then%
@@ -226,37 +236,9 @@ shinyServer(function(input, output, session){
         shiny::need(!is.null(r$final_result), lang$need_final_result) %then%
         shiny::need(nchar(input$output_feature_select) > 0, lang$need_select_feature)
     )
-    cut_values <- seq(0, 1, 0.2)
-    cut_labels <- paste(
-      scales::percent(head(cut_values, -1)),
-      scales::percent(cut_values[-1]),
-      sep = ' - '
-    )
-    filt <- r$final_result %>% 
-      filter(feature_name == input$output_feature_select)
-    mfq <- unique(filt$max_feature_qty)
-    filt %>% 
-      group_by(feature_name, store_nbr) %>% 
-      summarise(
-        perc_max_feature_qty = round(sum(feature_qty_fin) / mean(max_feature_qty), 5),
-        store_cost = sum(store_cost),
-        store_qty = sum(feature_qty_fin)
-      ) %>% 
-      ungroup() %>% 
+    mfq <- unique(hd$final_results_filt$max_feature_qty)
+    hd$histogram_data %>% 
       mutate(
-        perc_max_feature_qty_bin = cut(perc_max_feature_qty, breaks = cut_values, labels = cut_labels, include.lowest = TRUE)
-      ) %>% 
-      group_by(perc_max_feature_qty_bin) %>% 
-      summarise(
-        n_stores = n(),
-        total_cost = sum(store_cost),
-        avg_store_cost = mean(store_cost),
-        total_qty = sum(store_qty),
-        avg_store_qty = mean(store_qty)
-      ) %>% 
-      ungroup() %>% 
-      mutate(
-        p_stores = n_stores / sum(n_stores),
         label_y = n_stores + 0.03 * max(n_stores),
         label = scales::percent(p_stores),
         text = sprintf('Tiendas: %s (%s)<br>Costo total: %s<br>Costo promedio: %s<br>Cant. total: %s<br>Cant. promedio: %s', scales::comma(n_stores, digits = 0), scales::percent(p_stores), scales::comma(total_cost, digits = 0), scales::comma(avg_store_cost, digits = 0), scales::comma(total_qty, digits = 0), scales::comma(avg_store_qty, digits = 0))
@@ -269,6 +251,32 @@ shinyServer(function(input, output, session){
         yaxis = list(title = 'Número de tiendas', separators = '.,'),
         showlegend = FALSE
       )
+  })
+  
+  ## Tabla de alcance (output)
+  output$feature_histogram_table <- renderDT({
+    shiny::validate(
+      shiny::need(r$is_open || gl$app_deployment_environment == 'prod', lang$need_auth) %then%
+        shiny::need(!is.null(r$items_file), lang$need_items_file) %then%
+        shiny::need(!is.null(r$items), lang$need_valid_input) %then%
+        shiny::need(r$query_was_tried, lang$need_run) %then%
+        shiny::need(!is.null(r$query_result), lang$need_query_result) %then%
+        shiny::need(!is.null(r$final_result), lang$need_final_result) %then%
+        shiny::need(!is.null(hd$histogram_data), lang$need_final_result)
+    )
+    percent_columns <- c('p_stores')
+    decimal_columns <- str_subset(names(hd$histogram_data), '^(n|total|avg)_')
+    hd$histogram_data %>%
+      mutate_at(vars(percent_columns), funs(100 * .)) %>%
+      datatable(
+        filter = 'none',
+        options = list(
+          scrollX = TRUE,
+          scrollY = '400px'
+        )
+      ) %>%
+      formatCurrency(columns = decimal_columns, digits = 1, currency = '') %>%
+      formatCurrency(columns = percent_columns, digits = 1, currency = '%', before = FALSE)
   })
   
   ## Reset

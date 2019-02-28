@@ -99,7 +99,9 @@ body <- dashboardBody(
             value = 'output_histogram',
             title = lang$tab_output_histogram,
             uiOutput('output_feature_select_ui'),
-            plotlyOutput('feature_histogram')
+            plotlyOutput('feature_histogram'),
+            tags$br(),
+            DTOutput('feature_histogram_table')
           ),
           tabPanel(
             value = 'output_table',

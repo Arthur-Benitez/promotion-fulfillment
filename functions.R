@@ -235,7 +235,7 @@ summarise_data <- function(data, group = c('feature_name', 'cid')) {
   group_order <- c('feature_name', 'store_nbr', 'cid', 'old_nbr')
   grp <- group_order[group_order %in% group]
   ## Variables numéricas de tabla de salida
-  vv <- c('avg_sales', 'avg_forecast', 'total_cost', 'total_qty', 'total_ddv', 'total_vnpk')
+  vv <- c('avg_sales', 'avg_forecast', 'total_cost', 'total_qty', 'max_feature_qty', 'total_ddv', 'total_vnpk')
   if ('store_nbr' %in% grp) {
     val_vars <- vv
   } else {
@@ -251,6 +251,7 @@ summarise_data <- function(data, group = c('feature_name', 'cid')) {
       avg_forecast = ifelse(any(fcst_or_sales == 'F'), sum(avg_dly_pos_or_fcst[fcst_or_sales=='F']), NA_real_),
       total_cost = sum(store_cost),
       total_qty = sum(feature_qty_fin),
+      max_feature_qty = mean(max_feature_qty),
       total_ddv = sum(feature_qty_fin) / sum(avg_dly_pos_or_fcst),
       total_vnpk = sum(vnpk_fin)
     ) %>% 
@@ -259,6 +260,42 @@ summarise_data <- function(data, group = c('feature_name', 'cid')) {
     select(!!!syms(grp), !!!syms(val_vars))
   
   return(data_summary)
+}
+
+## Tabla de histograma
+generate_histogram_data <- function(output_filtered_data, cut_values = seq(0, 1, 0.2)) {
+  cut_labels <- paste(
+    scales::percent(head(cut_values, -1)),
+    scales::percent(cut_values[-1]),
+    sep = ' - '
+  )
+  output_filtered_data %>% 
+    summarise_data(group = c('feature_name', 'store_nbr')) %>% 
+    ungroup() %>% 
+    mutate(
+      perc_max_feature_qty = round(total_qty / max_feature_qty, 5),
+      perc_max_feature_qty_bin = cut(perc_max_feature_qty,
+                                     breaks = cut_values,
+                                     labels = cut_labels,
+                                     include.lowest = TRUE),
+      temp_cost = total_cost, # Creadas para evitar name clashes en el summarise
+      temp_qty = total_qty
+    ) %>% 
+    group_by(perc_max_feature_qty_bin) %>% 
+    summarise(
+      n_stores = n(),
+      total_cost = sum(temp_cost),
+      avg_store_cost = mean(temp_cost),
+      total_qty = sum(temp_qty),
+      avg_store_qty = mean(temp_qty),
+      max_feature_qty = mean(max_feature_qty),
+      total_ddv = sum(temp_qty) / sum(coalesce(avg_sales, avg_forecast))
+    ) %>% 
+    ungroup() %>% 
+    mutate(
+      p_stores = n_stores / sum(n_stores)
+    ) %>% 
+    select(perc_max_feature_qty_bin, n_stores, p_stores, everything())
 }
 
 ## Función para encadenar condiciones dentro de validate()
