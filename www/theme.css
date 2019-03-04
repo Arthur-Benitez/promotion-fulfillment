@@ -1,4 +1,21 @@
+/* Fill azul Walmart */
+.skin-blue .main-header .navbar,
+.skin-blue .main-header .logo,
+.skin-blue .main-header .navbar .sidebar-toggle {
+  background-color: #1A75CF;
+}
 
+/* Border azul Walmart */
+.skin-blue .sidebar-menu>li.active>a,
+.nav-tabs-custom>.nav-tabs>li.active {
+  border-color: #1A75CF;
+}
+
+/* Fill azul Walmart oscuro (select) */
+.skin-blue .main-header .logo:hover,
+.skin-blue .main-header .navbar .sidebar-toggle:hover {
+  background-color: #003896;
+}
 
 /* Obligar a que los páneles tengan siempre una altura razonable */
 .tab-pane {
@@ -13,6 +30,45 @@
 
 .inline-button-wrapper {
   margin: auto 0 20px 15px;
+}
+
+/* Título */
+#app-logo-container {
+  width: 40%;
+  padding: 0;
+  float: left;
+}
+
+#app-logo {
+  /*width: 40px;*/
+  height: 40px;
+  /*float: left;
+  margin: 3px 5px 3px 40px;*/
+}
+
+#app-name-container {
+  width: 60%;
+  float: right;
+  font-family: "Bree Serif", "Coiny", serif;
+  text-align: left;
+}
+
+#app-name {
+  color: white;
+  font-style: normal;
+  font-weight: normal;
+  font-size: 24px;
+  float: none;
+  margin-bottom: 1.5%;
+  line-height: 100%;
+}
+
+#app-description {
+  margin: 0;
+  float: none;
+  font-size: 12px;
+  font-style: italic;
+  line-height: 100%;
 }
 
 /* Para que el botón de descargar esté inline (meterlo en renderUI le pone un div extra con display: block) */
