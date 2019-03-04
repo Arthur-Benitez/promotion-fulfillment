@@ -3,7 +3,17 @@ require(shiny)
 require(shinydashboard)
 
 header <- dashboardHeader(
-  title = lang$app_name
+  title = tags$div(
+    tags$div(
+      id = 'app-logo-container',
+      tags$img(src = 'pf-logo.png', id = 'app-logo')
+    ),
+    tags$div(
+      id = 'app-name-container',
+      tags$p(id = 'app-name', lang$app_name)
+      # tags$p(id = 'app-description', 'XXXXXXX')
+    )
+  )
 )
 
 sidebar <- dashboardSidebar(
@@ -37,7 +47,8 @@ body <- dashboardBody(
   useShinyjs(),
   useShinyalert(),
   tags$head(
-    tags$link(rel = 'stylesheet', type = 'text/css', href = 'theme.css')
+    tags$link(rel = 'stylesheet', type = 'text/css', href = 'theme.css'),
+    tags$link(rel = 'stylesheet', href = 'https://fonts.googleapis.com/css?family=Bree+Serif|Coiny')
   ),
   tabItems(
     tabItem(
@@ -116,6 +127,7 @@ body <- dashboardBody(
 )
 
 dashboardPage(
+  title = lang$app_name,
   header = header,
   sidebar = sidebar,
   body = body
