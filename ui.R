@@ -6,7 +6,7 @@ header <- dashboardHeader(
   title = tags$div(
     tags$div(
       id = 'app-logo-container',
-      tags$img(src = 'pf-logo.png', id = 'app-logo')
+      tags$img(src = 'spark-logo.png', id = 'app-logo')
     ),
     tags$div(
       id = 'app-name-container',
