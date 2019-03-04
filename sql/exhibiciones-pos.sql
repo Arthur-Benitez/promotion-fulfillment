@@ -1,3 +1,10 @@
+--//////////////////////////ESTE QRY GENERA LA CONSULTA A NIVEL ITST DEL PROMEDIO DE VENTA DE UN PERIODO ESPECÍFICO, QUE RESULTARÁ EN LA BASE PARA LA GENERACIÓN DE ANÁLISIS Y CARGA DE ESTRATEGIAS 
+																						-- DE FULFILLMENT DE LOS EQUIPOS DE RESURTIDO./////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+																							--AUTOR: Alejandra Zúñiga Hernández  - Especialista Central Team -
+
+
+
 SELECT DISTINCT
 
 DISPLAY_KEY,
@@ -34,6 +41,8 @@ SUM(POS.AVG_POS_QTY) AS AVG_DLY_POS
 	
 
 FROM
+
+--=================Tabla General (TG) de combinaciones ITST activas, válidas y con inventario de Artículos Resurtibles. Contiene especificaciones del artículo, banderas de validez, inventario en piezas y a costo==============
 
 	(
 		SELECT DISTINCT
@@ -111,6 +120,10 @@ FROM
 		--AND T3.ACCT_DEPT_NBR IN (13)
 		--AND T3.OLD_NBR IN ( 1301978 	)
 		--AND T5.NEGOCIO LIKE ('BAE')
+		AND T3.STATUS_CODE IN ( 'A' )
+		AND T3.ORDBK_FLAG IN ('Y')
+		AND T3.CANCEL_WHEN_OUT_FLAG IN ( 'N' )
+		AND T3.ITM_MBM_CODE IN ( 'M,I' )
 		AND CARRY_OPTION IN ('R')
 		AND CARRIED_STATUS IN ('R')
 		AND OPEN_STATUS NOT IN (0,3,7,6,8)
@@ -125,6 +138,8 @@ FROM
 	) AS TG
 	
 	LEFT JOIN
+
+--=================Tabla Vendor Status. Contiene Status de los proveedores a 9 dígitos (0, 1 o 2)==============
 		
 	(
 	
@@ -145,6 +160,8 @@ FROM
 	
 	
 	LEFT JOIN
+
+--=================Tabla POS. Obtiene el promedio de Venta Diaria de los old_nbr y semanas que se incluyan en los filtros ==============
 	
 	(
 
@@ -160,7 +177,7 @@ FROM
 		
 			SELECT
 			
-			T1.WM_YR_WK,
+			--T1.WM_YR_WK,
 			T2.STORE_NBR,
 			--I.OLD_NBR,
 			--I.ITEM_NBR,
@@ -193,7 +210,7 @@ FROM
 			--AND I.ITEM_NBR IN (45408680)
 			--AND T2.STORE_NBR IN (2161) 
 			
-			GROUP BY 1,2,3
+			GROUP BY 1,2
 		
 		
 		) AS BASE	
@@ -206,7 +223,9 @@ FROM
 	ON (POS.PRIME_XREF_ITEM_NBR = TG.ITEM_NBR AND POS.STORE_NBR = TG.STORE_NBR)										
 	
 	LEFT JOIN 
-	
+
+--=================Tabla LeadTime. Obtiene el Cumulative Lead Time de cada combinación ITST==============
+
 	(
 
 		SELECT 

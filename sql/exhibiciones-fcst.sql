@@ -1,3 +1,9 @@
+--//////////////////////////ESTE QRY GENERA LA CONSULTA A NIVEL ITST DEL PROMEDIO DE FCST DE UN PERIODO ESPECÍFICO, QUE RESULTARÁ EN LA BASE PARA LA GENERACIÓN DE ANÁLISIS Y CARGA DE ESTRATEGIAS 
+																						-- DE FULFILLMENT DE LOS EQUIPOS DE RESURTIDO./////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+																							--AUTOR: Alejandra Zúñiga Hernández  - Especialista Central Team -
+
+
 SELECT DISTINCT
 
 DISPLAY_KEY,
@@ -30,10 +36,12 @@ SUB_TIPO,
 CATEGORY_NBR,
 CUMLT,
 
-SUM(FCST.AVG_DLY_FCST) AS AVG_DLY_FCST
+SUM(FCST.AVG_DLY_FCST/7) AS AVG_DLY_FCST
 	
 
 FROM
+
+--=================Tabla General (TG) de combinaciones ITST activas, válidas y con inventario de Artículos Resurtibles. Contiene especificaciones del artículo, banderas de validez, inventario en piezas y a costo==============
 
 	(
 		SELECT DISTINCT
@@ -110,6 +118,10 @@ FROM
 		--AND T3.ACCT_DEPT_NBR IN (13)
 		AND T3.OLD_NBR IN (?OLD_NBRS)
 		--AND T5.NEGOCIO LIKE ('BAE')
+		AND T3.STATUS_CODE IN ( 'A' )
+		AND T3.ORDBK_FLAG IN ('Y')
+		AND T3.CANCEL_WHEN_OUT_FLAG IN ( 'N' )
+		AND T3.ITM_MBM_CODE IN ( 'M,I' )
 		AND CARRY_OPTION IN ('R')
 		AND CARRIED_STATUS IN ('R')
 		AND OPEN_STATUS NOT IN (0,3,7,6,8)
@@ -124,7 +136,9 @@ FROM
 	) AS TG
 	
 	LEFT JOIN
-		
+
+--=================Tabla Vendor Status. Contiene Status de los proveedores a 9 dígitos (0, 1 o 2)==============
+
 	(
 	
 		SELECT
@@ -144,6 +158,8 @@ FROM
 	
 	
 	LEFT JOIN
+
+--=================Tabla FCST. Obtiene el promedio de Forecast Diario de los old_nbr y semanas que se incluyan en los filtros==============
 	
 	(
 
@@ -180,6 +196,8 @@ FROM
 	ON (FCST.PRIME_XREF_ITEM_NBR = TG.ITEM_NBR AND FCST.STORE_NBR = TG.STORE_NBR)										
 	
 	LEFT JOIN 
+
+--=================Tabla LeadTime. Obtiene el Cumulative Lead Time de cada combinación ITST==============
 	
 	(
 
