@@ -26,7 +26,11 @@ gl <- list(
   app_deployment_environment = {
     if (dir.exists('prod')) 'prod'
     else if (dir.exists('dev')) 'dev'
-    else stop('Either a directory named "dev" or a directory "prod" must exist.')
+    else {
+      message('No directory named dev/ or prod/ found. Creating dev/')
+      dir.create('dev')
+      'dev'
+    }
   },
   app_version = '0.1.6-beta',
   app_version_date = '2019-03-04',

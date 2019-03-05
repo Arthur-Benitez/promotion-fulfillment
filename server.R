@@ -6,6 +6,9 @@ library(RODBC)
 shinyServer(function(input, output, session){
   
   ## Logging
+  if (!dir.exists(paste0(gl$app_deployment_environment, '/log/'))) {
+    dir.create(paste0(gl$app_deployment_environment, '/log/'))
+  }
   flog.logger(
     name = 'ROOT',
     threshold = INFO,
