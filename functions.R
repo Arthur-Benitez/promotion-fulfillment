@@ -30,6 +30,7 @@ parse_input <- function(input_file, gl, date_format = '%Y-%m-%d') {
     ) %>% 
       .[names(gl$cols)] %>% 
       mutate(
+        fcst_or_sales = toupper(fcst_or_sales),
         display_key = paste(dept_nbr, old_nbr, negocio, sep = '.'),
         split_var = paste(semana_ini, semana_fin, fcst_or_sales, sep = '-')
       )
