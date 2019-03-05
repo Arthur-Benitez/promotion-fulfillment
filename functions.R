@@ -144,6 +144,7 @@ prepare_query <- function(query, keys, old_nbrs, wk_inicio, wk_final) {
     str_replace_all('\\?OLD_NBRS', paste(old_nbrs, collapse = ",")) %>%
     str_replace_all('\\?WK_INICIO', as.character(wk_inicio)) %>% 
     str_replace_all('\\?WK_FINAL', as.character(wk_final)) %>% 
+    str_replace_all('[^[:ascii:]]', '') %>% # quitar no ASCII porque truena en producción
     paste(collapse = '\n')
 }
 run_query_once <- function(ch, input_data) {
