@@ -1,8 +1,9 @@
---//////////////////////////ESTE QRY GENERA LA CONSULTA A NIVEL ITST DEL PROMEDIO DE VENTA DE UN PERIODO ESPECÕFICO, QUE RESULTAR¡ EN LA BASE PARA LA GENERACI”N DE AN¡LISIS Y CARGA DE ESTRATEGIAS 
-																						-- DE FULFILLMENT DE LOS EQUIPOS DE RESURTIDO./////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/*
+ESTE QUERY GENERA LA CONSULTA A NIVEL ITST DEL PROMEDIO DE VENTA DE UN PERIODO ESPEC√çFICO,
+QUE RESULTAR√Å EN LA BASE PARA LA GENERACI√ìN DE AN√ÅLISIS Y CARGA DE ESTRATEGIAS DE FULFILLMENT DE LOS EQUIPOS DE RESURTIDO.
 
-																							--AUTOR: Alejandra Z˙Òiga Hern·ndez  - Especialista Central Team -
-
+AUTOR: Alejandra Z√∫√±iga Hern√°ndez  - Especialista Central Team -
+*/
 
 
 SELECT DISTINCT
@@ -42,7 +43,7 @@ SUM(POS.AVG_POS_QTY) AS AVG_DLY_POS
 
 FROM
 
---=================Tabla General (TG) de combinaciones ITST activas, v·lidas y con inventario de ArtÌculos Resurtibles. Contiene especificaciones del artÌculo, banderas de validez, inventario en piezas y a costo==============
+--=================Tabla General (TG) de combinaciones ITST activas, v√°lidas y con inventario de Art√≠culos Resurtibles. Contiene especificaciones del art√≠culo, banderas de validez, inventario en piezas y a costo==============
 
 	(
 		SELECT DISTINCT
@@ -139,7 +140,7 @@ FROM
 	
 	LEFT JOIN
 
---=================Tabla Vendor Status. Contiene Status de los proveedores a 9 dÌgitos (0, 1 o 2)==============
+--=================Tabla Vendor Status. Contiene Status de los proveedores a 9 d√≠gitos (0, 1 o 2)==============
 		
 	(
 	
@@ -217,7 +218,7 @@ FROM
 	
 	LEFT JOIN 
 
---=================Tabla LeadTime. Obtiene el Cumulative Lead Time de cada combinaciÛn ITST==============
+--=================Tabla LeadTime. Obtiene el Cumulative Lead Time de cada combinaci√≥n ITST==============
 
 	(
 
