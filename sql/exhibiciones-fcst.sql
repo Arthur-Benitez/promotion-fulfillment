@@ -1,3 +1,10 @@
+/*
+ESTE QUERY GENERA LA CONSULTA A NIVEL ITST DEL PROMEDIO DE FCST DE UN PERIODO ESPECÍFICO,
+QUE RESULTARÁ EN LA BASE PARA LA GENERACIÓN DE ANÁLISIS Y CARGA DE ESTRATEGIAS DE FULFILLMENT DE LOS EQUIPOS DE RESURTIDO.
+
+AUTOR: Alejandra Zúñiga Hernández  - Especialista Central Team -
+*/
+
 SELECT DISTINCT
 
 DISPLAY_KEY,
@@ -30,10 +37,12 @@ SUB_TIPO,
 CATEGORY_NBR,
 CUMLT,
 
-SUM(FCST.AVG_DLY_FCST) AS AVG_DLY_FCST
+SUM(FCST.AVG_WKLY_FCST / 7) AS AVG_DLY_FCST
 	
 
 FROM
+
+--=================Tabla General (TG) de combinaciones ITST activas, válidas y con inventario de Artículos Resurtibles. Contiene especificaciones del artículo, banderas de validez, inventario en piezas y a costo==============
 
 	(
 		SELECT DISTINCT
@@ -110,6 +119,10 @@ FROM
 		--AND T3.ACCT_DEPT_NBR IN (13)
 		AND T3.OLD_NBR IN (?OLD_NBRS)
 		--AND T5.NEGOCIO LIKE ('BAE')
+		AND T3.STATUS_CODE IN ('A')
+		AND T3.ORDBK_FLAG IN ('Y')
+		AND T3.CANCEL_WHEN_OUT_FLAG IN ('N')
+		AND T3.ITM_MBM_CODE IN ('M', 'I')
 		AND CARRY_OPTION IN ('R')
 		AND CARRIED_STATUS IN ('R')
 		AND OPEN_STATUS NOT IN (0,3,7,6,8)
@@ -124,7 +137,9 @@ FROM
 	) AS TG
 	
 	LEFT JOIN
-		
+
+--=================Tabla Vendor Status. Contiene Status de los proveedores a 9 dígitos (0, 1 o 2)==============
+
 	(
 	
 		SELECT
@@ -144,34 +159,36 @@ FROM
 	
 	
 	LEFT JOIN
+
+--=================Tabla FCST. Obtiene el promedio de Forecast Diario de los old_nbr y semanas que se incluyan en los filtros==============
 	
 	(
 
 		SELECT
 
-		STORE_NBR,
-		PRIME_XREF_ITEM_NBR,
-		AVG(WK_FCST_QTY) AS AVG_DLY_FCST
+			T2.STORE_NBR,
+			I.PRIME_XREF_ITEM_NBR,
+			AVG(T2.WK_FCST_QTY) AS AVG_WKLY_FCST
 		
 		FROM
-		  MX_CF_VM.CALENDAR_DAY T1,
-		(SELECT STORE_NBR, ITEM_NBR, WM_YR_WK, SUM(SALES_FCST_EACH_QTY)AS WK_FCST_QTY  FROM MX_CF_VM.STORE_ITEM_FCST_WK_CONV  GROUP BY 1,2,3  WHERE FCST_WM_YR_WK = (SELECT DISTINCT WM_YR_WK FROM MX_CF_VM.CALENDAR_DAY WHERE GREGORIAN_DATE= CURRENT_DATE)  ) T2,
-		MX_CF_VM.ITEM I,
-		MX_CF_VM.ITEM_DESC T3
+			(
+				-- Pre sumarizar los diveros fcst types
+				SELECT STORE_NBR, ITEM_NBR, WM_YR_WK, SUM(SALES_FCST_EACH_QTY) AS WK_FCST_QTY 
+				FROM MX_CF_VM.STORE_ITEM_FCST_WK_CONV 
+				WHERE FCST_WM_YR_WK = (SELECT DISTINCT WM_YR_WK FROM MX_CF_VM.CALENDAR_DAY WHERE GREGORIAN_DATE = CURRENT_DATE)
+				GROUP BY 1,2,3
+			) AS T2
+				INNER JOIN MX_CF_VM.ITEM AS I
+					ON T2.ITEM_NBR = I.ITEM_NBR
 		
 		WHERE
-		T1.WM_YR_WK=T2.WM_YR_WK
-		AND T2.ITEM_NBR=I.ITEM_NBR
-		AND T2.ITEM_NBR=T3.ITEM_NBR
-		AND T1.WM_YR_WK >=('?WK_INICIO')
-		AND T1.WM_YR_WK <=('?WK_FINAL')
-		--AND I.OLD_NBR IN ( 1344075 )
-		--AND T2.STORE_NBR IN ( 1019 )
-		AND I.REPL_GROUP_NBR IN (
-			SELECT REPL_GROUP_NBR
-			FROM MX_CF_VM.ITEM
-			WHERE OLD_NBR IN (?OLD_NBRS)
-		)
+			T2.WM_YR_WK >= ('?WK_INICIO')
+			AND T2.WM_YR_WK <= ('?WK_FINAL')
+			AND I.REPL_GROUP_NBR IN (
+				SELECT REPL_GROUP_NBR
+				FROM MX_CF_VM.ITEM
+				WHERE OLD_NBR IN (?OLD_NBRS)
+			)
 
 		GROUP BY 1,2
 		
@@ -180,6 +197,8 @@ FROM
 	ON (FCST.PRIME_XREF_ITEM_NBR = TG.ITEM_NBR AND FCST.STORE_NBR = TG.STORE_NBR)										
 	
 	LEFT JOIN 
+
+--=================Tabla LeadTime. Obtiene el Cumulative Lead Time de cada combinación ITST==============
 	
 	(
 

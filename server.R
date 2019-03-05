@@ -6,6 +6,9 @@ library(RODBC)
 shinyServer(function(input, output, session){
   
   ## Logging
+  if (!dir.exists(paste0(gl$app_deployment_environment, '/log/'))) {
+    dir.create(paste0(gl$app_deployment_environment, '/log/'))
+  }
   flog.logger(
     name = 'ROOT',
     threshold = INFO,
@@ -105,7 +108,8 @@ shinyServer(function(input, output, session){
   })
   observe({
     req(r$items_file, input$date_format)
-    val <- parse_input(r$items_file, gl, input$date_format)
+    req(r$is_open || gl$app_deployment_environment == 'prod')
+    val <- parse_input(r$items_file, gl, r$ch, input$date_format)
     if (!is.data.frame(val)) {
       shinyalert("Error", val, type = "error", closeOnEsc = TRUE, closeOnClickOutside = TRUE)
       r$items <- NULL
@@ -115,7 +119,8 @@ shinyServer(function(input, output, session){
   })
   output$input_table <- renderDT({
     shiny::validate(
-      shiny::need(!is.null(r$items_file), lang$need_items_file) %then%
+      shiny::need(r$is_open || gl$app_deployment_environment == 'prod', lang$need_auth) %then%
+        shiny::need(!is.null(r$items_file), lang$need_items_file) %then%
         shiny::need(!is.null(r$items), lang$need_valid_input)
     )
     r$items

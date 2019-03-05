@@ -15,7 +15,7 @@ generate_cols_spec <- function(columns, date_format = '%Y-%m-%d') {
 }
 
 ## Leer entrada
-parse_input <- function(input_file, gl, date_format = '%Y-%m-%d') {
+parse_input <- function(input_file, gl, ch = NULL, date_format = '%Y-%m-%d') {
   tryCatch({
     flog.info(toJSON(list(
       message = 'PARSING ITEMS FILE',
@@ -30,10 +30,11 @@ parse_input <- function(input_file, gl, date_format = '%Y-%m-%d') {
     ) %>% 
       .[names(gl$cols)] %>% 
       mutate(
+        fcst_or_sales = toupper(fcst_or_sales),
         display_key = paste(dept_nbr, old_nbr, negocio, sep = '.'),
         split_var = paste(semana_ini, semana_fin, fcst_or_sales, sep = '-')
       )
-    val <- validate_input(x, gl)
+    val <- validate_input(x, gl, ch)
     if (isTRUE(val)) {
       flog.info(toJSON(list(
         message = 'INPUT PARSING DONE',
@@ -66,7 +67,7 @@ parse_input <- function(input_file, gl, date_format = '%Y-%m-%d') {
 
 
 ## Validar inputs
-validate_input <- function(data, gl) {
+validate_input <- function(data, gl, ch) {
   if (
     ## Condiciones básicas
     !is.data.frame(data) ||
@@ -76,6 +77,13 @@ validate_input <- function(data, gl) {
     return(FALSE)
   } else {
     tryCatch({
+      current_wk_query <- 'select wm_yr_wk from mx_cf_vm.calendar_day where gregorian_date = current_date'
+      if (is.null(ch)) {
+        current_wk <- mlutils::dataset.load(name = 'WMG',
+                                     query = current_wk_query)[[1]]
+      } else {
+        current_wk <- sqlQuery(ch, current_wk_query)[[1]]
+      }
       cond <- tribble(
         ~message, ~passed,
         ## Checar que no haya valores faltantes
@@ -120,7 +128,16 @@ validate_input <- function(data, gl) {
         length(unique(data$split_var)) <= gl$max_input_queries,
         ## Semana ini <= semana fin
         'semana_ini debe ser menor o igual a semana_fin',
-        with(data, all(semana_ini <= semana_fin))
+        with(data, all(semana_ini <= semana_fin)),
+        ## Checar que las semanas de forecast estén en el futuro
+        sprintf('El rango de fechas de forecast debe estar en el futuro (semana_ini >= %d)', current_wk),
+        with(data, all(fcst_or_sales == 'S') || all(semana_ini[fcst_or_sales == 'F'] >= current_wk)),
+        ## Checar que las semanas de ventas estén en el pasado
+        sprintf('El rango de fechas de ventas debe estar en el pasado (semana_fin < %d)', current_wk),
+        with(data, all(fcst_or_sales == 'F') || all(semana_fin[fcst_or_sales == 'S'] < current_wk)),
+        ## Checar que StartDate <= EndDate
+        sprintf('Se debe cumplir que %s < StartDate <= EndDate', Sys.Date()),
+        with(data, all(Sys.Date() <= StartDate & StartDate <= EndDate))
       )
       failed_idx <- which(!cond$passed)
       if (length(failed_idx) == 0) {
@@ -144,6 +161,7 @@ prepare_query <- function(query, keys, old_nbrs, wk_inicio, wk_final) {
     str_replace_all('\\?OLD_NBRS', paste(old_nbrs, collapse = ",")) %>%
     str_replace_all('\\?WK_INICIO', as.character(wk_inicio)) %>% 
     str_replace_all('\\?WK_FINAL', as.character(wk_final)) %>% 
+    str_replace_all('[^[:ascii:]]', '') %>% # quitar no ASCII porque truena en producción
     paste(collapse = '\n')
 }
 run_query_once <- function(ch, input_data) {
@@ -261,7 +279,7 @@ summarise_data <- function(data, group = c('feature_name', 'cid')) {
   group_order <- c('feature_name', 'store_nbr', 'cid', 'old_nbr')
   grp <- group_order[group_order %in% group]
   ## Variables numéricas de tabla de salida
-  vv <- c('avg_sales', 'avg_forecast', 'total_cost', 'total_qty', 'max_feature_qty', 'total_ddv', 'total_vnpk')
+  vv <- c('avg_dly_sales', 'avg_dly_forecast', 'total_cost', 'total_qty', 'max_feature_qty', 'total_ddv', 'total_vnpk')
   if ('store_nbr' %in% grp) {
     val_vars <- vv
   } else {
@@ -273,8 +291,8 @@ summarise_data <- function(data, group = c('feature_name', 'cid')) {
     summarise(
       n_stores = n_distinct(store_nbr),
       ## Las ventas ya son promedio, así que sumándolas dan las ventas promedio de una entidad más grande
-      avg_sales = ifelse(any(fcst_or_sales == 'S'), sum(avg_dly_pos_or_fcst[fcst_or_sales=='S']), NA_real_),
-      avg_forecast = ifelse(any(fcst_or_sales == 'F'), sum(avg_dly_pos_or_fcst[fcst_or_sales=='F']), NA_real_),
+      avg_dly_sales = ifelse(any(fcst_or_sales == 'S'), sum(avg_dly_pos_or_fcst[fcst_or_sales=='S']), NA_real_),
+      avg_dly_forecast = ifelse(any(fcst_or_sales == 'F'), sum(avg_dly_pos_or_fcst[fcst_or_sales=='F']), NA_real_),
       total_cost = sum(store_cost),
       total_qty = sum(feature_qty_fin),
       max_feature_qty = mean(max_feature_qty),
@@ -315,12 +333,14 @@ generate_histogram_data <- function(output_filtered_data, cut_values = seq(0, 1,
       total_qty = sum(temp_qty),
       avg_store_qty = mean(temp_qty),
       max_feature_qty = mean(max_feature_qty),
-      total_ddv = sum(temp_qty) / sum(coalesce(avg_sales, avg_forecast))
+      total_ddv = sum(temp_qty) / sum(coalesce(avg_dly_sales, avg_dly_forecast))
     ) %>% 
     ungroup() %>% 
     mutate(
       p_stores = n_stores / sum(n_stores)
     ) %>% 
+    right_join(tibble(perc_max_feature_qty_bin = factor(cut_labels)), by = 'perc_max_feature_qty_bin') %>% 
+    replace(., is.na(.), 0) %>% 
     select(perc_max_feature_qty_bin, n_stores, p_stores, everything())
 }
 

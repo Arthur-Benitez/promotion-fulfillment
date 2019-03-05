@@ -1,3 +1,11 @@
+/*
+ESTE QUERY GENERA LA CONSULTA A NIVEL ITST DEL PROMEDIO DE VENTA DE UN PERIODO ESPECÍFICO,
+QUE RESULTARÁ EN LA BASE PARA LA GENERACIÓN DE ANÁLISIS Y CARGA DE ESTRATEGIAS DE FULFILLMENT DE LOS EQUIPOS DE RESURTIDO.
+
+AUTOR: Alejandra Zúñiga Hernández  - Especialista Central Team -
+*/
+
+
 SELECT DISTINCT
 
 DISPLAY_KEY,
@@ -30,10 +38,12 @@ SUB_TIPO,
 CATEGORY_NBR,
 CUMLT,
 
-SUM(POS.AVG_POS_QTY) AS AVG_DLY_POS
+SUM(POS.AVG_DLY_QTY) AS AVG_DLY_POS
 	
 
 FROM
+
+--=================Tabla General (TG) de combinaciones ITST activas, válidas y con inventario de Artículos Resurtibles. Contiene especificaciones del artículo, banderas de validez, inventario en piezas y a costo==============
 
 	(
 		SELECT DISTINCT
@@ -111,6 +121,10 @@ FROM
 		--AND T3.ACCT_DEPT_NBR IN (13)
 		--AND T3.OLD_NBR IN ( 1301978 	)
 		--AND T5.NEGOCIO LIKE ('BAE')
+		AND T3.STATUS_CODE IN ('A')
+		AND T3.ORDBK_FLAG IN ('Y')
+		AND T3.CANCEL_WHEN_OUT_FLAG IN ('N')
+		AND T3.ITM_MBM_CODE IN ('M', 'I')
 		AND CARRY_OPTION IN ('R')
 		AND CARRIED_STATUS IN ('R')
 		AND OPEN_STATUS NOT IN (0,3,7,6,8)
@@ -125,6 +139,8 @@ FROM
 	) AS TG
 	
 	LEFT JOIN
+
+--=================Tabla Vendor Status. Contiene Status de los proveedores a 9 dígitos (0, 1 o 2)==============
 		
 	(
 	
@@ -145,68 +161,60 @@ FROM
 	
 	
 	LEFT JOIN
+
+--=================Tabla POS. Obtiene el promedio de Venta Diaria de los old_nbr y semanas que se incluyan en los filtros ==============
 	
 	(
-
 		SELECT
-		
-		STORE_NBR,
-		PRIME_XREF_ITEM_NBR,
-		ZEROIFNULL(SUM(POS_QTY)) AS AVG_POS_QTY
-		
-		FROM 
-		
-		(	
-		
-			SELECT
+			STORE_NBR,
+			PRIME_XREF_ITEM_NBR,
+			AVG(WKLY_QTY) / 7 AS AVG_DLY_QTY
+		FROM
+			(
+				-- Pre sumarizar para quitar renglones con misma llave (misma combinaci�n item-store-wk)
+				SELECT
+					
+					T2.WM_YR_WK,
+					T2.STORE_NBR,
+					I.PRIME_XREF_ITEM_NBR,
+					SUM(
+						CASE
+							WHEN T2.WKLY_QTY < 0 THEN 0
+							ELSE T2.WKLY_QTY
+						END
+					) AS WKLY_QTY
+					
+				FROM 
+					MX_CF_VM.SKU_DLY_POS AS T2
+						INNER JOIN MX_CF_VM.ITEM AS I
+							ON T2.ITEM_NBR = I.ITEM_NBR
+					--MX_CF_VM.ITEM_DESC T3
+					
+					
+				WHERE
+					T2.REPORT_CODE NOT IN (8)
+					AND T2.WM_YR_WK >= ('?WK_INICIO')
+					AND T2.WM_YR_WK <= ('?WK_FINAL')
+					AND I.REPL_GROUP_NBR IN (
+						SELECT REPL_GROUP_NBR
+						FROM MX_CF_VM.ITEM
+						WHERE OLD_NBR IN (?OLD_NBRS)
+					)
+					
+				GROUP BY 1,2,3
+				
+			) AS BASE
 			
-			T1.WM_YR_WK,
-			T2.STORE_NBR,
-			--I.OLD_NBR,
-			--I.ITEM_NBR,
-			I.PRIME_XREF_ITEM_NBR,
-			
-			AVG( (CASE WHEN (T2.SAT_QTY*T1.SAT_MULT)<0 THEN 0 ELSE (T2.SAT_QTY*T1.SAT_MULT) END (NAMED  A)) + (CASE WHEN (T2.SUN_QTY*T1.SUN_MULT)<0 THEN 0 ELSE (T2.SUN_QTY*T1.SUN_MULT) END (NAMED B)) + (CASE WHEN (T2.MON_QTY*T1.MON_MULT)<0 THEN 0 ELSE (T2.MON_QTY*T1.MON_MULT) END (NAMED C)) + (CASE WHEN (T2.TUE_QTY*T1.TUE_MULT)<0 THEN 0 ELSE (T2.TUE_QTY*T1.TUE_MULT) END (NAMED D))+ (CASE WHEN (T2.WED_QTY*T1.WED_MULT)<0 THEN 0 ELSE (T2.WED_QTY*T1.WED_MULT) END (NAMED E)) +  (CASE WHEN (T2.THU_QTY*T1.THU_MULT)<0 THEN 0 ELSE (T2.THU_QTY*T1.THU_MULT) END (NAMED F)) +( CASE WHEN (T2.FRI_QTY*T1.FRI_MULT)<0 THEN 0 ELSE (T2.FRI_QTY*T1.FRI_MULT) END (NAMED G)) ) AS POS_QTY
-			
-			
-			FROM 
-			
-			(SELECT  DISTINCT WM_YR_WK, GREGORIAN_DATE, DAY_OF_WK,SUN_MULT,MON_MULT,TUE_MULT,WED_MULT,THU_MULT,FRI_MULT,SAT_MULT  FROM MX_CF_VM.CALENDAR_DAY) T1,
-			MX_CF_VM.SKU_DLY_POS T2,
-			MX_CF_VM.ITEM I,
-			MX_CF_VM.ITEM_DESC T3
-			
-			
-			WHERE
-			T1.WM_YR_WK=T2.WM_YR_WK
-			AND T2.ITEM_NBR=I.ITEM_NBR
-			AND  T2.ITEM_NBR=T3.ITEM_NBR
-			AND T2.REPORT_CODE NOT IN (8)
-			AND T1.WM_YR_WK >=('?WK_INICIO')
-			AND T1.WM_YR_WK <=('?WK_FINAL')
-			AND I.REPL_GROUP_NBR IN (
-				SELECT REPL_GROUP_NBR
-				FROM MX_CF_VM.ITEM
-				WHERE OLD_NBR IN (?OLD_NBRS)
-			)
-			--AND I.OLD_NBR IN (1337657 )
-			--AND I.ITEM_NBR IN (45408680)
-			--AND T2.STORE_NBR IN (2161) 
-			
-			GROUP BY 1,2,3
-		
-		
-		) AS BASE	
-		
 		GROUP BY 1,2
-		
 		
 	) AS POS	
 	
 	ON (POS.PRIME_XREF_ITEM_NBR = TG.ITEM_NBR AND POS.STORE_NBR = TG.STORE_NBR)										
 	
 	LEFT JOIN 
-	
+
+--=================Tabla LeadTime. Obtiene el Cumulative Lead Time de cada combinación ITST==============
+
 	(
 
 		SELECT 
