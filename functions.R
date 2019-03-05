@@ -322,6 +322,8 @@ generate_histogram_data <- function(output_filtered_data, cut_values = seq(0, 1,
     mutate(
       p_stores = n_stores / sum(n_stores)
     ) %>% 
+    right_join(tibble(perc_max_feature_qty_bin = factor(cut_labels)), by = 'perc_max_feature_qty_bin') %>% 
+    replace(., is.na(.), 0) %>% 
     select(perc_max_feature_qty_bin, n_stores, p_stores, everything())
 }
 
