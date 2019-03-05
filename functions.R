@@ -15,7 +15,7 @@ generate_cols_spec <- function(columns, date_format = '%Y-%m-%d') {
 }
 
 ## Leer entrada
-parse_input <- function(input_file, gl, date_format = '%Y-%m-%d') {
+parse_input <- function(input_file, gl, ch = NULL, date_format = '%Y-%m-%d') {
   tryCatch({
     flog.info(toJSON(list(
       message = 'PARSING ITEMS FILE',
@@ -34,7 +34,7 @@ parse_input <- function(input_file, gl, date_format = '%Y-%m-%d') {
         display_key = paste(dept_nbr, old_nbr, negocio, sep = '.'),
         split_var = paste(semana_ini, semana_fin, fcst_or_sales, sep = '-')
       )
-    val <- validate_input(x, gl)
+    val <- validate_input(x, gl, ch)
     if (isTRUE(val)) {
       flog.info(toJSON(list(
         message = 'INPUT PARSING DONE',
@@ -67,7 +67,7 @@ parse_input <- function(input_file, gl, date_format = '%Y-%m-%d') {
 
 
 ## Validar inputs
-validate_input <- function(data, gl) {
+validate_input <- function(data, gl, ch) {
   if (
     ## Condiciones básicas
     !is.data.frame(data) ||
@@ -77,6 +77,13 @@ validate_input <- function(data, gl) {
     return(FALSE)
   } else {
     tryCatch({
+      current_wk_query <- 'select wm_yr_wk from mx_cf_vm.calendar_day where gregorian_date = current_date'
+      if (is.null(ch)) {
+        current_wk <- mlutils::dataset.load(name = 'WMG',
+                                     query = current_wk_query)[[1]]
+      } else {
+        current_wk <- sqlQuery(ch, current_wk_query)[[1]]
+      }
       cond <- tribble(
         ~message, ~passed,
         ## Checar que no haya valores faltantes
@@ -121,7 +128,16 @@ validate_input <- function(data, gl) {
         length(unique(data$split_var)) <= gl$max_input_queries,
         ## Semana ini <= semana fin
         'semana_ini debe ser menor o igual a semana_fin',
-        with(data, all(semana_ini <= semana_fin))
+        with(data, all(semana_ini <= semana_fin)),
+        ## Checar que las semanas de forecast estén en el futuro
+        sprintf('El rango de fechas de forecast debe estar en el futuro (semana_ini >= %d)', current_wk),
+        with(data, all(fcst_or_sales == 'S') || all(semana_ini[fcst_or_sales == 'F'] >= current_wk)),
+        ## Checar que las semanas de ventas estén en el pasado
+        sprintf('El rango de fechas de ventas debe estar en el pasado (semana_fin < %d)', current_wk),
+        with(data, all(fcst_or_sales == 'F') || all(semana_fin[fcst_or_sales == 'S'] < current_wk)),
+        ## Checar que StartDate <= EndDate
+        sprintf('Se debe cumplir que %s < StartDate <= EndDate', Sys.Date()),
+        with(data, all(Sys.Date() <= StartDate & StartDate <= EndDate))
       )
       failed_idx <- which(!cond$passed)
       if (length(failed_idx) == 0) {
