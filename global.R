@@ -32,8 +32,8 @@ gl <- list(
       'dev'
     }
   },
-  app_version = '0.1.7',
-  app_version_date = '2019-03-05',
+  app_version = '0.1.8',
+  app_version_date = '2019-03-06',
   cols = c(
     'feature_name' = 'character',
     'user' = 'character',

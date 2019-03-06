@@ -373,7 +373,9 @@ generate_header <- function(input_data, priority = 15) {
       LiftType = 0,
       Cal = 'DMDWK',
       Lift = 0
-    )
+    ) %>% 
+    distinct() %>% 
+    arrange(`*Promotion`)
 }
 
 ## Generar el DETAIL.csv para cargar al sistema
@@ -386,7 +388,7 @@ generate_detail <- function(output_data) {
       `*DMDGroup` = '-',
       `*Loc` = generate_loc_id(store_nbr),
       `PRESENTATION PCT` = 0,
-      `PRESENTATION QTY ` = feature_qty_fin,
+      `PRESENTATION QTY ` = round(feature_qty_fin),
       `OFFSET START DAYS` = 0,
       `OFFSET END DAYS` = 0,
       `SPMTL ORDER QTY` = 0,
