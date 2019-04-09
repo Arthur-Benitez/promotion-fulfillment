@@ -13,11 +13,17 @@ library(DT)
 library(shinydashboard)
 library(futile.logger)
 library(shinyalert)
+library(RODBC)
 
 
 options(readr.default_locale=readr::locale(tz = ''))
 
 
+# Módulos -----------------------------------------------------------------
+
+## Usar esto en lugar de source(., encoding = 'UTF-8') porque truena a menos que cambiemos el locale del sistema con Sys.setlocale('LC_CTYPE', 'en_US.UTF-8') 
+## Ver: https://stackoverflow.com/questions/5031630/how-to-source-r-file-saved-using-utf-8-encoding
+eval(parse('modules/compute-promotions.R', encoding = 'UTF-8'))
 
 # Parámetros globales -----------------------------------------------------
 
@@ -34,6 +40,7 @@ gl <- list(
   },
   app_version = '0.1.8',
   app_version_date = '2019-03-06',
+  ## Compute promotions
   cols = c(
     'feature_name' = 'character',
     'user' = 'character',
