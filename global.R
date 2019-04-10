@@ -104,8 +104,8 @@ gl <- list(
       'dev'
     }
   },
-  app_version = '0.1.8',
-  app_version_date = '2019-03-06',
+  app_version = '0.2.0-beta-1',
+  app_version_date = '2019-04-10',
   ## Compute promotions
   cols = c(
     'feature_name' = 'character',
@@ -144,7 +144,7 @@ gl <- list(
   max_input_rows = 100,
   max_input_queries = 10
 )
-gl$app_version_text <- sprintf('%s (%s)', gl$app_version, gl$app_version_date)
+gl$app_version_text <- sprintf('Versión %s (%s)', gl$app_version, gl$app_version_date)
 
 ## Login & Auth
 ### Path a base de datos de usuarios
