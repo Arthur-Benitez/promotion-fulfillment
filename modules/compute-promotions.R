@@ -420,7 +420,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
         odbcGetInfo(r$ch) ## Truena si no se abrió la conexión
         r$is_open <- TRUE
         output$auth_ui <- renderUI({
-          actionButton('auth', label = lang$logout, icon = icon('sign-out-alt'),
+          actionButton(ns('auth'), label = lang$logout, icon = icon('sign-out-alt'),
                        style="color: #fff; background-color: #f42e2e;")
         })
         flog.info(toJSON(list(
