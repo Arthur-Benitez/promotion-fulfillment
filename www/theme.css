@@ -45,7 +45,7 @@
 /* Lado derecho del header */
 .logout-info {
   display: flex;
-  margin: 10px;
+  margin: 5px;
 }
 
 .logout-timeout-info {
