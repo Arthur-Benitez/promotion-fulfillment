@@ -15,6 +15,7 @@ shinyServer(function(input, output, session){
     appender = appender.tee(paste0(gl$app_deployment_environment, '/log/', as.character(Sys.Date()), '.log'))
   )
   
+  
   output$logout_button <- renderUI({
     logoutUI('logout')
   })
@@ -80,11 +81,21 @@ shinyServer(function(input, output, session){
   )
   
   ## Logout
+  ### Detectar actividad en general
+  activity <- reactiveValues(
+    counter = 0
+  )
+  onclick('body', {
+    activity$counter <- activity$counter + 1
+  })
+  onclick('sidebarCollapsed', {
+    activity$counter <- activity$counter + 1
+  })
   logout <- callModule(
     logoutServer,
     id = 'logout',
-    user_auth = reactive(credentials()$user_auth),
-    active = reactive(promotions()$activity_detected)
+    user_auth = reactive(credentials()$user_auth), # login
+    active = reactive(activity$counter) # click en sidebar o body
   )
   
   ## Administración de usuarios
