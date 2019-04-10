@@ -15,9 +15,74 @@ library(futile.logger)
 library(shinyalert)
 library(RODBC)
 
-
+## Para que readr no truene
 options(readr.default_locale=readr::locale(tz = ''))
 
+## Loggear session info al levantar el deployment
+flog.info(toJSON(list(
+  message = "R SESSION INFO",
+  details = list(
+    session_info = paste(capture.output(sessionInfo()), collapse = '\n')
+  )
+)))
+
+## Asegurar que los locales están bien seteados
+if (Sys.info()[['sysname']] != 'Windows') {
+  flog.info(toJSON(list(
+    message = "INITIAL R LOCALE",
+    details = list(
+      locale = Sys.getlocale()
+    )
+  )))
+  tribble(
+    ~category, ~locale,
+    "LC_CTYPE", "en_US.UTF-8",
+    "LC_NUMERIC", "C",
+    "LC_TIME", "en_US.UTF-8",
+    "LC_COLLATE", "en_US.UTF-8",
+    "LC_MONETARY", "en_US.UTF-8",
+    "LC_MESSAGES", "en_US.UTF-8"
+  ) %>% 
+    pwalk(function(category, locale){
+      tryCatch({
+        old_locale <- Sys.getlocale(category)
+        if (locale != old_locale) {
+          flog.info(toJSON(list(
+            message = "CHANGING LOCALE",
+            details = list(
+              category = category,
+              locale = old_locale
+            )
+          )))
+          Sys.setlocale(category, locale)
+          flog.info(toJSON(list(
+            message = "CHANGED LOCALE",
+            details = list(
+              category = category,
+              locale = list(
+                old = old_locale,
+                new = locale
+              )
+            )
+          )))
+        }
+      }, error = function(e){
+        flog.info(toJSON(list(
+          message = "FAILED CHANGING LOCALE",
+          details = list(
+            category = category,
+            locale = old_locale
+          )
+        )))
+      })
+    })
+}
+flog.info(toJSON(list(
+  message = "R LOCALE",
+  details = list(
+    locale = Sys.getlocale()
+  )
+)))
 
 # Módulos -----------------------------------------------------------------
 

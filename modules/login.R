@@ -119,7 +119,6 @@ save_users <- function(users, user_data_path) {
   futile.logger::flog.info(toJSON(list(
     message = "SAVED USERS",
     details = list(
-      status = 'SUCCESS',
       target = user_data_path
     )
   )))
@@ -134,18 +133,16 @@ delete_user <- function(users, credentials = NULL, user_to_delete) {
         session_info = msg_cred(credentials),
         message = "DELETED USER",
         details = list(
-          status = 'SUCCESS',
           target = msg_cred(users[[idx]])
         )
       )))
       users <- users[-idx]
       status <- 0
     } else {
-      futile.logger::flog.info(toJSON(list(
+      futile.logger::flog.error(toJSON(list(
         session_info = msg_cred(credentials),
         message = "ERROR DELETING USER",
         details = list(
-          status = 'ERROR',
           target = msg_cred(users[[idx]]),
           reason = 'Insufficient clearance'
         )
@@ -153,11 +150,10 @@ delete_user <- function(users, credentials = NULL, user_to_delete) {
       status <- 1
     }
   } else {
-    futile.logger::flog.info(toJSON(list(
+    futile.logger::flog.error(toJSON(list(
       session_info = msg_cred(credentials),
       message = "ERROR DELETING USER",
       details = list(
-        status = 'ERROR',
         target = msg_cred(list(user = user_to_delete)),
         reason = 'User doesn\'t exist'
       )
@@ -184,7 +180,6 @@ add_user <- function(users, credentials = NULL, new_user, new_password, new_role
         session_info = msg_cred(credentials),
         message = "CREATED USER",
         details = list(
-          status = 'SUCCESS',
           target = msg_cred(new)
         )
       )))
@@ -196,11 +191,10 @@ add_user <- function(users, credentials = NULL, new_user, new_password, new_role
         )))
       status <- 0
     } else {
-      futile.logger::flog.info(toJSON(list(
+      futile.logger::flog.error(toJSON(list(
         session_info = msg_cred(credentials),
         message = "ERROR CREATING USER",
         details = list(
-          status = 'ERROR',
           target = msg_cred(new),
           reason = 'Clearance insufficient'
         )
@@ -208,11 +202,10 @@ add_user <- function(users, credentials = NULL, new_user, new_password, new_role
       status <- 1
     }
   } else {
-    futile.logger::flog.info(toJSON(list(
+    futile.logger::flog.error(toJSON(list(
       session_info = msg_cred(credentials),
       message = "ERROR CREATING USER",
       details = list(
-        status = 'ERROR',
         target = msg_cred(list(user = new_user)),
         reason = 'User already exists'
       )
@@ -230,22 +223,20 @@ update_user <- function(users, credentials = NULL, user_to_update, new_password 
   password_empty <- is.null(new_password) || length(new_password) == 0 # || nchar(new_password) == 0
   role_empty <- is.null(new_role) || length(new_role) == 0
   if (password_empty && role_empty) {
-    futile.logger::flog.info(toJSON(list(
+    futile.logger::flog.error(toJSON(list(
       session_info = msg_cred(credentials),
       message = "ERROR UPDATING USER",
       details = list(
-        status = 'ERROR',
         target = msg_cred(list(user = user_to_update)),
         reason = 'No changes submitted'
       )
     )))
     status <- 1
   } else if (!password_empty && !role_empty) {
-    futile.logger::flog.info(toJSON(list(
+    futile.logger::flog.error(toJSON(list(
       session_info = msg_cred(credentials),
       message = "ERROR UPDATING USER",
       details = list(
-        status = 'ERROR',
         target = msg_cred(list(user = user_to_update)),
         reason = 'Cannot update password and role at the same time'
       )
@@ -267,18 +258,16 @@ update_user <- function(users, credentials = NULL, user_to_update, new_password 
               session_info = msg_cred(credentials),
               message = "UPDATED USER PASSWORD",
               details = list(
-                status = 'SUCCESS',
                 target = msg_cred(users[[idx]])
               )
             )))
             users[[idx]]$password_hash <- new_password_hash
             status <- 0
           } else {
-            futile.logger::flog.info(toJSON(list(
+            futile.logger::flog.error(toJSON(list(
               session_info = msg_cred(credentials),
               message = "ERROR UPDATING PASSWORD",
               details = list(
-                status = 'ERROR',
                 target = msg_cred(users[[idx]]),
                 reason = 'The new password must be a character vector of length = 1'
               )
@@ -293,7 +282,6 @@ update_user <- function(users, credentials = NULL, user_to_update, new_password 
               session_info = msg_cred(credentials),
               message = "UPDATED USER ROLE",
               details = list(
-                status = 'SUCCESS',
                 target = msg_cred(users[[idx]]),
                 updated_target = msg_cred(list(user = users[[idx]]$user, role = new$role))
               )
@@ -301,11 +289,10 @@ update_user <- function(users, credentials = NULL, user_to_update, new_password 
             users[[idx]]$role <- new_role
             status <- 0
           } else {
-            futile.logger::flog.info(toJSON(list(
+            futile.logger::flog.error(toJSON(list(
               session_info = msg_cred(credentials),
               message = "ERROR UPDATING ROLE",
               details = list(
-                status = 'ERROR',
                 target = msg_cred(users[[idx]]),
                 reason = 'New role must be a character vector of length >= 1'
               )
@@ -314,11 +301,10 @@ update_user <- function(users, credentials = NULL, user_to_update, new_password 
           }
         }
       } else {
-        futile.logger::flog.info(toJSON(list(
+        futile.logger::flog.error(toJSON(list(
           session_info = msg_cred(credentials),
           message = "ERROR UPDATING USER",
           details = list(
-            status = 'ERROR',
             target = msg_cred(new),
             reason = 'Insufficient clearance'
           )
@@ -326,11 +312,10 @@ update_user <- function(users, credentials = NULL, user_to_update, new_password 
         status <- 1
       }
     } else {
-      futile.logger::flog.info(toJSON(list(
+      futile.logger::flog.error(toJSON(list(
         session_info = msg_cred(credentials),
         message = "ERROR UPDATING USER",
         details = list(
-          status = 'ERROR',
           target = msg_cred(list(user = user_to_update)),
           reason = 'User doesn\'t exist'
         )
@@ -413,7 +398,6 @@ loginServer <- function(input, output, session, logout) {
       session_info = msg_cred(shiny::reactiveValuesToList(credentials)),
       message = "LOGOUT SUCCESSFUL",
       details = list(
-        status = 'SUCCESS',
         session = credentials$session
       )
     )))
@@ -447,17 +431,14 @@ loginServer <- function(input, output, session, logout) {
         session_info = msg_cred(shiny::reactiveValuesToList(credentials)),
         message = "LOGIN SUCCESSFUL",
         details = list(
-          status = 'SUCCESS',
           session = credentials$session
         )
       )))
     } else {
-      futile.logger::flog.info(toJSON(list(
+      futile.logger::flog.warn(toJSON(list(
         session_info = msg_cred(shiny::reactiveValuesToList(credentials)),
         message = "LOGIN FAILED",
-        details = list(
-          status = 'ERROR'
-        )
+        details = list()
       )))
       shinyjs::toggle(id = 'error', anim = TRUE, time = 1, animType = 'fade')
       shinyjs::delay(5000, shinyjs::toggle(id = "error", anim = TRUE, time = 1, animType = "fade"))
@@ -520,11 +501,10 @@ passwordUpdateUI <- function(id) {
 passwordUpdateServer <- function(input, output, session, credentials) {
   observeEvent(input$button, {
     if (input$new_password_1 != input$new_password_2) {
-      futile.logger::flog.info(toJSON(list(
+      futile.logger::flog.error(toJSON(list(
         session_info = msg_cred(credentials()),
         message = "ERROR CHANGING PASSWORD",
         details = list(
-          status = 'ERROR',
           reason = 'New password mismatch'
         )
       )))
@@ -546,11 +526,10 @@ passwordUpdateServer <- function(input, output, session, credentials) {
           save_users(users$users, gl$user_data_path)
         }
       } else {
-        futile.logger::flog.info(toJSON(list(
+        futile.logger::flog.error(toJSON(list(
           session_info = msg_cred(credentials()),
           message = "ERROR CHANGING PASSWORD",
           details = list(
-            status = 'ERROR',
             reason = 'Current password is incorrect'
           )
         )))

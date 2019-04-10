@@ -20,12 +20,6 @@ generate_cols_spec <- function(columns, date_format = '%Y-%m-%d') {
 ## Leer entrada
 parse_input <- function(input_file, gl, ch = NULL, date_format = '%Y-%m-%d') {
   tryCatch({
-    flog.info(toJSON(list(
-      message = 'PARSING ITEMS FILE',
-      details = list(
-        file = input_file
-      )
-    )))
     x <- read_csv(
       file = input_file,
       col_names = TRUE,
@@ -39,31 +33,11 @@ parse_input <- function(input_file, gl, ch = NULL, date_format = '%Y-%m-%d') {
       )
     val <- validate_input(x, gl, ch)
     if (isTRUE(val)) {
-      flog.info(toJSON(list(
-        message = 'INPUT PARSING DONE',
-        details = list(
-          file = input_file
-        )
-      )))
       return(x)
     } else {
-      flog.info(toJSON(list(
-        message = 'INPUT PARSING ABORTED',
-        details = list(
-          file = input_file,
-          reason = val
-        )
-      )))
       return(val)
     }
   }, error = function(e){
-    flog.info(toJSON(list(
-      message = 'INPUT PARSING ABORTED',
-      details = list(
-        file = input_file,
-        reason = 'Error parsing file'
-      )
-    )))
     return('Error leyendo el archivo')
   })
 }
@@ -396,16 +370,7 @@ generate_detail <- function(output_data) {
 
 # Server ------------------------------------------------------------------
 
-computePromotionsServer <- function(input, output, session) {
-  ## Logging
-  if (!dir.exists(paste0(gl$app_deployment_environment, '/log/'))) {
-    dir.create(paste0(gl$app_deployment_environment, '/log/'))
-  }
-  flog.logger(
-    name = 'ROOT',
-    threshold = INFO,
-    appender = appender.tee(paste0(gl$app_deployment_environment, '/log/', as.character(Sys.Date()), '.log'))
-  )
+computePromotionsServer <- function(input, output, session, credentials) {
   
   ## Valores reactivos para usar en observadores
   r <- reactiveValues(
@@ -445,7 +410,8 @@ computePromotionsServer <- function(input, output, session) {
     if (is.null(r$ch) || !r$is_open) {
       tryCatch({
         flog.info(toJSON(list(
-          message = 'ATTEMPTING USER LOGIN',
+          session_info = msg_cred(credentials()),
+          message = 'ATTEMPTING TO LOG IN INTO TERADATA',
           details = list(
             user = input$user
           )
@@ -458,7 +424,8 @@ computePromotionsServer <- function(input, output, session) {
                        style="color: #fff; background-color: #f42e2e;")
         })
         flog.info(toJSON(list(
-          message = 'USER LOGIN SUCCESSFUL',
+          session_info = msg_cred(credentials()),
+          message = 'TERADATA LOGIN SUCCESSFUL',
           details = list(
             user = input$user
           )
@@ -470,7 +437,8 @@ computePromotionsServer <- function(input, output, session) {
         #   footer = modalButton("Aceptar")
         # ))
         shinyalert("Error", "El usuario o la contraseña no son válidos", type = "error")
-        flog.info(toJSON(list(
+        flog.warn(toJSON(list(
+          session_info = msg_cred(credentials()),
           message = 'USER LOGIN FAILED',
           details = list(
             user = input$user
@@ -489,6 +457,7 @@ computePromotionsServer <- function(input, output, session) {
                      style="color: #fff; background-color: #3BC136;")
       })
       flog.info(toJSON(list(
+        session_info = msg_cred(credentials()),
         message = 'USER LOGOUT SUCCESSFUL',
         details = list(
           user = input$user
@@ -504,12 +473,34 @@ computePromotionsServer <- function(input, output, session) {
   observe({
     req(r$items_file, input$date_format)
     req(r$is_open || gl$app_deployment_environment == 'prod')
+    flog.info(toJSON(list(
+      session_info = msg_cred(credentials()),
+      message = 'PARSING INPUT FILE',
+      details = list(
+        file = r$items_file
+      )
+    )))
     val <- parse_input(r$items_file, gl, r$ch, input$date_format)
     if (!is.data.frame(val)) {
       shinyalert("Error", val, type = "error", closeOnEsc = TRUE, closeOnClickOutside = TRUE)
       r$items <- NULL
+      flog.error(toJSON(list(
+        session_info = msg_cred(credentials()),
+        message = 'PARSING INPUT FILE FAILED',
+        details = list(
+          file = r$items_file,
+          reason = val
+        )
+      )))
     } else {
       r$items <- val
+      flog.info(toJSON(list(
+        session_info = msg_cred(credentials()),
+        message = 'DONE PARSING INPUT FILE',
+        details = list(
+          file = r$items_file
+        )
+      )))
     }
   })
   output$input_table <- renderDT({
@@ -542,12 +533,14 @@ computePromotionsServer <- function(input, output, session) {
         incProgress(0.33, message = lang$running_query)
         r$query_was_tried <- TRUE
         flog.info(toJSON(list(
+          session_info = msg_cred(credentials()),
           message = 'RUNNING QUERY',
           details = list()
         )))
         r$query_result <- purrr::safely(run_query)(r$ch, r$items)$result
         incProgress(0.33, message = lang$running_computations)
         flog.info(toJSON(list(
+          session_info = msg_cred(credentials()),
           message = 'PERFORMING COMPUTATIONS',
           details = list()
         )))

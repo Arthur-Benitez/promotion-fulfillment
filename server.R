@@ -5,8 +5,14 @@ require(shinydashboard)
 
 shinyServer(function(input, output, session){
   
-  rv <- reactiveValues(
-    sidebar_changed = 0
+  ## Logging
+  if (!dir.exists(paste0(gl$app_deployment_environment, '/log/'))) {
+    dir.create(paste0(gl$app_deployment_environment, '/log/'))
+  }
+  flog.logger(
+    name = 'ROOT',
+    threshold = INFO,
+    appender = appender.tee(paste0(gl$app_deployment_environment, '/log/', as.character(Sys.Date()), '.log'))
   )
   
   output$logout_button <- renderUI({
@@ -101,7 +107,8 @@ shinyServer(function(input, output, session){
   
   promotions <- callModule(
     computePromotionsServer,
-    id = 'compute_promotions'
+    id = 'compute_promotions',
+    credentials = reactive(credentials())
   )
   
 })
