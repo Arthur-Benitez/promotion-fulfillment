@@ -158,7 +158,6 @@ validate_input <- function(data, gl, ch) {
 
 ## Correr query
 prepare_query <- function(query, keys, old_nbrs, wk_inicio, wk_final) {
-  # browser()
   query %>% 
     str_replace_all('\\?KEY', paste0("'", paste(keys, collapse = "','"), "'")) %>%
     str_replace_all('\\?OLD_NBRS', paste(old_nbrs, collapse = ",")) %>%
@@ -168,7 +167,6 @@ prepare_query <- function(query, keys, old_nbrs, wk_inicio, wk_final) {
     paste(collapse = '\n')
 }
 run_query_once <- function(ch, input_data) {
-  # browser()
   wk_inicio <- unique(input_data$semana_ini)
   wk_final <- unique(input_data$semana_fin)
   type <- toupper(unique(input_data$fcst_or_sales))
@@ -530,6 +528,7 @@ computePromotionsServer <- function(input, output, session) {
   ## Seleccionar pestaña de output para que se vea el loader
   rr <- reactiveVal(0)
   observeEvent(input$run, {
+    ns <- session$ns
     updateTabItems(session, 'io', selected = 'output_summary')
     output$output_table <- renderDT(NULL)
     rr(rr() + 1)
@@ -816,7 +815,7 @@ computePromotionsUI <- function(id) {
       actionButton(ns('reset'), lang$reset, icon = icon('redo-alt'))
     ),
     tabBox(
-      id = 'io',
+      id = ns('io'),
       selected = NULL,
       width = 9,
       tabPanel(

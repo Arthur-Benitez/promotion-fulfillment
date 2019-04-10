@@ -24,6 +24,7 @@ options(readr.default_locale=readr::locale(tz = ''))
 ## Usar esto en lugar de source(., encoding = 'UTF-8') porque truena a menos que cambiemos el locale del sistema con Sys.setlocale('LC_CTYPE', 'en_US.UTF-8') 
 ## Ver: https://stackoverflow.com/questions/5031630/how-to-source-r-file-saved-using-utf-8-encoding
 eval(parse('modules/compute-promotions.R', encoding = 'UTF-8'))
+eval(parse('modules/login.R', encoding = 'UTF-8'))
 
 # Parámetros globales -----------------------------------------------------
 
@@ -80,6 +81,18 @@ gl <- list(
 )
 gl$app_version_text <- sprintf('%s (%s)', gl$app_version, gl$app_version_date)
 
+## Login & Auth
+### Path a base de datos de usuarios
+gl$user_data_path <- paste0(gl$app_deployment_environment, '/etc/psswd')
+if (!dir.exists(dirname(gl$user_data_path))) {
+  dir.create(dirname(gl$user_data_path), recursive = TRUE)
+}
+### Nivel de permisos por tipo de usuario
+gl$clearance_levels <- c(
+  'owner' = 0,
+  'admin' = 1,
+  'basic' = 2
+)
 
 # Llamar módulos ----------------------------------------------------------
 

@@ -5,61 +5,103 @@ require(shinydashboard)
 
 shinyServer(function(input, output, session){
   
-  output$header <- renderUI({
-    dashboardHeader(
-      title = tags$div(
-        tags$div(
-          id = 'app-logo-container',
-          tags$img(src = 'spark-logo.png', id = 'app-logo')
-        ),
-        tags$div(
-          id = 'app-name-container',
-          tags$p(id = 'app-name', lang$app_name)
-          # tags$p(id = 'app-description', 'XXXXXXX')
-        )
-      )
-    )
+  rv <- reactiveValues(
+    sidebar_changed = 0
+  )
+  
+  output$logout_button <- renderUI({
+    if (credentials()$user_auth) {
+      logout_button <- logoutUI('logout')
+    } else {
+      logout_button <- NULL
+    }
+    logout_button
   })
   
   output$sidebar <- renderUI({
-    dashboardSidebar(
-      sidebarMenu(
-        menuItem(
-          tabName = 'promo',
-          text = lang$promo,
-          icon = icon('calculator')
-        ),
-        column(
-          icon('empire'),
-          gl$app_version_text,
-          align = 'right',
-          width = 12,
-          style = 'position: absolute; bottom: 0;'
-        )
+    if (credentials()$user_auth) {
+      items <- tagList(
+        menuItem(tabName = 'promo', text = lang$promo, icon = icon('calculator'), selected = TRUE),
+        menuItem(tabName = 'password_update', text = lang$password_update, icon = icon('lock'))
       )
+      if (user_clearance(credentials(), gl$clearance_levels) <= 1) {
+        items <- tagAppendChildren(
+          items,
+          tagList(
+            menuItem(tabName = 'user_management', text = lang$user_management, icon = icon('users'))
+          )
+        )
+      }
+    } else {
+      items <- menuItem(tabName = 'login', text = lang$login, icon = icon('sign-in'), selected = TRUE)
+    }
+    sidebarMenu(
+      id = 'menu',
+      items
     )
   })
   
   output$body <- renderUI({
-    dashboardBody(
-      useShinyjs(),
-      useShinyalert(),
-      tags$head(
-        tags$link(rel = 'stylesheet', type = 'text/css', href = 'theme.css'),
-        tags$link(rel = 'stylesheet', href = 'https://fonts.googleapis.com/css?family=Bree+Serif|Coiny')
+    tabItems(
+      tabItem(
+        tabName = 'login',
+        loginUI('login')
       ),
-      tabItems(
-        tabItem(
-          tabName = 'promo',
-          computePromotionsUI('compute-promotions')
-        )
+      tabItem(
+        tabName = 'promo',
+        computePromotionsUI('compute_promotions')
+      ),
+      tabItem(
+        tabName = 'password_update',
+        passwordUpdateUI('password_update')
+      ),
+      tabItem(
+        tabName = 'user_management',
+        userManagementUI('user_management')
       )
     )
   })
   
+  ## Seleccionar una opción del menú al hacer login/logout
+  observe({
+    if (credentials()$user_auth) {
+      updateTabItems(session, 'menu', 'promo')
+    } else {
+      updateTabItems(session, 'menu', 'login')
+    }
+  })
+  
+  ## Login
+  credentials <- callModule(
+    loginServer,
+    id = 'login',
+    logout = reactive(logout())
+  )
+  
+  ## Logout
+  logout <- callModule(
+    logoutServer,
+    id = 'logout',
+    active = reactive(credentials()$user_auth)
+  )
+  
+  ## Administración de usuarios
+  callModule(
+    userManagementServer,
+    id = 'user_management',
+    credentials = reactive(credentials())
+  )
+  
+  ## Actualización de contraseña
+  callModule(
+    passwordUpdateServer,
+    id = 'password_update',
+    credentials = reactive(credentials())
+  )
+  
   promotions <- callModule(
     computePromotionsServer,
-    id = 'compute-promotions'
+    id = 'compute_promotions'
   )
   
 })
