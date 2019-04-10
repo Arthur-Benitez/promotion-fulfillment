@@ -16,12 +16,7 @@ shinyServer(function(input, output, session){
   )
   
   output$logout_button <- renderUI({
-    if (credentials()$user_auth) {
-      logout_button <- logoutUI('logout')
-    } else {
-      logout_button <- NULL
-    }
-    logout_button
+    logoutUI('logout')
   })
   
   output$sidebar <- renderUI({
@@ -88,7 +83,8 @@ shinyServer(function(input, output, session){
   logout <- callModule(
     logoutServer,
     id = 'logout',
-    active = reactive(credentials()$user_auth)
+    user_auth = reactive(credentials()$user_auth),
+    active = reactive(promotions()$activity_detected)
   )
   
   ## Administración de usuarios

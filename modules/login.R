@@ -457,17 +457,46 @@ loginServer <- function(input, output, session, logout) {
 ## UI
 logoutUI <- function(id) {
   ns <- shiny::NS(id)
-  shiny::actionButton(ns("button"), lang$logout, class = "btn-danger")
-  # shinyjs::hidden(
-  #   shiny::actionButton(ns("button"), 'Log out', class = "btn-danger", style = "color: white;")
-  # )
+  uiOutput(ns('ui'))
 }
 
 ## Server
-logoutServer <- function(input, output, session, active) {
-  # shiny::observeEvent(active(), ignoreInit = TRUE, {
-  #   shinyjs::toggle(id = "button", anim = TRUE, time = 1, animType = "fade")
-  # })
+logoutServer <- function(input, output, session, user_auth, active) {
+  output$ui <- renderUI({
+    ns <- session$ns
+    if (user_auth()) {
+      button <- shiny::actionButton(ns("button"), lang$logout, class = "btn-danger")
+    } else {
+      button <- NULL
+    }
+    tags$div(
+      class = 'logout-info',
+      tags$div(textOutput(ns('counter')), class = 'logout-timeout-info'),
+      button
+    )
+  })
+  ## Contador de tiempo hasta logout automático
+  counter_millis <- 60000
+  counter_max <- 20
+  rv <- reactiveValues(
+    counter = counter_max
+  )
+  ## El contador se resetea si se hace login, logout, run, reset o login Teradata
+  observeEvent(user_auth() + active() + input$button, {
+    rv$counter <- counter_max
+  })
+  ## Se restan un contador cada counter_millis
+  timer <- reactiveTimer(counter_millis)
+  observeEvent(timer(), {
+    rv$counter <- rv$counter - 1
+    if (rv$counter <= 0) {
+      session$close()
+    }
+  })
+  output$counter <- renderText({
+    s <- if (rv$counter == 1) '' else 's'
+    sprintf('La sesión se cerrará automáticamente en %d minuto%s.', as.numeric(rv$counter), s)
+  })
   shiny::reactive({input$button})
 }
 

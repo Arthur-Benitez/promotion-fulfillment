@@ -772,6 +772,13 @@ computePromotionsServer <- function(input, output, session, credentials) {
     },
     contentType = 'text/csv'
   )
+  
+  reactive({
+    list(
+      activity_detected = input$auth + input$run + input$reset
+    )
+  })
+  
 }
 
 
