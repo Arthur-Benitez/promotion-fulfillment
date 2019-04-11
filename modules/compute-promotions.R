@@ -520,83 +520,99 @@ computePromotionsServer <- function(input, output, session, credentials) {
   rr <- reactiveVal(0)
   observeEvent(input$run, {
     ns <- session$ns
-    updateTabItems(session, 'io', selected = 'output_summary')
-    output$output_table <- renderDT(NULL)
-    rr(rr() + 1)
+    if (is.null(r$items)) {
+      r$query_was_tried <- FALSE
+    } else {
+      updateTabItems(session, 'io', selected = 'output_summary')
+      output$output_table <- renderDT(NULL)
+      r$query_was_tried <- TRUE
+      rr(rr() + 1)
+    }
   })
   
   ## Correr query y análisis
-  observeEvent(rr(), {
-    r$query_was_tried <- FALSE
-    if (!is.null(r$items)) {
-      withProgress(min = 0, max = 1, value = 0, message = lang$running_query, expr = {
-        incProgress(0.33, message = lang$running_query)
-        r$query_was_tried <- TRUE
-        flog.info(toJSON(list(
-          session_info = msg_cred(credentials()),
-          message = 'RUNNING QUERY',
-          details = list()
-        )))
-        r$query_result <- purrr::safely(run_query)(r$ch, r$items)$result
-        incProgress(0.33, message = lang$running_computations)
-        flog.info(toJSON(list(
-          session_info = msg_cred(credentials()),
-          message = 'PERFORMING COMPUTATIONS',
-          details = list()
-        )))
-        r$final_result <- purrr::safely(perform_computations)(r$query_result)$result
-      })
-    }
+  query_result <- eventReactive(rr(), {
+    flog.info(toJSON(list(
+      session_info = msg_cred(credentials()),
+      message = 'RUNNING QUERY',
+      details = list()
+    )))
+    purrr::safely(run_query)(r$ch, r$items)$result
+  }, ignoreInit = TRUE)
+  final_result <- eventReactive(query_result(), {
+    flog.info(toJSON(list(
+      session_info = msg_cred(credentials()),
+      message = 'PERFORMING COMPUTATIONS',
+      details = list()
+    )))
+    purrr::safely(perform_computations)(query_result())$result
+  })
+  observeEvent(final_result(), {
+    
+    # if (!is.null(r$items)) {
+    #   withProgress(min = 0, max = 1, value = 0, message = lang$running_query, expr = {
+    #     incProgress(0.33, message = lang$running_query)
+    #     incProgress(0.33, message = lang$running_computations)
+    #   })
+    # }
     
     output$output_table <- renderDT({
-      shiny::validate(
-        shiny::need(r$is_open || gl$app_deployment_environment == 'prod', lang$need_auth) %then%
-          shiny::need(!is.null(r$items_file), lang$need_items_file) %then%
-          shiny::need(!is.null(r$items), lang$need_valid_input) %then%
-          shiny::need(r$query_was_tried, lang$need_run) %then%
-          shiny::need(!is.null(r$query_result), lang$need_query_result) %then%
-          shiny::need(!is.null(r$final_result), lang$need_final_result)
-      )
-      percent_columns <- c('feature_perc_pos_or_fcst')
-      decimal_columns <- c('avg_dly_pos_or_fcst',	'feature_qty_req', 'feature_ddv_req','feature_ddv_fin',
-                           'feature_qty_fin', 'display_key', 'store_cost', 'vnpk_fin', 'cost')
-      r$final_result %>%
-        mutate_at(vars(percent_columns), funs(100 * .)) %>%
-        datatable(
-          filter = 'top',
-          options = list(
-            scrollX = TRUE,
-            scrollY = '400px'
-          )
-        ) %>%
-        formatCurrency(columns = decimal_columns, digits = 1, currency = '') %>%
-        formatCurrency(columns = percent_columns, digits = 1, currency = '%', before = FALSE)
+      # shiny::validate(
+      #   shiny::need(r$is_open || gl$app_deployment_environment == 'prod', lang$need_auth) %then%
+      #     shiny::need(!is.null(r$items_file), lang$need_items_file) %then%
+      #     shiny::need(!is.null(r$items), lang$need_valid_input) %then%
+      #     shiny::need(r$query_was_tried, lang$need_run) %then%
+      #     shiny::need(!is.null(r$query_result), lang$need_query_result) %then%
+      #     shiny::need(!is.null(r$final_result), lang$need_final_result)
+      # )
+      tryCatch({
+        percent_columns <- c('feature_perc_pos_or_fcst')
+        decimal_columns <- c('avg_dly_pos_or_fcst',	'feature_qty_req', 'feature_ddv_req','feature_ddv_fin',
+                             'feature_qty_fin', 'display_key', 'store_cost', 'vnpk_fin', 'cost')
+        final_result() %>%
+          mutate_at(vars(percent_columns), funs(100 * .)) %>%
+          datatable(
+            filter = 'top',
+            options = list(
+              scrollX = TRUE,
+              scrollY = '400px'
+            )
+          ) %>%
+          formatCurrency(columns = decimal_columns, digits = 1, currency = '') %>%
+          formatCurrency(columns = percent_columns, digits = 1, currency = '%', before = FALSE)
+      }, error = function(e){
+        NULL
+      })
     })
     #percent_columns <- c('')
   }, ignoreNULL = TRUE)
   
-  observe({
-    req(r$final_result)
-    r$summary_table <- purrr::safely(summarise_data)(r$final_result, input$summary_groups)$result
+  summary_table <- eventReactive(final_result(), {
+    purrr::safely(summarise_data)(final_result(), input$summary_groups)$result
   })
+  
   output$summary_table <- renderDT({
-    shiny::validate(
-      shiny::need(r$is_open || gl$app_deployment_environment == 'prod', lang$need_auth) %then%
-        shiny::need(!is.null(r$items_file), lang$need_items_file) %then%
-        shiny::need(!is.null(r$items), lang$need_valid_input) %then%
-        shiny::need(r$query_was_tried, lang$need_run) %then%
-        shiny::need(!is.null(r$query_result), lang$need_query_result) %then%
-        shiny::need(!is.null(r$final_result), lang$need_final_result)
-    )
-    datatable(
-      r$summary_table,
-      filter = 'top',
-      options = list(
-        scrollX = TRUE,
-        scrollY = '400px'
-      )
-    ) %>%
-      formatCurrency(columns = str_subset(names(r$summary_table), '^(total|avg)_'), digits = 1, currency = '')
+    # shiny::validate(
+    #   shiny::need(r$is_open || gl$app_deployment_environment == 'prod', lang$need_auth) %then%
+    #     shiny::need(!is.null(r$items_file), lang$need_items_file) %then%
+    #     shiny::need(!is.null(r$items), lang$need_valid_input) %then%
+    #     shiny::need(r$query_was_tried, lang$need_run) %then%
+    #     shiny::need(!is.null(r$query_result), lang$need_query_result) %then%
+    #     shiny::need(!is.null(r$final_result), lang$need_final_result)
+    # )
+    tryCatch({
+      datatable(
+        summary_table(),
+        filter = 'top',
+        options = list(
+          scrollX = TRUE,
+          scrollY = '400px'
+        )
+      ) %>%
+        formatCurrency(columns = str_subset(names(summary_table()), '^(total|avg)_'), digits = 1, currency = '')
+    }, error = function(e){
+      NULL
+    })
   })
   
   output$output_feature_select_ui <- renderUI({
@@ -614,86 +630,91 @@ computePromotionsServer <- function(input, output, session, credentials) {
   })
   
   ## Tabla de alcance
-  hd <- reactiveValues(
-    final_results_filt = NULL,
-    histogram_data = NULL
-  )
-  observe({
-    req(r$final_result, input$output_feature_select)
-    hd$final_results_filt <- r$final_result %>% 
+  final_results_filt <- reactive({
+    final_result() %>% 
       filter(feature_name == input$output_feature_select)
-    hd$histogram_data <- generate_histogram_data(hd$final_results_filt)
+  })
+  histogram_data <- reactive({
+    generate_histogram_data(final_results_filt())
   })
   
   ## Histograma de alcance
   output$feature_histogram <- renderPlotly({
-    shiny::validate(
-      shiny::need(r$is_open || gl$app_deployment_environment == 'prod', lang$need_auth) %then%
-        shiny::need(!is.null(r$items_file), lang$need_items_file) %then%
-        shiny::need(!is.null(r$items), lang$need_valid_input) %then%
-        shiny::need(r$query_was_tried, lang$need_run) %then%
-        shiny::need(!is.null(r$query_result), lang$need_query_result) %then%
-        shiny::need(!is.null(r$final_result), lang$need_final_result) %then%
-        shiny::need(!is.null(hd$histogram_data), lang$need_final_result) %then%
-        shiny::need(nchar(input$output_feature_select) > 0, lang$need_select_feature)
-    )
-    mfq <- unique(hd$final_results_filt$max_feature_qty)
-    hd$histogram_data %>% 
-      mutate(
-        label_y = n_stores + 0.03 * max(n_stores),
-        label = scales::percent(p_stores),
-        text = sprintf('Tiendas: %s (%s)<br>Costo total: %s<br>Costo promedio: %s<br>Cant. total: %s<br>Cant. promedio: %s', scales::comma(n_stores, digits = 0), scales::percent(p_stores), scales::comma(total_cost, digits = 0), scales::comma(avg_store_cost, digits = 0), scales::comma(total_qty, digits = 0), scales::comma(avg_store_qty, digits = 0))
-      ) %>% 
-      plot_ly(x = ~perc_max_feature_qty_bin, y = ~n_stores, text = ~text, type = 'bar', name = NULL) %>% 
-      add_text(y = ~label_y, text = ~label, name = NULL) %>% 
-      plotly::layout(
-        title = 'Alcance a piezas máximas por tienda',
-        xaxis = list(title = sprintf('Alcance (%% de Max. Feature Qty. = %s)', scales::comma(mfq, digits = 0))),
-        yaxis = list(title = 'Número de tiendas', separators = '.,'),
-        showlegend = FALSE
-      )
+    # shiny::validate(
+    #   shiny::need(r$is_open || gl$app_deployment_environment == 'prod', lang$need_auth) %then%
+    #     shiny::need(!is.null(r$items_file), lang$need_items_file) %then%
+    #     shiny::need(!is.null(r$items), lang$need_valid_input) %then%
+    #     shiny::need(r$query_was_tried, lang$need_run) %then%
+    #     shiny::need(!is.null(r$query_result), lang$need_query_result) %then%
+    #     shiny::need(!is.null(r$final_result), lang$need_final_result) %then%
+    #     shiny::need(!is.null(hd$histogram_data), lang$need_final_result) %then%
+    #     shiny::need(nchar(input$output_feature_select) > 0, lang$need_select_feature)
+    # )
+    tryCatch({
+      mfq <- unique(final_results_filt()$max_feature_qty)
+      histogram_data() %>% 
+        mutate(
+          label_y = n_stores + 0.03 * max(n_stores),
+          label = scales::percent(p_stores),
+          text = sprintf('Tiendas: %s (%s)<br>Costo total: %s<br>Costo promedio: %s<br>Cant. total: %s<br>Cant. promedio: %s', scales::comma(n_stores, digits = 0), scales::percent(p_stores), scales::comma(total_cost, digits = 0), scales::comma(avg_store_cost, digits = 0), scales::comma(total_qty, digits = 0), scales::comma(avg_store_qty, digits = 0))
+        ) %>% 
+        plot_ly(x = ~perc_max_feature_qty_bin, y = ~n_stores, text = ~text, type = 'bar', name = NULL) %>% 
+        add_text(y = ~label_y, text = ~label, name = NULL) %>% 
+        plotly::layout(
+          title = 'Alcance a piezas máximas por tienda',
+          xaxis = list(title = sprintf('Alcance (%% de Max. Feature Qty. = %s)', scales::comma(mfq, digits = 0))),
+          yaxis = list(title = 'Número de tiendas', separators = '.,'),
+          showlegend = FALSE
+        )
+    }, error = function(e){
+      NULL
+    })
   })
   
   ## Tabla de alcance (output)
   output$feature_histogram_table <- renderDT({
-    req(
-      r$is_open || gl$app_deployment_environment == 'prod',
-      !is.null(r$items_file),
-      !is.null(r$items),
-      r$query_was_tried,
-      !is.null(r$query_result),
-      !is.null(r$final_result),
-      !is.null(hd$histogram_data)
-    )
-    percent_columns <- c('p_stores')
-    decimal_columns <- str_subset(names(hd$histogram_data), '^(n|total|avg)_')
-    hd$histogram_data %>%
-      mutate_at(vars(percent_columns), funs(100 * .)) %>%
-      datatable(
-        filter = 'none',
-        options = list(
-          scrollX = TRUE,
-          scrollY = '200px'
-        )
-      ) %>%
-      formatCurrency(columns = decimal_columns, digits = 1, currency = '') %>%
-      formatCurrency(columns = percent_columns, digits = 1, currency = '%', before = FALSE)
+    # req(
+    #   r$is_open || gl$app_deployment_environment == 'prod',
+    #   !is.null(r$items_file),
+    #   !is.null(r$items),
+    #   r$query_was_tried,
+    #   !is.null(r$query_result),
+    #   !is.null(r$final_result),
+    #   !is.null(hd$histogram_data)
+    # )
+    tryCatch({
+      percent_columns <- c('p_stores')
+      decimal_columns <- str_subset(names(histogram_data()), '^(n|total|avg)_')
+      histogram_data() %>%
+        mutate_at(vars(percent_columns), funs(100 * .)) %>%
+        datatable(
+          filter = 'none',
+          options = list(
+            scrollX = TRUE,
+            scrollY = '200px'
+          )
+        ) %>%
+        formatCurrency(columns = decimal_columns, digits = 1, currency = '') %>%
+        formatCurrency(columns = percent_columns, digits = 1, currency = '%', before = FALSE)
+    }, error = function(e){
+      NULL
+    })
   })
   
   ## Reset
   observeEvent(input$reset, {
     ## Esto es necesario porque al resetear la UI de input$items, no cambia el datapath
-    r$items_file <- NULL
-    r$items <- NULL
-    r$query_result <- NULL
-    r$final_result <- NULL
-    r$summary_table <- NULL
-    r$query_was_tried <- NULL
+    # r$items_file <- NULL
+    # r$items <- NULL
+    # r$query_result <- NULL
+    # r$final_result <- NULL
+    # r$summary_table <- NULL
+    # r$query_was_tried <- NULL
   })
   
   ## Descargar cálculos
   output$download_ui <- renderUI({
-    req(r$final_result)
+    req(final_result())
     ns <- session$ns
     downloadButton(ns('download'), label = lang$download, icon = icon('download'))
   })
@@ -702,14 +723,14 @@ computePromotionsServer <- function(input, output, session, credentials) {
       sprintf('estrategias_%s.csv', Sys.Date())
     },
     content = function(file) {
-      write_excel_csv(r$final_result, path = file, na = '')
+      write_excel_csv(final_result(), path = file, na = '')
     },
     contentType = 'text/csv'
   )
   
   ## Descargar resumen
   output$download_summary_ui <- renderUI({
-    req(r$summary_table)
+    req(summary_table())
     ns <- session$ns
     downloadButton(ns('download_summary'), label = lang$download_summary, icon = icon('download'))
   })
@@ -718,7 +739,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
       sprintf('resumen_%s.csv', Sys.Date())
     },
     content = function(file) {
-      write_excel_csv(r$summary_table, path = file, na = '')
+      write_excel_csv(summary_table(), path = file, na = '')
     },
     contentType = 'text/csv'
   )
@@ -759,14 +780,14 @@ computePromotionsServer <- function(input, output, session, credentials) {
   
   ## Descargar DETAIL
   output$download_detail_ui <- renderUI({
-    req(r$final_result)
+    req(final_result())
     ns <- session$ns
     downloadButton(ns('download_detail'), label = lang$download_detail, icon = icon('download'))
   })
   output$download_detail <- downloadHandler(
     filename = sprintf('DETAIL_%s.csv', Sys.Date()),
     content = function(file) {
-      r$final_result %>% 
+      final_result() %>% 
         generate_detail() %>% 
         write_excel_csv(path = file, na = '')
     },
