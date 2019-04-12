@@ -531,21 +531,21 @@ computePromotionsServer <- function(input, output, session, credentials) {
   })
   
   ## Correr query y análisis
-  query_result <- eventReactive(rr(), {
+  observeEvent(rr(), {
     flog.info(toJSON(list(
       session_info = msg_cred(credentials()),
       message = 'RUNNING QUERY',
       details = list()
     )))
-    purrr::safely(run_query)(r$ch, r$items)$result
+    r$query_result <- purrr::safely(run_query)(r$ch, r$items)$result
   }, ignoreInit = TRUE)
-  final_result <- eventReactive(query_result(), {
+  final_result <- eventReactive(r$query_result, {
     flog.info(toJSON(list(
       session_info = msg_cred(credentials()),
       message = 'PERFORMING COMPUTATIONS',
       details = list()
     )))
-    purrr::safely(perform_computations)(query_result())$result
+    purrr::safely(perform_computations)(r$query_result)$result
   })
   observeEvent(final_result(), {
     
@@ -706,7 +706,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
     ## Esto es necesario porque al resetear la UI de input$items, no cambia el datapath
     # r$items_file <- NULL
     # r$items <- NULL
-    # r$query_result <- NULL
+    r$query_result <- NULL
     # r$final_result <- NULL
     # r$summary_table <- NULL
     # r$query_was_tried <- NULL
