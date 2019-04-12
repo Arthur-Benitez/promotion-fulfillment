@@ -18,7 +18,7 @@ generate_cols_spec <- function(columns, date_format = '%Y-%m-%d') {
 }
 
 ## Leer entrada
-parse_input <- function(input_file, gl, ch = NULL, date_format = '%Y-%m-%d') {
+parse_input <- function(input_file, gl, calendar_day, ch = NULL, date_format = '%Y-%m-%d') {
   tryCatch({
     x <- read_csv(
       file = input_file,
@@ -31,7 +31,7 @@ parse_input <- function(input_file, gl, ch = NULL, date_format = '%Y-%m-%d') {
         display_key = paste(dept_nbr, old_nbr, negocio, sep = '.'),
         split_var = paste(semana_ini, semana_fin, fcst_or_sales, sep = '-')
       )
-    val <- validate_input(x, gl, ch)
+    val <- validate_input(x, gl = gl, calendar_day = calendar_day, ch = ch)
     if (isTRUE(val)) {
       return(x)
     } else {
@@ -44,7 +44,7 @@ parse_input <- function(input_file, gl, ch = NULL, date_format = '%Y-%m-%d') {
 
 
 ## Validar inputs
-validate_input <- function(data, gl, ch) {
+validate_input <- function(data, gl, calendar_day, ch) {
   if (
     ## Condiciones básicas
     !is.data.frame(data) ||
@@ -54,13 +54,11 @@ validate_input <- function(data, gl, ch) {
     return(FALSE)
   } else {
     tryCatch({
-      current_wk_query <- 'select wm_yr_wk from mx_cf_vm.calendar_day where gregorian_date = current_date'
-      if (is.null(ch)) {
-        current_wk <- mlutils::dataset.load(name = 'WMG',
-                                            query = current_wk_query)[[1]]
-      } else {
-        current_wk <- sqlQuery(ch, current_wk_query)[[1]]
-      }
+      current_wk <- calendar_day %>% 
+        filter(today() >= date) %>% 
+        filter(date == max(date)) %>% 
+        pull(wm_yr_wk)
+      
       cond <- tribble(
         ~message, ~passed,
         ## Checar que no haya valores faltantes
@@ -372,6 +370,9 @@ generate_detail <- function(output_data) {
 
 computePromotionsServer <- function(input, output, session, credentials) {
   
+  ## Calendario para validar inputs
+  calendar_day <- read_tsv('data/calendar-day.tsv')
+  
   ## Valores reactivos para usar en observadores
   r <- reactiveValues(
     ch = NULL,
@@ -480,7 +481,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
         file = r$items_file
       )
     )))
-    val <- parse_input(r$items_file, gl, r$ch, input$date_format)
+    val <- parse_input(r$items_file, gl = gl, calendar_day = calendar_day, ch = r$ch, date_format = input$date_format)
     if (!is.data.frame(val)) {
       shinyalert("Error", val, type = "error", closeOnEsc = TRUE, closeOnClickOutside = TRUE)
       r$items <- NULL
