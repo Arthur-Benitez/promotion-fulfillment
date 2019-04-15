@@ -143,10 +143,10 @@ run_query_once <- function(ch, input_data) {
   wk_final <- unique(input_data$semana_fin)
   type <- toupper(unique(input_data$fcst_or_sales))
   if (type == 'F') {
-    query <- read_lines('sql/exhibiciones-fcst.sql')
+    query <- readLines('sql/exhibiciones-fcst.sql')
     value <- sym('avg_dly_fcst')
   } else if (type == 'S') {
-    query <- read_lines('sql/exhibiciones-pos.sql')
+    query <- readLines('sql/exhibiciones-pos.sql')
     value <- sym('avg_dly_pos')
   } else { ## No debería pasar si los datos están validados
     return(NULL)
@@ -378,12 +378,11 @@ computePromotionsServer <- function(input, output, session, credentials) {
     ch = NULL,
     is_open = FALSE,
     auth_trigger = 0,
-    query_result = NULL,
-    final_result = NULL,
     items_file = NULL,
     items = NULL,
     query_was_tried = FALSE
   )
+  query_result <- reactiveVal()
   
   ## UI
   output$items_ui <- renderUI({
@@ -531,22 +530,37 @@ computePromotionsServer <- function(input, output, session, credentials) {
     }
   })
   
-  ## Correr query y análisis
+  ## Correr query
+  query_result <- reactiveVal()
   observeEvent(rr(), {
     flog.info(toJSON(list(
       session_info = msg_cred(credentials()),
       message = 'RUNNING QUERY',
       details = list()
     )))
-    r$query_result <- purrr::safely(run_query)(r$ch, r$items)$result
+    ## Hay que leer los valores reactivos AFUERA de future()
+    ## Ver: https://cran.r-project.org/web/packages/future/vignettes/future-4-issues.html
+    items <- r$items
+    usr <- input$user
+    pwd <- input$password
+    future({
+      ## Las conexiones no se pueden exportar a otros procesos de R, así que se tiene que generar una nueva conexión
+      ## Ver: https://cran.r-project.org/web/packages/future/vignettes/future-4-issues.html
+      future_ch <- RODBC::odbcDriverConnect(sprintf("Driver={Teradata};DBCName=WMG;UID=f0g00bq;AUTHENTICATION=ldap;AUTHENTICATIONPARAMETER=%s", paste0(usr, '@@', pwd)))
+      run_query(future_ch, items)
+    }) %...>% 
+      query_result()
   }, ignoreInit = TRUE)
-  final_result <- eventReactive(r$query_result, {
+  
+  ## Hacer cálculos
+  final_result <- reactive({
+    req(query_result())
     flog.info(toJSON(list(
-      session_info = msg_cred(credentials()),
+      session_info = msg_cred(isolate(credentials())),
       message = 'PERFORMING COMPUTATIONS',
       details = list()
     )))
-    purrr::safely(perform_computations)(r$query_result)$result
+    purrr::safely(perform_computations)(query_result())$result
   })
   observeEvent(final_result(), {
     
@@ -556,7 +570,6 @@ computePromotionsServer <- function(input, output, session, credentials) {
     #     incProgress(0.33, message = lang$running_computations)
     #   })
     # }
-    
     output$output_table <- renderDT({
       # shiny::validate(
       #   shiny::need(r$is_open || gl$app_deployment_environment == 'prod', lang$need_auth) %then%
@@ -585,10 +598,10 @@ computePromotionsServer <- function(input, output, session, credentials) {
         NULL
       })
     })
-    #percent_columns <- c('')
   }, ignoreNULL = TRUE)
   
-  summary_table <- eventReactive(final_result(), {
+  summary_table <- reactive({
+    req(final_result())
     purrr::safely(summarise_data)(final_result(), input$summary_groups)$result
   })
   
@@ -705,12 +718,10 @@ computePromotionsServer <- function(input, output, session, credentials) {
   ## Reset
   observeEvent(input$reset, {
     ## Esto es necesario porque al resetear la UI de input$items, no cambia el datapath
-    # r$items_file <- NULL
-    # r$items <- NULL
-    r$query_result <- NULL
-    # r$final_result <- NULL
-    # r$summary_table <- NULL
-    # r$query_was_tried <- NULL
+    r$items_file <- NULL
+    r$items <- NULL
+    query_result(NULL)
+    r$query_was_tried <- NULL
   })
   
   ## Descargar cálculos
