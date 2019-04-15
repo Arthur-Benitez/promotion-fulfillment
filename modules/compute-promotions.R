@@ -540,13 +540,18 @@ computePromotionsServer <- function(input, output, session, credentials) {
     )))
     ## Hay que leer los valores reactivos AFUERA de future()
     ## Ver: https://cran.r-project.org/web/packages/future/vignettes/future-4-issues.html
+    is_dev <- !is.null(r$ch)
     items <- r$items
     usr <- input$user
     pwd <- input$password
     future({
-      ## Las conexiones no se pueden exportar a otros procesos de R, así que se tiene que generar una nueva conexión
-      ## Ver: https://cran.r-project.org/web/packages/future/vignettes/future-4-issues.html
-      future_ch <- RODBC::odbcDriverConnect(sprintf("Driver={Teradata};DBCName=WMG;UID=f0g00bq;AUTHENTICATION=ldap;AUTHENTICATIONPARAMETER=%s", paste0(usr, '@@', pwd)))
+      if (is_dev) {
+        ## Las conexiones no se pueden exportar a otros procesos de R, así que se tiene que generar una nueva conexión
+        ## Ver: https://cran.r-project.org/web/packages/future/vignettes/future-4-issues.html
+        future_ch <- RODBC::odbcDriverConnect(sprintf("Driver={Teradata};DBCName=WMG;UID=f0g00bq;AUTHENTICATION=ldap;AUTHENTICATIONPARAMETER=%s", paste0(usr, '@@', pwd)))
+      } else {
+        future_ch <- NULL
+      }
       run_query(future_ch, items)
     }) %...>% 
       query_result()
