@@ -14,6 +14,11 @@ library(shinydashboard)
 library(futile.logger)
 library(shinyalert)
 library(RODBC)
+library(future)
+library(promises)
+
+## Procesamiento paralelo de future
+plan(multiprocess)
 
 ## Para que readr no truene
 options(readr.default_locale=readr::locale(tz = ''))
