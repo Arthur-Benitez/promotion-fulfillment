@@ -408,6 +408,14 @@ computePromotionsServer <- function(input, output, session, credentials) {
   observeEvent(r$auth_trigger, {
     ns <- session$ns
     if (is.null(r$ch) || !r$is_open) {
+      shinyalert(
+        type = 'info',
+        title = 'Iniciando sesión...',
+        closeOnEsc = FALSE,
+        closeOnClickOutside = FALSE,
+        showCancelButton = FALSE,
+        showConfirmButton = FALSE
+      )
       tryCatch({
         flog.info(toJSON(list(
           session_info = msg_cred(credentials()),
@@ -430,13 +438,14 @@ computePromotionsServer <- function(input, output, session, credentials) {
             user = input$user
           )
         )))
+        shinyalert::closeAlert()
       }, error = function(e){
-        # showModal(modalDialog(
-        #   title = "Error al iniciar sesión",
-        #   "El usuario o la contraseña no son válidos",
-        #   footer = modalButton("Aceptar")
-        # ))
-        shinyalert("Error", "El usuario o la contraseña no son válidos", type = "error")
+        shinyalert(
+          type = "error",
+          title = lang$error,
+          text = "El usuario o la contraseña no son válidos",
+          closeOnClickOutside = TRUE
+        )
         flog.warn(toJSON(list(
           session_info = msg_cred(credentials()),
           message = 'USER LOGIN FAILED',
@@ -482,7 +491,13 @@ computePromotionsServer <- function(input, output, session, credentials) {
     )))
     val <- parse_input(r$items_file, gl = gl, calendar_day = calendar_day, ch = r$ch, date_format = input$date_format)
     if (!is.data.frame(val)) {
-      shinyalert("Error", val, type = "error", closeOnEsc = TRUE, closeOnClickOutside = TRUE)
+      shinyalert(
+        type = "error", 
+        title = lang$error,
+        text = val,
+        closeOnEsc = TRUE,
+        closeOnClickOutside = TRUE
+      )
       r$items <- NULL
       flog.error(toJSON(list(
         session_info = msg_cred(credentials()),
@@ -538,6 +553,13 @@ computePromotionsServer <- function(input, output, session, credentials) {
       message = 'RUNNING QUERY',
       details = list()
     )))
+    shinyalert(
+      type = 'info',
+      title = 'Calculando...',
+      text = sprintf('Hora de inicio: %s', format(Sys.time(), tz = 'America/Mexico_City')),
+      showCancelButton = FALSE,
+      showConfirmButton = FALSE
+    )
     ## Hay que leer los valores reactivos AFUERA de future()
     ## Ver: https://cran.r-project.org/web/packages/future/vignettes/future-4-issues.html
     is_dev <- !is.null(r$ch)
@@ -565,6 +587,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
       message = 'PERFORMING COMPUTATIONS',
       details = list()
     )))
+    shinyalert::closeAlert()
     purrr::safely(perform_computations)(query_result())$result
   })
   
@@ -876,7 +899,7 @@ computePromotionsUI <- function(id) {
             uiOutput(ns('download_detail_ui'))
           )
         ),
-        DTOutput(ns('summary_table'))
+        DTOutput(ns('summary_table')) %>% withSpinner(type = 8)
       ),
       tabPanel(
         value = 'output_histogram',
@@ -890,7 +913,7 @@ computePromotionsUI <- function(id) {
         value = 'output_detail',
         title = lang$tab_output_table,
         uiOutput(ns('download_ui')),
-        DTOutput(ns('detail_table')) #%>% withSpinner(type = 8)
+        DTOutput(ns('detail_table')) %>% withSpinner(type = 8)
       )
     )
   )

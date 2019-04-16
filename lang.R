@@ -41,6 +41,10 @@ lang <- list(
   button = 'Aplicar',
   run = 'Correr',
   reset = 'Reset',
+  ok = 'Aceptar',
+  cancel = 'Cancelar',
+  error = 'Error',
+  done = 'Listo',
   ## Compute Promotions
   date_format = 'Formato de fechas',
   items = 'Items',
