@@ -1,7 +1,9 @@
 
+library(fg)
 library(magrittr)
 library(plotly)
 library(tidyverse)
+library(ggthemes)
 library(readxl)
 library(lubridate)
 library(jsonlite) # debe ir antes de shiny para no enmascarar validate()
@@ -95,6 +97,7 @@ flog.info(toJSON(list(
 ## Ver: https://stackoverflow.com/questions/5031630/how-to-source-r-file-saved-using-utf-8-encoding
 eval(parse('modules/compute-promotions.R', encoding = 'UTF-8'))
 eval(parse('modules/login.R', encoding = 'UTF-8'))
+eval(parse('modules/usage-stats.R', encoding = 'UTF-8'))
 
 # Parámetros globales -----------------------------------------------------
 
