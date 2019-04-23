@@ -45,6 +45,10 @@ lang <- list(
   cancel = 'Cancelar',
   error = 'Error',
   done = 'Listo',
+  days = 'Días',
+  weeks = 'Semanas',
+  months = 'Meses',
+  years = 'Años',
   ## Compute Promotions
   date_format = 'Formato de fechas',
   items = 'Items',
@@ -62,6 +66,8 @@ lang <- list(
   tab_output_table = 'Cálculos',
   feature = 'Promoción',
   summary_groups = 'Nivel de detalle',
+  running_query = 'Ejecutando consulta...',
+  running_computations = 'Realizando cálculos...',
   ## Validation
   need_items_file = 'Cargar un archivo de items para comenzar.',
   need_auth = 'Iniciar sesión para continuar.',
@@ -70,14 +76,17 @@ lang <- list(
   need_query_result = 'El query falló :(',
   need_final_result = 'Los cálculos fallaron :(',
   need_select_feature = 'Selecciona una promoción para continuar.',
-  ## Misc
-  running_query = 'Ejecutando consulta...',
-  running_computations = 'Realizando cálculos...',
   ## Variables
   store_nbr = 'Tienda',
   cid = 'Artículo',
   old_nbr = 'Artículo',
-  feature_name = 'Promoción'
+  feature_name = 'Promoción',
+  ## Usage Stats
+  usage_stats = 'Utilización',
+  refresh = 'Refrescar',
+  split_by_clearance = 'Separar por nivel de permisos',
+  unique_users = 'Usuarios únicos',
+  unique_sessions = 'Sesiones únicas'
 )
 
 lang$need_valid_input <- paste0('El archivo de items no está en el formato correcto.\n', lang$need_input_format)

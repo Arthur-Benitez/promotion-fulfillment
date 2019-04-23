@@ -30,6 +30,7 @@ shinyServer(function(input, output, session){
         items <- tagAppendChildren(
           items,
           tagList(
+            menuItem(tabName = 'usage_stats', text = lang$usage_stats, icon = icon('tachometer-alt')),
             menuItem(tabName = 'user_management', text = lang$user_management, icon = icon('users'))
           )
         )
@@ -56,6 +57,10 @@ shinyServer(function(input, output, session){
       tabItem(
         tabName = 'password_update',
         passwordUpdateUI('password_update')
+      ),
+      tabItem(
+        tabName = 'usage_stats',
+        usageStatsUI('usage_stats')
       ),
       tabItem(
         tabName = 'user_management',
@@ -112,9 +117,17 @@ shinyServer(function(input, output, session){
     credentials = reactive(credentials())
   )
   
+  ## Cálculos de Promo Fulfillment
   promotions <- callModule(
     computePromotionsServer,
     id = 'compute_promotions',
+    credentials = reactive(credentials())
+  )
+  
+  ## Utilización
+  callModule(
+    usageStatsServer,
+    id = 'usage_stats',
     credentials = reactive(credentials())
   )
   
