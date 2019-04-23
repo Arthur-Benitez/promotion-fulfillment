@@ -72,20 +72,24 @@ usageStatsServer <- function(input, output, session, credentials) {
       filter(date >= min(input$date_range[[1]]) & date <= max(input$date_range[[2]]))
   })
   
-  output$graph_daily <- renderPlot({
+  output$graph_daily <- renderPlotly({
     if (is.null(logs_filt()) || nrow(logs_filt()) == 0) {
-      p <- ggplot() +
-        annotate('text', x = 0, y = 0, label = ':(', size = 20, angle = 270) +
-        theme_minimal() +
-        theme(
-          axis.text = element_blank(),
-          line = element_blank()
-        ) +
-        labs(
+      p <- plot_ly() %>% 
+        add_text(x = 0, y = 0, text = ':(', textfont = list(size = 80)) %>% 
+        layout(
           title = lang$title_error,
-          x = NULL,
-          y = NULL,
-          fill = NULL
+          titlefont = list(size = 30),
+          xaxis = list(
+            showgrid = FALSE,
+            zeroline = FALSE,
+            showticklabels = FALSE
+          ),
+          yaxis = list(
+            showgrid = FALSE,
+            zeroline = FALSE,
+            showticklabels = FALSE
+          ),
+          margin = list(t = 60)
         )
     } else {
       if (input$split_by_clearance) {
@@ -99,28 +103,35 @@ usageStatsServer <- function(input, output, session, credentials) {
             color = 'all'
           )
       }
-      # browser()
+      pal <- c(
+        all = rgb(0, 56, 150, maxColorValue = 255),
+        owner = rgb(26, 117, 207, maxColorValue = 255),
+        admin = rgb(253, 187, 48, maxColorValue = 255),
+        basic = rgb(51, 115, 33, maxColorValue = 255)
+      )
       p <- x %>%
         mutate(
-          x = floor_date(date, unit = input$unit, week_start = 1)
+          x = floor_date(date, unit = input$unit, week_start = 1),
+          color = factor(color, levels = c('all', 'owner', 'admin', 'basic'))
         ) %>% 
         group_by(x, color) %>% 
         summarise(
           n_unique = n_distinct(!!rlang::sym(input$variable))
         ) %>% 
-        ggplot(aes(x, n_unique)) + 
-        geom_col(aes(fill = color), alpha = 0.8) +
-        scale_y_continuous(labels = scales::comma) +
-        scale_x_date(date_labels = '%Y-%m-%d') +
-        scale_fill_colorblind(NULL) +
-        theme_bw() +
-        theme(
-          legend.position = 'top',
-        ) +
-        labs(
+        mutate(
+          text = sprintf('%s: %s', get_pretty_names(remap_text[input$variable]), scales::comma(n_unique))
+        ) %>% 
+        plot_ly(x = ~x, y = ~n_unique) %>% 
+        add_bars(color = ~color, text = ~text, colors = pal) %>%
+        layout(
+          barmode = 'stack',
           title = get_pretty_names(remap_text[input$variable]),
-          x = NULL,
-          y = NULL
+          xaxis = list(
+            title = ''
+          ),
+          yaxis = list(
+            title = ''
+          )
         )
     }
     return(p)
@@ -168,7 +179,7 @@ usageStatsUI <- function(id) {
             ),
             column(
               width = 9,
-              plotOutput(ns('graph_daily')) %>% withSpinner(type = 8)
+              plotlyOutput(ns('graph_daily')) %>% withSpinner(type = 8)
             )
           )
         ),
