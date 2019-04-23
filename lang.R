@@ -1,14 +1,55 @@
 
 lang <- list(
+  ## login
+  user = 'Usuario',
+  password = 'Contraseña',
+  role = 'Permisos',
+  goto_faq = 'Recuperar contraseña',
+  login = 'Iniciar sesión',
+  logout = 'Cerrar sesión',
+  wrong_user_or_password = 'Usuario o contraseña incorrectos',
+  old_password = 'Contraseña anterior',
+  new_password_1 = 'Contraseña nueva',
+  new_password_2 = 'Repetir contraseña nueva',
+  button = 'Aplicar',
+  passwords_must_match = 'La contraseña nueva debe ser igual en ambos recuadros',
+  password_updated_successfully = 'Contraseña actualizada',
+  wrong_current_password = 'Contraseña actual incorrecta',
+  add = 'Crear',
+  update_password = 'Actualizar contraseña',
+  update_role = 'Actualizar permisos',
+  delete = 'Eliminar',
+  add_success = 'Usuario creado',
+  update_password_success = 'Contraseña actualizada',
+  update_role_success = 'Permisos actualizados',
+  delete_success = 'Usuario eliminado',
+  unknown_action = 'Acción desconocida',
+  add_error = 'Error al crear usuario. Verifique que el usuario no exista y que tenga permisos menores a los de usted',
+  update_password_error = 'Error al actualizar contraseña. Verifique que el usuario no exista y que tenga permisos menores a los de usted',
+  update_role_error = 'Error al actualizar permisos. Verifique que el usuario exista y que sus nuevos permisos sean válidos e inferiores a los de usted',
+  delete_error = 'Error al eliminar usuario. El usuario no existe o usted no tiene permiso para eliminarlo',
+  manage_users = 'Administrar usuarios',
+  action = 'Acción',
+  selected_user = 'Usuarios disponibles',
   ## UI
   app_name = 'Promo Fulfillment',
   promo = 'Calculadora de Promociones',
   login = 'Login',
   logout = 'Logout',
-  user = 'Usuario',
-  password = 'Contraseña',
+  password_update = 'Actualizar contraseña',
+  user_management = 'Administrar usuarios',
+  button = 'Aplicar',
   run = 'Correr',
   reset = 'Reset',
+  ok = 'Aceptar',
+  cancel = 'Cancelar',
+  error = 'Error',
+  done = 'Listo',
+  days = 'Días',
+  weeks = 'Semanas',
+  months = 'Meses',
+  years = 'Años',
+  ## Compute Promotions
   date_format = 'Formato de fechas',
   items = 'Items',
   browse = 'Archivo...',
@@ -25,6 +66,8 @@ lang <- list(
   tab_output_table = 'Cálculos',
   feature = 'Promoción',
   summary_groups = 'Nivel de detalle',
+  running_query = 'Ejecutando consulta...',
+  running_computations = 'Realizando cálculos...',
   ## Validation
   need_items_file = 'Cargar un archivo de items para comenzar.',
   need_auth = 'Iniciar sesión para continuar.',
@@ -33,14 +76,17 @@ lang <- list(
   need_query_result = 'El query falló :(',
   need_final_result = 'Los cálculos fallaron :(',
   need_select_feature = 'Selecciona una promoción para continuar.',
-  ## Misc
-  running_query = 'Ejecutando consulta...',
-  running_computations = 'Realizando cálculos...',
   ## Variables
   store_nbr = 'Tienda',
   cid = 'Artículo',
   old_nbr = 'Artículo',
-  feature_name = 'Promoción'
+  feature_name = 'Promoción',
+  ## Usage Stats
+  usage_stats = 'Utilización',
+  refresh = 'Refrescar',
+  split_by_clearance = 'Separar por nivel de permisos',
+  unique_users = 'Usuarios únicos',
+  unique_sessions = 'Sesiones únicas'
 )
 
 lang$need_valid_input <- paste0('El archivo de items no está en el formato correcto.\n', lang$need_input_format)

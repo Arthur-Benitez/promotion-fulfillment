@@ -11,7 +11,9 @@ pkgs <- c(
   'DT',
   'shinydashboard',
   'futile.logger',
-  'zip'
+  'zip',
+  'future',
+  'promises'
 )
 
 sapply(pkgs, function(pk){

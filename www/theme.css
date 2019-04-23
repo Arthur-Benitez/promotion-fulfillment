@@ -22,6 +22,7 @@
   min-height: 400px;
 }
 
+/* Display de botones */
 .inline-inputs {
   display: inline-flex;
   /*display: grid;
@@ -30,6 +31,26 @@
 
 .inline-button-wrapper {
   margin: auto 0 20px 15px;
+}
+
+/* Botones de colores con letra blanca */
+.btn-success,
+.btn-info,
+.btn-primary,
+.btn-danger,
+.btn-warning {
+  color: white;
+}
+
+/* Lado derecho del header */
+.logout-info {
+  display: flex;
+  margin: 5px;
+}
+
+.logout-timeout-info {
+  margin: 10px;
+  color: white;
 }
 
 /* Título */
