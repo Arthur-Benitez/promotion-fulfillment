@@ -22,17 +22,17 @@ shinyServer(function(input, output, session){
   
   output$sidebar <- renderUI({
     if (credentials()$user_auth) {
-      items <- tagList(
-        menuItem(tabName = 'promo', text = lang$promo, icon = icon('calculator'), selected = TRUE),
-        menuItem(tabName = 'password_update', text = lang$password_update, icon = icon('lock'))
-      )
       if (user_clearance(credentials(), gl$clearance_levels) <= 1) {
-        items <- tagAppendChildren(
-          items,
-          tagList(
-            menuItem(tabName = 'usage_stats', text = lang$usage_stats, icon = icon('tachometer-alt')),
-            menuItem(tabName = 'user_management', text = lang$user_management, icon = icon('users'))
-          )
+        items <- tagList(
+          menuItem(tabName = 'promo', text = lang$promo, icon = icon('calculator'), selected = TRUE),
+          menuItem(tabName = 'usage_stats', text = lang$usage_stats, icon = icon('tachometer-alt')),
+          menuItem(tabName = 'password_update', text = lang$password_update, icon = icon('lock')),
+          menuItem(tabName = 'user_management', text = lang$user_management, icon = icon('users'))
+        )
+      } else {
+        items <- tagList(
+          menuItem(tabName = 'promo', text = lang$promo, icon = icon('calculator'), selected = TRUE),
+          menuItem(tabName = 'password_update', text = lang$password_update, icon = icon('lock'))
         )
       }
     } else {
