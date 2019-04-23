@@ -112,8 +112,8 @@ gl <- list(
       'dev'
     }
   },
-  app_version = '0.2.0-beta-2',
-  app_version_date = '2019-04-16',
+  app_version = '0.2.0-beta-3',
+  app_version_date = '2019-04-23',
   ## Compute promotions
   cols = c(
     'feature_name' = 'character',
