@@ -702,7 +702,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
         add_text(y = ~label_y, text = ~label, name = NULL) %>% 
         plotly::layout(
           title = 'Alcance a piezas máximas por tienda',
-          xaxis = list(title = sprintf('Alcance (%% de Max. Feature Qty. = %s)', scales::comma(mfq, digits = 0))),
+          xaxis = list(title = sprintf('Alcance (%% de Max. Feature Qty. = %s)', scales::comma(mfq))),
           yaxis = list(title = 'Número de tiendas', separators = '.,'),
           showlegend = FALSE
         )
