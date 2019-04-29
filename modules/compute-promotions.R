@@ -850,7 +850,7 @@ computePromotionsUI <- function(id) {
   
   fluidRow(
     box(
-      width = 3,
+      width = 2,
       login,
       selectInput(ns('date_format'), lang$date_format, c('yyyy-mm-dd' = '%Y-%m-%d',
                                                          'dd/mm/yyyy' = '%d/%m/%Y',
@@ -867,7 +867,7 @@ computePromotionsUI <- function(id) {
     tabBox(
       id = ns('io'),
       selected = NULL,
-      width = 9,
+      width = 10,
       tabPanel(
         value = 'input_table',
         title = lang$tab_input,
