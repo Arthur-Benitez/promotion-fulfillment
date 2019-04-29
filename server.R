@@ -45,28 +45,46 @@ shinyServer(function(input, output, session){
   })
   
   output$body <- renderUI({
-    tabItems(
-      tabItem(
-        tabName = 'login',
-        loginUI('login')
-      ),
-      tabItem(
-        tabName = 'promo',
-        computePromotionsUI('compute_promotions')
-      ),
-      tabItem(
-        tabName = 'password_update',
-        passwordUpdateUI('password_update')
-      ),
-      tabItem(
-        tabName = 'usage_stats',
-        usageStatsUI('usage_stats')
-      ),
-      tabItem(
-        tabName = 'user_management',
-        userManagementUI('user_management')
+    if (credentials()$user_auth) {
+      if (user_clearance(credentials(), gl$clearance_levels) <= 1) {
+        items <- tabItems(
+          tabItem(
+            tabName = 'promo',
+            computePromotionsUI('compute_promotions')
+          ),
+          tabItem(
+            tabName = 'usage_stats',
+            usageStatsUI('usage_stats')
+          ),
+          tabItem(
+            tabName = 'password_update',
+            passwordUpdateUI('password_update')
+          ),
+          tabItem(
+            tabName = 'user_management',
+            userManagementUI('user_management')
+          )
+        )
+      } else {
+        items <- tabItems(
+          tabItem(
+            tabName = 'promo',
+            computePromotionsUI('compute_promotions')
+          ),
+          tabItem(
+            tabName = 'password_update',
+            passwordUpdateUI('password_update')
+          )
+        )
+      }
+    } else {
+      items <- tabItems(
+        tabItem(
+          tabName = 'login',
+          loginUI('login')
+        )
       )
-    )
+    }
   })
   
   ## Seleccionar una opción del menú al hacer login/logout
