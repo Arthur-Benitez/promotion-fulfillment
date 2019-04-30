@@ -20,6 +20,10 @@ generate_cols_spec <- function(columns, date_format = '%Y-%m-%d') {
 ## Leer entrada
 parse_input <- function(input_file, gl, calendar_day, ch = NULL, date_format = '%Y-%m-%d') {
   tryCatch({
+    nms <- names(read_csv(input_file, n_max = 0))
+    if (!all(names(gl$cols) %in% nms)) {
+      return(sprintf('Las siguientes columnas faltan en el archivo de entrada: %s', paste(setdiff(names(gl$cols), nms), collapse = ', ')))
+    }
     x <- read_csv(
       file = input_file,
       col_names = TRUE,
@@ -62,7 +66,7 @@ validate_input <- function(data, gl, calendar_day, ch) {
       cond <- tribble(
         ~message, ~passed,
         ## Checar que no haya valores faltantes
-        'No puede haber valores faltantes (blanks)',
+        'No puede haber valores faltantes (blanks). Esto se debe comúnmente a que la fecha está en un formato incorrecto',
         !anyNA(data),
         ## Checar que feature_name sea de longitid <= 22 caracteres (para que en total sean <= 40 para GRS)
         'feature_name no puede tener más de 22 caracteres',
@@ -112,7 +116,10 @@ validate_input <- function(data, gl, calendar_day, ch) {
         with(data, all(fcst_or_sales == 'F') || all(semana_fin[fcst_or_sales == 'S'] < current_wk)),
         ## Checar que StartDate <= EndDate
         sprintf('Se debe cumplir que %s < StartDate <= EndDate', Sys.Date()),
-        with(data, all(Sys.Date() <= StartDate & StartDate <= EndDate))
+        with(data, all(Sys.Date() <= StartDate & StartDate <= EndDate)),
+        ## Checar que Priority sea un entero entre 1 y 100
+        sprintf('Priority debe ser un entero entre 1 y 100'),
+        with(data, all(Priority == as.integer(Priority) & between(Priority, 1, 100)))
       )
       failed_idx <- which(!cond$passed)
       if (length(failed_idx) == 0) {
@@ -328,7 +335,7 @@ generate_loc_id <- function(store_nbr) {
 }
 
 ## Generar el HEADER.csv para cargar al sistema
-generate_header <- function(input_data, priority = 15) {
+generate_header <- function(input_data) {
   input_data %>% 
     transmute(
       `*Promotion` = generate_promo_name(dept_nbr, user, feature_name),
@@ -339,7 +346,7 @@ generate_header <- function(input_data, priority = 15) {
       AdditiveSw = 'TRUE',
       `CLEANSE HIST` = 'TRUE',
       `REPLACE PRES/DISPLAY` = 'FALSE',
-      Priority = priority,
+      Priority,
       LiftType = 0,
       Cal = 'DMDWK',
       Lift = 0
@@ -702,7 +709,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
         add_text(y = ~label_y, text = ~label, name = NULL) %>% 
         plotly::layout(
           title = 'Alcance a piezas máximas por tienda',
-          xaxis = list(title = sprintf('Alcance (%% de Max. Feature Qty. = %s)', scales::comma(mfq, digits = 0))),
+          xaxis = list(title = sprintf('Alcance (%% de Max. Feature Qty. = %s)', scales::comma(mfq))),
           yaxis = list(title = 'Número de tiendas', separators = '.,'),
           showlegend = FALSE
         )
@@ -788,14 +795,21 @@ computePromotionsServer <- function(input, output, session, credentials) {
     contentType = 'text/csv'
   )
   
-  ## Descargar instrucciones
-  output$download_instructions <- downloadHandler(
-    filename = 'promo-fulfillment-instructions.xlsx',
-    content = function(file) {
-      file.copy('data/instructions.xlsx', file)
-    },
-    contentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-  )
+  ## Mostrar instrucciones
+  eval(parse(file = 'html/instructions-table.R', encoding = 'UTF-8'))
+  output$instructions_table <- renderTable({
+    instructions_table
+  })
+  observeEvent(input$show_instructions, {
+    showModal(modalDialog(
+      size = 'l',
+      easyClose = TRUE,
+      title = 'Instrucciones',
+      includeHTML('html/instructions.html'),
+      uiOutput(session$ns('instructions_table')),
+      footer = modalButton(lang$ok)
+    ))
+  }, ignoreInit = TRUE)
   
   ## Descargar HEADER
   output$download_header_ui <- renderUI({
@@ -807,7 +821,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
     filename = sprintf('HEADER_%s.csv', Sys.Date()),
     content = function(file) {
       r$items %>% 
-        generate_header(priority = 15) %>% 
+        generate_header() %>% 
         write_excel_csv(path = file, na = '')
     },
     contentType = 'text/csv'
@@ -850,7 +864,7 @@ computePromotionsUI <- function(id) {
   
   fluidRow(
     box(
-      width = 3,
+      width = 2,
       login,
       selectInput(ns('date_format'), lang$date_format, c('yyyy-mm-dd' = '%Y-%m-%d',
                                                          'dd/mm/yyyy' = '%d/%m/%Y',
@@ -858,7 +872,7 @@ computePromotionsUI <- function(id) {
       uiOutput(ns('items_ui')),
       tags$div(
         style = 'margin-bottom: 20px;',
-        downloadButton(ns('download_instructions'), lang$download_instructions, icon = icon('download')),
+        actionButton(ns('show_instructions'), lang$show_instructions, icon = icon('question-circle')),
         downloadButton(ns('download_template'), lang$download_template, icon = icon('download'))
       ),
       actionButton(ns('run'), lang$run, icon = icon('play')),
@@ -867,7 +881,7 @@ computePromotionsUI <- function(id) {
     tabBox(
       id = ns('io'),
       selected = NULL,
-      width = 9,
+      width = 10,
       tabPanel(
         value = 'input_table',
         title = lang$tab_input,

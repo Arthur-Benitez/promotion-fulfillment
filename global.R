@@ -95,6 +95,8 @@ flog.info(toJSON(list(
 
 ## Usar esto en lugar de source(., encoding = 'UTF-8') porque truena a menos que cambiemos el locale del sistema con Sys.setlocale('LC_CTYPE', 'en_US.UTF-8') 
 ## Ver: https://stackoverflow.com/questions/5031630/how-to-source-r-file-saved-using-utf-8-encoding
+eval(parse('functions.R', encoding = 'UTF-8'))
+eval(parse('lang.R', encoding = 'UTF-8'))
 eval(parse('modules/compute-promotions.R', encoding = 'UTF-8'))
 eval(parse('modules/login.R', encoding = 'UTF-8'))
 eval(parse('modules/usage-stats.R', encoding = 'UTF-8'))
@@ -112,8 +114,8 @@ gl <- list(
       'dev'
     }
   },
-  app_version = '0.2.0-beta-3',
-  app_version_date = '2019-04-23',
+  app_version = '0.2.0-beta-4',
+  app_version_date = '2019-04-30',
   ## Compute promotions
   cols = c(
     'feature_name' = 'character',
@@ -127,7 +129,8 @@ gl <- list(
     'semana_fin' = 'numeric',
     'fcst_or_sales' = 'character',
     'StartDate' = 'date',
-    'EndDate' = 'date'
+    'EndDate' = 'date',
+    'Priority' = 'numeric'
   ),
   feature_const_cols = c(
     'user',
@@ -138,7 +141,8 @@ gl <- list(
     'semana_fin',
     'fcst_or_sales',
     'StartDate',
-    'EndDate'
+    'EndDate',
+    'Priority'
   ),
   negocios = c(
     'SUPERCENTER',
@@ -167,7 +171,4 @@ gl$clearance_levels <- c(
   'basic' = 2
 )
 
-# Llamar módulos ----------------------------------------------------------
 
-eval(parse('functions.R', encoding = 'UTF-8'))
-eval(parse('lang.R', encoding = 'UTF-8'))

@@ -18,6 +18,7 @@ header <- dashboardHeader(
 )
 
 sidebar <- dashboardSidebar(
+  collapsed = TRUE,
   uiOutput('sidebar'),
   column(
     icon('empire'),
