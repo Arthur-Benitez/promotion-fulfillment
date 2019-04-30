@@ -66,7 +66,7 @@ validate_input <- function(data, gl, calendar_day, ch) {
       cond <- tribble(
         ~message, ~passed,
         ## Checar que no haya valores faltantes
-        'No puede haber valores faltantes (blanks)',
+        'No puede haber valores faltantes (blanks). Esto se debe comúnmente a que la fecha está en un formato incorrecto',
         !anyNA(data),
         ## Checar que feature_name sea de longitid <= 22 caracteres (para que en total sean <= 40 para GRS)
         'feature_name no puede tener más de 22 caracteres',
