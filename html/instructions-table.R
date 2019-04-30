@@ -11,6 +11,7 @@ instructions_table <- tribble(
   'semana_ini',	'Semana Walmart inicial para calcular forecast o ventas (debe ser a pasado si fcst_or_sales = "S" y a futuro si es = "F").', 'No',
   'semana_fin',	'Semana Walmart final para calcular forecast o ventas (debe ser a pasado si fcst_or_sales = "S" y a futuro si es = "F").', 'No',
   'StartDate',	'Fecha de inicio de validez de la promo. Hay que especificar el formato de la fecha al subir el archivo.', 'No',
-  'EndDate',	'Fecha de fin de validez de la promo. Hay que especificar el formato de la fecha al subir el archivo.', 'No'
+  'EndDate',	'Fecha de fin de validez de la promo. Hay que especificar el formato de la fecha al subir el archivo.', 'No',
+  'Priority', 'Prioridad de la estrategia en el sistema.', 'No'
 )
 names(instructions_table) <- c('Columna', 'Descripción', 'Puede cambiar en una misma promo?')

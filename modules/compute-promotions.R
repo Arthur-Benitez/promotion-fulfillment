@@ -116,7 +116,10 @@ validate_input <- function(data, gl, calendar_day, ch) {
         with(data, all(fcst_or_sales == 'F') || all(semana_fin[fcst_or_sales == 'S'] < current_wk)),
         ## Checar que StartDate <= EndDate
         sprintf('Se debe cumplir que %s < StartDate <= EndDate', Sys.Date()),
-        with(data, all(Sys.Date() <= StartDate & StartDate <= EndDate))
+        with(data, all(Sys.Date() <= StartDate & StartDate <= EndDate)),
+        ## Checar que Priority sea un entero entre 1 y 100
+        sprintf('Priority debe ser un entero entre 1 y 100'),
+        with(data, all(Priority == as.integer(Priority) & between(Priority, 1, 100)))
       )
       failed_idx <- which(!cond$passed)
       if (length(failed_idx) == 0) {
@@ -332,7 +335,7 @@ generate_loc_id <- function(store_nbr) {
 }
 
 ## Generar el HEADER.csv para cargar al sistema
-generate_header <- function(input_data, priority = 15) {
+generate_header <- function(input_data) {
   input_data %>% 
     transmute(
       `*Promotion` = generate_promo_name(dept_nbr, user, feature_name),
@@ -343,7 +346,7 @@ generate_header <- function(input_data, priority = 15) {
       AdditiveSw = 'TRUE',
       `CLEANSE HIST` = 'TRUE',
       `REPLACE PRES/DISPLAY` = 'FALSE',
-      Priority = priority,
+      Priority,
       LiftType = 0,
       Cal = 'DMDWK',
       Lift = 0
@@ -818,7 +821,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
     filename = sprintf('HEADER_%s.csv', Sys.Date()),
     content = function(file) {
       r$items %>% 
-        generate_header(priority = 15) %>% 
+        generate_header() %>% 
         write_excel_csv(path = file, na = '')
     },
     contentType = 'text/csv'
