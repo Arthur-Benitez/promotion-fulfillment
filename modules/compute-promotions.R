@@ -788,14 +788,21 @@ computePromotionsServer <- function(input, output, session, credentials) {
     contentType = 'text/csv'
   )
   
-  ## Descargar instrucciones
-  output$download_instructions <- downloadHandler(
-    filename = 'promo-fulfillment-instructions.xlsx',
-    content = function(file) {
-      file.copy('data/instructions.xlsx', file)
-    },
-    contentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-  )
+  ## Mostrar instrucciones
+  eval(parse(file = 'html/instructions-table.R', encoding = 'UTF-8'))
+  output$instructions_table <- renderTable({
+    instructions_table
+  })
+  observeEvent(input$show_instructions, {
+    showModal(modalDialog(
+      size = 'l',
+      easyClose = TRUE,
+      title = 'Instrucciones',
+      includeHTML('html/instructions.html'),
+      uiOutput(session$ns('instructions_table')),
+      footer = modalButton(lang$ok)
+    ))
+  }, ignoreInit = TRUE)
   
   ## Descargar HEADER
   output$download_header_ui <- renderUI({
@@ -858,7 +865,7 @@ computePromotionsUI <- function(id) {
       uiOutput(ns('items_ui')),
       tags$div(
         style = 'margin-bottom: 20px;',
-        downloadButton(ns('download_instructions'), lang$download_instructions, icon = icon('download')),
+        actionButton(ns('show_instructions'), lang$show_instructions, icon = icon('question-circle')),
         downloadButton(ns('download_template'), lang$download_template, icon = icon('download'))
       ),
       actionButton(ns('run'), lang$run, icon = icon('play')),

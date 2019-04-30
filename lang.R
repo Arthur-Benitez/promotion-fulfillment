@@ -59,7 +59,7 @@ lang <- list(
   download_header = 'HEADER',
   download_detail = 'DETAIL',
   download_template = 'Formato',
-  download_instructions = 'Instrucciones',
+  show_instructions = 'Instrucciones',
   tab_input = 'Entradas',
   tab_output_histogram = 'Alcance',
   tab_output_summary = 'Resultados',
