@@ -374,7 +374,7 @@ loginUI <- function(id) {
       shiny::actionButton(ns('user_login'), lang$login),
       shiny::tags$br(),
       shiny::tags$br(),
-      shiny::tags$p(id = 'goto-faq', shiny::tags$a(href = '#', lang$goto_faq)),
+      actionLink(ns('recover_password'), lang$recover_password),
       shinyjs::hidden(
         shiny::div(
           id = ns("error"),
@@ -384,13 +384,22 @@ loginUI <- function(id) {
           )
         )
       )
-    ),
-    tags$script(HTML("document.getElementById('goto-faq').onclick = () => document.querySelector('.sidebar-menu li [href=\"#shiny-tab-faq\"]').click();"))
+    )
   )
 }
 
 ## Server
 loginServer <- function(input, output, session, logout) {
+  
+  ## Ayuda: Recuperar contraseña
+  observeEvent(input$recover_password, {
+    showModal(modalDialog(
+      title = lang$recover_password,
+      HTML('<p>Pídele a cualquier usuario con permisos de administrador que la cambie en la ruta:<br><strong>Administración de usuarios > <em>seleccionar tu usuario</em> > Actualizar contraseña</strong></p>'),
+      easyClose = TRUE
+    ))
+  })
+  
   ## Login
   credentials <- shiny::reactiveValues(user_auth = FALSE)
   

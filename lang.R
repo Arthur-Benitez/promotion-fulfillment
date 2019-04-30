@@ -4,7 +4,7 @@ lang <- list(
   user = 'Usuario',
   password = 'Contraseña',
   role = 'Permisos',
-  goto_faq = 'Recuperar contraseña',
+  recover_password = 'Recuperar contraseña',
   login = 'Iniciar sesión',
   logout = 'Cerrar sesión',
   wrong_user_or_password = 'Usuario o contraseña incorrectos',
