@@ -20,6 +20,10 @@ generate_cols_spec <- function(columns, date_format = '%Y-%m-%d') {
 ## Leer entrada
 parse_input <- function(input_file, gl, calendar_day, ch = NULL, date_format = '%Y-%m-%d') {
   tryCatch({
+    nms <- names(read_csv(input_file, n_max = 0))
+    if (!all(names(gl$cols) %in% nms)) {
+      return(sprintf('Las siguientes columnas faltan en el archivo de entrada: %s', paste(setdiff(names(gl$cols), nms), collapse = ', ')))
+    }
     x <- read_csv(
       file = input_file,
       col_names = TRUE,
