@@ -129,7 +129,8 @@ gl <- list(
     'semana_fin' = 'numeric',
     'fcst_or_sales' = 'character',
     'StartDate' = 'date',
-    'EndDate' = 'date'
+    'EndDate' = 'date',
+    'Priority' = 'numeric'
   ),
   feature_const_cols = c(
     'user',
@@ -140,7 +141,8 @@ gl <- list(
     'semana_fin',
     'fcst_or_sales',
     'StartDate',
-    'EndDate'
+    'EndDate',
+    'Priority'
   ),
   negocios = c(
     'SUPERCENTER',
