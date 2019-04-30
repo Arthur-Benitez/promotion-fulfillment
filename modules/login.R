@@ -366,6 +366,7 @@ loginUI <- function(id) {
   ns <- shiny::NS(id)
   shiny::div(
     id = ns('panel'),
+    class = 'login-panel',
     shiny::wellPanel(
       shiny::h2(lang$login),
       shiny::textInput(ns('user'), lang$user),
