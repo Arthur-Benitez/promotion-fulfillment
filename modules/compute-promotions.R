@@ -307,17 +307,24 @@ summarise_data <- function(data, group = c('feature_name', 'cid')) {
 }
 
 ## Tabla de histograma
-generate_histogram_data <- function(output_filtered_data, cut_values = seq(0, 1, 0.2)) {
+generate_histogram_data <- function(output_filtered_data, bin_size = 0.2) {
+  res <- output_filtered_data %>% 
+    summarise_data(group = c('feature_name', 'store_nbr')) %>% 
+    ungroup() %>% 
+    mutate(
+      perc_max_feature_qty = round(total_qty / max_feature_qty, 5)
+    )
+  
+  max_bin <- bin_size * ceiling(max(res$perc_max_feature_qty) / bin_size)
+  cut_values <- seq(0, max_bin, by = bin_size)
   cut_labels <- paste(
     scales::percent(head(cut_values, -1)),
     scales::percent(cut_values[-1]),
     sep = ' - '
   )
-  output_filtered_data %>% 
-    summarise_data(group = c('feature_name', 'store_nbr')) %>% 
-    ungroup() %>% 
+  
+  res %>% 
     mutate(
-      perc_max_feature_qty = round(total_qty / max_feature_qty, 5),
       perc_max_feature_qty_bin = cut(perc_max_feature_qty,
                                      breaks = cut_values,
                                      labels = cut_labels,
@@ -340,7 +347,7 @@ generate_histogram_data <- function(output_filtered_data, cut_values = seq(0, 1,
     mutate(
       p_stores = n_stores / sum(n_stores)
     ) %>% 
-    right_join(tibble(perc_max_feature_qty_bin = factor(cut_labels)), by = 'perc_max_feature_qty_bin') %>% 
+    right_join(tibble(perc_max_feature_qty_bin = factor(cut_labels, levels = cut_labels)), by = 'perc_max_feature_qty_bin') %>% 
     replace(., is.na(.), 0) %>% 
     select(perc_max_feature_qty_bin, n_stores, p_stores, everything())
 }
@@ -709,7 +716,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
   })
   histogram_data <- reactive({
     req(final_results_filt())
-    generate_histogram_data(final_results_filt())
+    generate_histogram_data(final_results_filt(), bin_size = input$feature_histogram_bin_size)
   })
   
   ## Histograma de alcance
@@ -949,7 +956,18 @@ computePromotionsUI <- function(id) {
       tabPanel(
         value = 'output_histogram',
         title = lang$tab_output_histogram,
-        uiOutput(ns('output_feature_select_ui')),
+        tags$div(
+          class = 'inline-inputs',
+          tags$div(
+            class = 'input-margin',
+            uiOutput(ns('output_feature_select_ui'))
+          ),
+          tags$div(
+            class = 'input-margin',
+            sliderInput(ns('feature_histogram_bin_size'), lang$bin_size,
+                        min = 0.1, max = 1, value = 0.2, step = 0.05)
+          )
+        ),
         plotlyOutput(ns('feature_histogram')) %>% withSpinner(type = 8),
         tags$br(),
         DTOutput(ns('feature_histogram_table'))

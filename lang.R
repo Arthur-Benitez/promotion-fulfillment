@@ -65,6 +65,7 @@ lang <- list(
   tab_output_summary = 'Resultados',
   tab_output_table = 'Cálculos',
   feature = 'Promoción',
+  bin_size = 'Tamaño del rango',
   summary_groups = 'Nivel de detalle',
   running_query = 'Ejecutando consulta...',
   running_computations = 'Realizando cálculos...',
