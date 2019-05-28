@@ -122,7 +122,10 @@ validate_input <- function(data, gl, calendar_day, ch) {
         with(data, all(Priority == as.integer(Priority) & between(Priority, 1, 100))),
         ## Checar que max_feature_qty sea estrictamente positivo
         'max_feature_qty debe ser un entero mayor o igual a 1.',
-        with(data, all(max_feature_qty >= 1))
+        with(data, all(max_feature_qty >= 1)),
+        ## Checar que min_feature_qty esté entre 1 y max_feature_qty
+        'min_feature_qty debe ser un entero entre 1 y max_feature_qty.',
+        with(data, all(1 <= min_feature_qty & min_feature_qty <= max_feature_qty))
       )
       failed_idx <- which(!cond$passed)
       if (length(failed_idx) == 0) {
@@ -205,7 +208,7 @@ run_query <- function(ch, input_data) {
 }
 
 ## Lógica en R
-perform_computations <- function(data) {
+perform_computations <- function(data, min_feature_qty_toggle = 'none') {
   initial_columns <- names(data)
   data <- data %>% 
     group_by(feature_name, store_nbr) %>% 
@@ -214,11 +217,23 @@ perform_computations <- function(data) {
     ) %>% 
     ungroup() %>% 
     mutate(
+      ## Cantidades sin reglas
       feature_qty_req = feature_perc_pos_or_fcst * max_feature_qty,
       feature_ddv_req = feature_qty_req / avg_dly_pos_or_fcst,
-      feature_ddv_fin = pmin(feature_ddv_req, max_ddv),
-      feature_ddv_bound_active = ifelse(feature_ddv_req > max_ddv, 1, 0),
-      feature_qty_fin = feature_ddv_fin * avg_dly_pos_or_fcst,
+      ## Topar max DDV
+      feature_ddv_pre = pmin(feature_ddv_req, max_ddv),
+      feature_qty_pre = feature_ddv_pre * avg_dly_pos_or_fcst,
+      ## Aplicar regla del mínimo
+      feature_qty_fin = case_when(
+        min_feature_qty_toggle == 'none' ~ feature_qty_pre,
+        min_feature_qty_toggle == 'round_down' ~ ifelse(feature_qty_pre < min_feature_qty,
+                                                              0,
+                                                              feature_qty_pre),
+        min_feature_qty_toggle == 'round_up' ~ ifelse(feature_qty_pre < min_feature_qty,
+                                                       min_feature_qty,
+                                                       feature_qty_pre)
+      ),
+      feature_ddv_fin = feature_qty_fin / avg_dly_pos_or_fcst,
       store_cost = cost * feature_qty_fin,
       vnpk_fin = feature_qty_fin / vnpk_qty
     ) %>% 
@@ -230,6 +245,7 @@ perform_computations <- function(data) {
       negocio,
       old_nbr,
       primary_desc,
+      min_feature_qty,
       max_feature_qty,
       max_ddv,
       semana_ini,
@@ -262,7 +278,7 @@ summarise_data <- function(data, group = c('feature_name', 'cid')) {
   group_order <- c('feature_name', 'store_nbr', 'cid', 'old_nbr')
   grp <- group_order[group_order %in% group]
   ## Variables numéricas de tabla de salida
-  vv <- c('avg_dly_sales', 'avg_dly_forecast', 'total_cost', 'total_qty', 'max_feature_qty', 'total_ddv', 'total_vnpk')
+  vv <- c('avg_dly_sales', 'avg_dly_forecast', 'total_cost', 'total_qty', 'min_feature_qty', 'max_feature_qty', 'total_ddv', 'total_vnpk')
   if ('store_nbr' %in% grp) {
     val_vars <- vv
   } else {
@@ -278,6 +294,7 @@ summarise_data <- function(data, group = c('feature_name', 'cid')) {
       avg_dly_forecast = ifelse(any(fcst_or_sales == 'F'), sum(avg_dly_pos_or_fcst[fcst_or_sales=='F']), NA_real_),
       total_cost = sum(store_cost),
       total_qty = sum(feature_qty_fin),
+      min_feature_qty = mean(min_feature_qty),
       max_feature_qty = mean(max_feature_qty),
       total_ddv = sum(feature_qty_fin) / sum(avg_dly_pos_or_fcst),
       total_vnpk = sum(vnpk_fin)
@@ -315,6 +332,7 @@ generate_histogram_data <- function(output_filtered_data, cut_values = seq(0, 1,
       avg_store_cost = mean(temp_cost),
       total_qty = sum(temp_qty),
       avg_store_qty = mean(temp_qty),
+      min_feature_qty = mean(min_feature_qty),
       max_feature_qty = mean(max_feature_qty),
       total_ddv = sum(temp_qty) / sum(coalesce(avg_dly_sales, avg_dly_forecast))
     ) %>% 
@@ -599,7 +617,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
       details = list()
     )))
     shinyalert::closeAlert()
-    purrr::safely(perform_computations)(query_result())$result
+    purrr::safely(perform_computations)(query_result(), input$min_feature_qty_toggle)$result
   })
   
   ## Validaciones
@@ -626,8 +644,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
     )
     tryCatch({
       percent_columns <- c('feature_perc_pos_or_fcst')
-      decimal_columns <- c('avg_dly_pos_or_fcst',	'feature_qty_req', 'feature_ddv_req','feature_ddv_fin',
-                           'feature_qty_fin', 'display_key', 'store_cost', 'vnpk_fin', 'cost')
+      decimal_columns <- c('avg_dly_pos_or_fcst',	'feature_qty_req', 'feature_ddv_req', 'feature_qty_pre', 'feature_ddv_pre', 'feature_ddv_fin', 'feature_qty_fin', 'display_key', 'store_cost', 'vnpk_fin', 'cost')
       final_result() %>%
         mutate_at(vars(percent_columns), funs(100 * .)) %>%
         datatable(
@@ -884,6 +901,12 @@ computePromotionsUI <- function(id) {
         class = 'input-margin',
         actionButton(ns('run'), lang$run, icon = icon('play')),
         actionButton(ns('reset'), lang$reset, icon = icon('redo-alt'))
+      ),
+      radioButtons(
+        ns('min_feature_qty_toggle'),
+        label = lang$min_feature_qty_toggle,
+        choices = c('none', 'round_down', 'round_up') %>%
+          set_names(c(lang$toggle_none, lang$toggle_round_down, lang$toggle_round_up))
       )
     ),
     tabBox(

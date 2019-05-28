@@ -68,6 +68,10 @@ lang <- list(
   summary_groups = 'Nivel de detalle',
   running_query = 'Ejecutando consulta...',
   running_computations = 'Realizando cálculos...',
+  min_feature_qty_toggle = 'Lógica mínimo',
+  toggle_none = 'No hacer nada',
+  toggle_round_down = 'Conservadora (qty < min ==> qty := 0)',
+  toggle_round_up = 'Agresiva (qty < min ==> qty := mín)',
   ## Validation
   need_items_file = 'Cargar un archivo de items para comenzar.',
   need_auth = 'Iniciar sesión para continuar.',
