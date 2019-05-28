@@ -119,7 +119,10 @@ validate_input <- function(data, gl, calendar_day, ch) {
         with(data, all(Sys.Date() <= StartDate & StartDate <= EndDate)),
         ## Checar que Priority sea un entero entre 1 y 100
         sprintf('Priority debe ser un entero entre 1 y 100'),
-        with(data, all(Priority == as.integer(Priority) & between(Priority, 1, 100)))
+        with(data, all(Priority == as.integer(Priority) & between(Priority, 1, 100))),
+        ## Checar que max_feature_qty sea estrictamente positivo
+        'max_feature_qty debe ser un entero mayor o igual a 1.',
+        with(data, all(max_feature_qty >= 1))
       )
       failed_idx <- which(!cond$passed)
       if (length(failed_idx) == 0) {
