@@ -321,8 +321,8 @@ generate_histogram_data <- function(output_filtered_data, bin_size = 0.2) {
   max_bin <- bin_size * ceiling(max(res$perc_max_feature_qty) / bin_size)
   cut_values <- seq(0, max_bin, by = bin_size)
   cut_labels <- paste(
-    scales::percent(head(cut_values, -1), accuracy = 0),
-    scales::percent(cut_values[-1], accuracy = 0),
+    scales::percent(head(cut_values, -1), accuracy = 1),
+    scales::percent(cut_values[-1], accuracy = 1),
     sep = ' - '
   )
   
