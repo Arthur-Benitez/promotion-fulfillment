@@ -48,6 +48,12 @@
   color: white;
 }
 
+/* Márgenes para inputs*/
+.input-margin {
+  margin-bottom: 20px;
+  margin-right: 20px;
+}
+
 /* Lado derecho del header */
 .logout-info {
   display: flex;

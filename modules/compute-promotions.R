@@ -567,6 +567,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
       type = 'info',
       title = 'Calculando...',
       text = sprintf('Hora de inicio: %s', format(Sys.time(), tz = 'America/Mexico_City')),
+      closeOnEsc = FALSE,
       showCancelButton = FALSE,
       showConfirmButton = FALSE
     )
@@ -690,6 +691,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
       filter(feature_name == input$output_feature_select)
   })
   histogram_data <- reactive({
+    req(final_results_filt())
     generate_histogram_data(final_results_filt())
   })
   
@@ -874,12 +876,15 @@ computePromotionsUI <- function(id) {
                                                          'mm/dd/yyyy' = '%m/%d/%Y')),
       uiOutput(ns('items_ui')),
       tags$div(
-        style = 'margin-bottom: 20px;',
+        class = 'input-margin',
         actionButton(ns('show_instructions'), lang$show_instructions, icon = icon('question-circle')),
         downloadButton(ns('download_template'), lang$download_template, icon = icon('download'))
       ),
-      actionButton(ns('run'), lang$run, icon = icon('play')),
-      actionButton(ns('reset'), lang$reset, icon = icon('redo-alt'))
+      tags$div(
+        class = 'input-margin',
+        actionButton(ns('run'), lang$run, icon = icon('play')),
+        actionButton(ns('reset'), lang$reset, icon = icon('redo-alt'))
+      )
     ),
     tabBox(
       id = ns('io'),
