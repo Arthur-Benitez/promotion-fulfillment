@@ -198,9 +198,13 @@ run_query <- function(ch, input_data) {
     discard(is.null)
   if (length(res) > 0) {
     res <- bind_rows(res) %>% 
-      replace_na(list(
-        avg_dly_pos_or_fcst = 0
-      ))
+      mutate(
+        avg_dly_pos_or_fcst = ifelse(
+          is.na(avg_dly_pos_or_fcst) | avg_dly_pos_or_fcst <= 0,
+          0.01,
+          avg_dly_pos_or_fcst
+        )
+      )
   } else {
     res <- NULL
   }
@@ -213,25 +217,24 @@ perform_computations <- function(data, min_feature_qty_toggle = 'none') {
   data <- data %>% 
     group_by(feature_name, store_nbr) %>% 
     mutate(
-      feature_perc_pos_or_fcst = avg_dly_pos_or_fcst / sum(avg_dly_pos_or_fcst)
-    ) %>% 
-    ungroup() %>% 
-    mutate(
+      feature_perc_pos_or_fcst = avg_dly_pos_or_fcst / sum(avg_dly_pos_or_fcst),
       ## Cantidades sin reglas
+      feature_qty_req_min = feature_perc_pos_or_fcst * min_feature_qty,
       feature_qty_req = feature_perc_pos_or_fcst * max_feature_qty,
       feature_ddv_req = feature_qty_req / avg_dly_pos_or_fcst,
       ## Topar max DDV
       feature_ddv_pre = pmin(feature_ddv_req, max_ddv),
       feature_qty_pre = feature_ddv_pre * avg_dly_pos_or_fcst,
+      tot_feature_qty_pre = sum(feature_qty_pre),
       ## Aplicar regla del mínimo
       feature_qty_fin = case_when(
         min_feature_qty_toggle == 'none' ~ feature_qty_pre,
-        min_feature_qty_toggle == 'round_down' ~ ifelse(feature_qty_pre < min_feature_qty,
-                                                              0,
-                                                              feature_qty_pre),
-        min_feature_qty_toggle == 'round_up' ~ ifelse(feature_qty_pre < min_feature_qty,
-                                                       min_feature_qty,
-                                                       feature_qty_pre)
+        min_feature_qty_toggle == 'round_down' ~ ifelse(tot_feature_qty_pre < min_feature_qty,
+                                                        0,
+                                                        feature_qty_pre),
+        min_feature_qty_toggle == 'round_up' ~ ifelse(tot_feature_qty_pre < min_feature_qty,
+                                                      feature_qty_req_min,
+                                                      feature_qty_pre)
       ),
       feature_ddv_fin = feature_qty_fin / avg_dly_pos_or_fcst,
       store_cost = cost * feature_qty_fin,
