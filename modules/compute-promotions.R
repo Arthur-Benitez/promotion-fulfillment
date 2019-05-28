@@ -225,14 +225,14 @@ perform_computations <- function(data, min_feature_qty_toggle = 'none') {
       ## Topar max DDV
       feature_ddv_pre = pmin(feature_ddv_req, max_ddv),
       feature_qty_pre = feature_ddv_pre * avg_dly_pos_or_fcst,
-      tot_feature_qty_pre = sum(feature_qty_pre),
+      feature_qty_pre_tot = sum(feature_qty_pre),
       ## Aplicar regla del mínimo
       feature_qty_fin = case_when(
         min_feature_qty_toggle == 'none' ~ feature_qty_pre,
-        min_feature_qty_toggle == 'round_down' ~ ifelse(tot_feature_qty_pre < min_feature_qty,
+        min_feature_qty_toggle == 'round_down' ~ ifelse(feature_qty_pre_tot < min_feature_qty,
                                                         0,
                                                         feature_qty_pre),
-        min_feature_qty_toggle == 'round_up' ~ ifelse(tot_feature_qty_pre < min_feature_qty,
+        min_feature_qty_toggle == 'round_up' ~ ifelse(feature_qty_pre_tot < min_feature_qty,
                                                       feature_qty_req_min,
                                                       feature_qty_pre)
       ),
@@ -654,7 +654,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
     )
     tryCatch({
       percent_columns <- c('feature_perc_pos_or_fcst')
-      decimal_columns <- c('avg_dly_pos_or_fcst',	'feature_qty_req', 'feature_ddv_req', 'feature_qty_pre', 'feature_ddv_pre', 'tot_feature_qty_pre', 'feature_ddv_fin', 'feature_qty_fin', 'display_key', 'store_cost', 'vnpk_fin', 'cost')
+      decimal_columns <- c('avg_dly_pos_or_fcst', 'feature_qty_req_min',	'feature_qty_req', 'feature_ddv_req', 'feature_qty_pre', 'feature_ddv_pre', 'feature_qty_pre_tot', 'feature_ddv_fin', 'feature_qty_fin', 'display_key', 'store_cost', 'vnpk_fin', 'cost')
       final_result() %>%
         mutate_at(vars(percent_columns), funs(100 * .)) %>%
         datatable(
