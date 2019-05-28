@@ -321,8 +321,8 @@ generate_histogram_data <- function(output_filtered_data, bin_size = 0.2) {
   max_bin <- bin_size * ceiling(max(res$perc_max_feature_qty) / bin_size)
   cut_values <- seq(0, max_bin, by = bin_size)
   cut_labels <- paste(
-    scales::percent(head(cut_values, -1)),
-    scales::percent(cut_values[-1]),
+    scales::percent(head(cut_values, -1), accuracy = 0),
+    scales::percent(cut_values[-1], accuracy = 0),
     sep = ' - '
   )
   
@@ -654,7 +654,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
     )
     tryCatch({
       percent_columns <- c('feature_perc_pos_or_fcst')
-      decimal_columns <- c('avg_dly_pos_or_fcst',	'feature_qty_req', 'feature_ddv_req', 'feature_qty_pre', 'feature_ddv_pre', 'feature_ddv_fin', 'feature_qty_fin', 'display_key', 'store_cost', 'vnpk_fin', 'cost')
+      decimal_columns <- c('avg_dly_pos_or_fcst',	'feature_qty_req', 'feature_ddv_req', 'feature_qty_pre', 'feature_ddv_pre', 'tot_feature_qty_pre', 'feature_ddv_fin', 'feature_qty_fin', 'display_key', 'store_cost', 'vnpk_fin', 'cost')
       final_result() %>%
         mutate_at(vars(percent_columns), funs(100 * .)) %>%
         datatable(
@@ -968,7 +968,7 @@ computePromotionsUI <- function(id) {
           tags$div(
             class = 'input-margin',
             sliderInput(ns('feature_histogram_bin_size'), lang$bin_size,
-                        min = 0.1, max = 1, value = 0.2, step = 0.05)
+                        min = 0.05, max = 1, value = 0.2, step = 0.05)
           )
         ),
         plotlyOutput(ns('feature_histogram')) %>% withSpinner(type = 8),
