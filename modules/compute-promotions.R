@@ -3,11 +3,11 @@
 # Funciones ---------------------------------------------------------------
 
 ## Generar espeficicación de columnas para readr
-generate_cols_spec <- function(columns, date_format = '%Y-%m-%d') {
+generate_cols_spec <- function(columns, types, date_format = '%Y-%m-%d') {
   cs <- cols(.default = col_character())
-  for (x in names(columns)) {
-    cs$cols[[x]] <- switch(
-      columns[x],
+  for (i in seq_along(columns)) {
+    cs$cols[[columns[i]]] <- switch(
+      types[i],
       'integer' = col_integer(),
       'numeric' = col_double(),
       'character' = col_character(),
@@ -21,15 +21,15 @@ generate_cols_spec <- function(columns, date_format = '%Y-%m-%d') {
 parse_input <- function(input_file, gl, calendar_day, ch = NULL, date_format = '%Y-%m-%d') {
   tryCatch({
     nms <- names(read_csv(input_file, n_max = 0))
-    if (!all(names(gl$cols) %in% nms)) {
-      return(sprintf('Las siguientes columnas faltan en el archivo de entrada: %s', paste(setdiff(names(gl$cols), nms), collapse = ', ')))
+    if (!all(gl$cols$name %in% nms)) {
+      return(sprintf('Las siguientes columnas faltan en el archivo de entrada: %s', paste(setdiff(gl$cols$name, nms), collapse = ', ')))
     }
     x <- read_csv(
       file = input_file,
       col_names = TRUE,
-      col_types = generate_cols_spec(gl$cols, date_format = date_format)
+      col_types = generate_cols_spec(gl$cols$name, gl$cols$type, date_format = date_format)
     ) %>% 
-      .[names(gl$cols)] %>% 
+      .[gl$cols$name] %>% 
       mutate(
         fcst_or_sales = toupper(fcst_or_sales),
         display_key = paste(dept_nbr, old_nbr, negocio, sep = '.'),
@@ -53,7 +53,7 @@ validate_input <- function(data, gl, calendar_day, ch) {
     ## Condiciones básicas
     !is.data.frame(data) ||
     nrow(data) == 0 ||
-    length(setdiff(names(gl$cols), names(data))) > 0
+    length(setdiff(gl$cols$name, names(data))) > 0
   ) {
     return(FALSE)
   } else {
@@ -119,7 +119,13 @@ validate_input <- function(data, gl, calendar_day, ch) {
         with(data, all(Sys.Date() <= StartDate & StartDate <= EndDate)),
         ## Checar que Priority sea un entero entre 1 y 100
         sprintf('Priority debe ser un entero entre 1 y 100'),
-        with(data, all(Priority == as.integer(Priority) & between(Priority, 1, 100)))
+        with(data, all(Priority == as.integer(Priority) & between(Priority, 1, 100))),
+        ## Checar que max_feature_qty sea estrictamente positivo
+        'max_feature_qty debe ser un entero mayor o igual a 1.',
+        with(data, all(max_feature_qty >= 1)),
+        ## Checar que min_feature_qty esté entre 1 y max_feature_qty
+        'min_feature_qty debe ser un entero entre 1 y max_feature_qty.',
+        with(data, all(1 <= min_feature_qty & min_feature_qty <= max_feature_qty))
       )
       failed_idx <- which(!cond$passed)
       if (length(failed_idx) == 0) {
@@ -192,9 +198,13 @@ run_query <- function(ch, input_data) {
     discard(is.null)
   if (length(res) > 0) {
     res <- bind_rows(res) %>% 
-      replace_na(list(
-        avg_dly_pos_or_fcst = 0
-      ))
+      mutate(
+        avg_dly_pos_or_fcst = ifelse(
+          is.na(avg_dly_pos_or_fcst) | avg_dly_pos_or_fcst <= 0,
+          0.01,
+          avg_dly_pos_or_fcst
+        )
+      )
   } else {
     res <- NULL
   }
@@ -202,20 +212,31 @@ run_query <- function(ch, input_data) {
 }
 
 ## Lógica en R
-perform_computations <- function(data) {
+perform_computations <- function(data, min_feature_qty_toggle = 'none') {
   initial_columns <- names(data)
   data <- data %>% 
     group_by(feature_name, store_nbr) %>% 
     mutate(
-      feature_perc_pos_or_fcst = avg_dly_pos_or_fcst / sum(avg_dly_pos_or_fcst)
-    ) %>% 
-    ungroup() %>% 
-    mutate(
+      feature_perc_pos_or_fcst = avg_dly_pos_or_fcst / sum(avg_dly_pos_or_fcst),
+      ## Cantidades sin reglas
+      feature_qty_req_min = feature_perc_pos_or_fcst * min_feature_qty,
       feature_qty_req = feature_perc_pos_or_fcst * max_feature_qty,
       feature_ddv_req = feature_qty_req / avg_dly_pos_or_fcst,
-      feature_ddv_fin = pmin(feature_ddv_req, max_ddv),
-      feature_ddv_bound_active = ifelse(feature_ddv_req > max_ddv, 1, 0),
-      feature_qty_fin = feature_ddv_fin * avg_dly_pos_or_fcst,
+      ## Topar max DDV
+      feature_ddv_pre = pmin(feature_ddv_req, max_ddv),
+      feature_qty_pre = feature_ddv_pre * avg_dly_pos_or_fcst,
+      feature_qty_pre_tot = sum(feature_qty_pre),
+      ## Aplicar regla del mínimo
+      feature_qty_fin = case_when(
+        min_feature_qty_toggle == 'none' ~ feature_qty_pre,
+        min_feature_qty_toggle == 'round_down' ~ ifelse(feature_qty_pre_tot < min_feature_qty,
+                                                        0,
+                                                        feature_qty_pre),
+        min_feature_qty_toggle == 'round_up' ~ ifelse(feature_qty_pre_tot < min_feature_qty,
+                                                      feature_qty_req_min,
+                                                      feature_qty_pre)
+      ),
+      feature_ddv_fin = feature_qty_fin / avg_dly_pos_or_fcst,
       store_cost = cost * feature_qty_fin,
       vnpk_fin = feature_qty_fin / vnpk_qty
     ) %>% 
@@ -227,6 +248,7 @@ perform_computations <- function(data) {
       negocio,
       old_nbr,
       primary_desc,
+      min_feature_qty,
       max_feature_qty,
       max_ddv,
       semana_ini,
@@ -259,7 +281,7 @@ summarise_data <- function(data, group = c('feature_name', 'cid')) {
   group_order <- c('feature_name', 'store_nbr', 'cid', 'old_nbr')
   grp <- group_order[group_order %in% group]
   ## Variables numéricas de tabla de salida
-  vv <- c('avg_dly_sales', 'avg_dly_forecast', 'total_cost', 'total_qty', 'max_feature_qty', 'total_ddv', 'total_vnpk')
+  vv <- c('avg_dly_sales', 'avg_dly_forecast', 'total_cost', 'total_qty', 'min_feature_qty', 'max_feature_qty', 'total_ddv', 'total_vnpk')
   if ('store_nbr' %in% grp) {
     val_vars <- vv
   } else {
@@ -275,6 +297,7 @@ summarise_data <- function(data, group = c('feature_name', 'cid')) {
       avg_dly_forecast = ifelse(any(fcst_or_sales == 'F'), sum(avg_dly_pos_or_fcst[fcst_or_sales=='F']), NA_real_),
       total_cost = sum(store_cost),
       total_qty = sum(feature_qty_fin),
+      min_feature_qty = mean(min_feature_qty),
       max_feature_qty = mean(max_feature_qty),
       total_ddv = sum(feature_qty_fin) / sum(avg_dly_pos_or_fcst),
       total_vnpk = sum(vnpk_fin)
@@ -287,17 +310,24 @@ summarise_data <- function(data, group = c('feature_name', 'cid')) {
 }
 
 ## Tabla de histograma
-generate_histogram_data <- function(output_filtered_data, cut_values = seq(0, 1, 0.2)) {
-  cut_labels <- paste(
-    scales::percent(head(cut_values, -1)),
-    scales::percent(cut_values[-1]),
-    sep = ' - '
-  )
-  output_filtered_data %>% 
+generate_histogram_data <- function(output_filtered_data, bin_size = 0.2) {
+  res <- output_filtered_data %>% 
     summarise_data(group = c('feature_name', 'store_nbr')) %>% 
     ungroup() %>% 
     mutate(
-      perc_max_feature_qty = round(total_qty / max_feature_qty, 5),
+      perc_max_feature_qty = round(total_qty / max_feature_qty, 5)
+    )
+  
+  max_bin <- bin_size * ceiling(max(res$perc_max_feature_qty) / bin_size)
+  cut_values <- seq(0, max_bin, by = bin_size)
+  cut_labels <- paste(
+    scales::percent(head(cut_values, -1), accuracy = 1),
+    scales::percent(cut_values[-1], accuracy = 1),
+    sep = ' - '
+  )
+  
+  res %>% 
+    mutate(
       perc_max_feature_qty_bin = cut(perc_max_feature_qty,
                                      breaks = cut_values,
                                      labels = cut_labels,
@@ -312,6 +342,7 @@ generate_histogram_data <- function(output_filtered_data, cut_values = seq(0, 1,
       avg_store_cost = mean(temp_cost),
       total_qty = sum(temp_qty),
       avg_store_qty = mean(temp_qty),
+      min_feature_qty = mean(min_feature_qty),
       max_feature_qty = mean(max_feature_qty),
       total_ddv = sum(temp_qty) / sum(coalesce(avg_dly_sales, avg_dly_forecast))
     ) %>% 
@@ -319,7 +350,7 @@ generate_histogram_data <- function(output_filtered_data, cut_values = seq(0, 1,
     mutate(
       p_stores = n_stores / sum(n_stores)
     ) %>% 
-    right_join(tibble(perc_max_feature_qty_bin = factor(cut_labels)), by = 'perc_max_feature_qty_bin') %>% 
+    right_join(tibble(perc_max_feature_qty_bin = factor(cut_labels, levels = cut_labels)), by = 'perc_max_feature_qty_bin') %>% 
     replace(., is.na(.), 0) %>% 
     select(perc_max_feature_qty_bin, n_stores, p_stores, everything())
 }
@@ -564,6 +595,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
       type = 'info',
       title = 'Calculando...',
       text = sprintf('Hora de inicio: %s', format(Sys.time(), tz = 'America/Mexico_City')),
+      closeOnEsc = FALSE,
       showCancelButton = FALSE,
       showConfirmButton = FALSE
     )
@@ -595,7 +627,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
       details = list()
     )))
     shinyalert::closeAlert()
-    purrr::safely(perform_computations)(query_result())$result
+    purrr::safely(perform_computations)(query_result(), input$min_feature_qty_toggle)$result
   })
   
   ## Validaciones
@@ -622,8 +654,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
     )
     tryCatch({
       percent_columns <- c('feature_perc_pos_or_fcst')
-      decimal_columns <- c('avg_dly_pos_or_fcst',	'feature_qty_req', 'feature_ddv_req','feature_ddv_fin',
-                           'feature_qty_fin', 'display_key', 'store_cost', 'vnpk_fin', 'cost')
+      decimal_columns <- c('avg_dly_pos_or_fcst', 'feature_qty_req_min',	'feature_qty_req', 'feature_ddv_req', 'feature_qty_pre', 'feature_ddv_pre', 'feature_qty_pre_tot', 'feature_ddv_fin', 'feature_qty_fin', 'display_key', 'store_cost', 'vnpk_fin', 'cost')
       final_result() %>%
         mutate_at(vars(percent_columns), funs(100 * .)) %>%
         datatable(
@@ -687,7 +718,8 @@ computePromotionsServer <- function(input, output, session, credentials) {
       filter(feature_name == input$output_feature_select)
   })
   histogram_data <- reactive({
-    generate_histogram_data(final_results_filt())
+    req(final_results_filt())
+    generate_histogram_data(final_results_filt(), bin_size = input$feature_histogram_bin_size)
   })
   
   ## Histograma de alcance
@@ -871,12 +903,21 @@ computePromotionsUI <- function(id) {
                                                          'mm/dd/yyyy' = '%m/%d/%Y')),
       uiOutput(ns('items_ui')),
       tags$div(
-        style = 'margin-bottom: 20px;',
+        class = 'input-margin',
         actionButton(ns('show_instructions'), lang$show_instructions, icon = icon('question-circle')),
         downloadButton(ns('download_template'), lang$download_template, icon = icon('download'))
       ),
-      actionButton(ns('run'), lang$run, icon = icon('play')),
-      actionButton(ns('reset'), lang$reset, icon = icon('redo-alt'))
+      tags$div(
+        class = 'input-margin',
+        actionButton(ns('run'), lang$run, icon = icon('play')),
+        actionButton(ns('reset'), lang$reset, icon = icon('redo-alt'))
+      ),
+      radioButtons(
+        ns('min_feature_qty_toggle'),
+        label = lang$min_feature_qty_toggle,
+        choices = c('none', 'round_down', 'round_up') %>%
+          set_names(c(lang$toggle_none, lang$toggle_round_down, lang$toggle_round_up))
+      )
     ),
     tabBox(
       id = ns('io'),
@@ -918,7 +959,18 @@ computePromotionsUI <- function(id) {
       tabPanel(
         value = 'output_histogram',
         title = lang$tab_output_histogram,
-        uiOutput(ns('output_feature_select_ui')),
+        tags$div(
+          class = 'inline-inputs',
+          tags$div(
+            class = 'input-margin',
+            uiOutput(ns('output_feature_select_ui'))
+          ),
+          tags$div(
+            class = 'input-margin',
+            sliderInput(ns('feature_histogram_bin_size'), lang$bin_size,
+                        min = 0.05, max = 1, value = 0.2, step = 0.05)
+          )
+        ),
         plotlyOutput(ns('feature_histogram')) %>% withSpinner(type = 8),
         tags$br(),
         DTOutput(ns('feature_histogram_table'))

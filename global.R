@@ -114,35 +114,25 @@ gl <- list(
       'dev'
     }
   },
-  app_version = '0.2.0-beta-5',
-  app_version_date = '2019-05-23',
+  app_version = '0.2.1',
+  app_version_date = '2019-05-29',
   ## Compute promotions
-  cols = c(
-    'feature_name' = 'character',
-    'user' = 'character',
-    'dept_nbr' = 'numeric',
-    'negocio' = 'character',
-    'old_nbr' = 'numeric',
-    'max_feature_qty' = 'numeric',
-    'max_ddv' = 'numeric',
-    'semana_ini' = 'numeric',
-    'semana_fin' = 'numeric',
-    'fcst_or_sales' = 'character',
-    'StartDate' = 'date',
-    'EndDate' = 'date',
-    'Priority' = 'numeric'
-  ),
-  feature_const_cols = c(
-    'user',
-    'dept_nbr',
-    'negocio',
-    'max_feature_qty',
-    'semana_ini',
-    'semana_fin',
-    'fcst_or_sales',
-    'StartDate',
-    'EndDate',
-    'Priority'
+  cols = tribble(
+    ~name, ~type, ~is_constant_by_feature,
+    'feature_name', 'character', FALSE, # excepción porque es la variable agrupadora en una de las validaciones
+    'user', 'character', TRUE,
+    'dept_nbr', 'numeric', TRUE,
+    'negocio', 'character', TRUE,
+    'old_nbr', 'numeric', FALSE,
+    'min_feature_qty', 'numeric', TRUE,
+    'max_feature_qty', 'numeric', TRUE,
+    'max_ddv', 'numeric', FALSE,
+    'semana_ini', 'numeric', TRUE,
+    'semana_fin', 'numeric', TRUE,
+    'fcst_or_sales', 'character', TRUE,
+    'StartDate', 'date', TRUE,
+    'EndDate', 'date', TRUE,
+    'Priority', 'numeric', TRUE
   ),
   negocios = c(
     'SUPERCENTER',
@@ -157,6 +147,7 @@ gl <- list(
   max_input_queries = 10
 )
 gl$app_version_text <- sprintf('Versión %s (%s)', gl$app_version, gl$app_version_date)
+gl$feature_const_cols <- gl$cols$name[gl$cols$is_constant_by_feature]
 
 ## Login & Auth
 ### Path a base de datos de usuarios
