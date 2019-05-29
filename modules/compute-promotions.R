@@ -173,7 +173,7 @@ run_query_once <- function(ch, input_data) {
   )
   tryCatch({
     if (is.null(ch)) {
-      res <- mlutils::dataset.load(name = 'WMG', query = query)
+      res <- mlutils::dataset.load(name = 'production-connector', query = query)
     } else {
       res <- sqlQuery(ch, query)
     }
