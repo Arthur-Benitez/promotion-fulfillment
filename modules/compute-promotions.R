@@ -3,11 +3,11 @@
 # Funciones ---------------------------------------------------------------
 
 ## Generar espeficicación de columnas para readr
-generate_cols_spec <- function(columns, date_format = '%Y-%m-%d') {
+generate_cols_spec <- function(columns, types, date_format = '%Y-%m-%d') {
   cs <- cols(.default = col_character())
-  for (x in names(columns)) {
-    cs$cols[[x]] <- switch(
-      columns[x],
+  for (i in seq_along(columns)) {
+    cs$cols[[columns[i]]] <- switch(
+      types[i],
       'integer' = col_integer(),
       'numeric' = col_double(),
       'character' = col_character(),
@@ -21,15 +21,15 @@ generate_cols_spec <- function(columns, date_format = '%Y-%m-%d') {
 parse_input <- function(input_file, gl, calendar_day, ch = NULL, date_format = '%Y-%m-%d') {
   tryCatch({
     nms <- names(read_csv(input_file, n_max = 0))
-    if (!all(names(gl$cols) %in% nms)) {
-      return(sprintf('Las siguientes columnas faltan en el archivo de entrada: %s', paste(setdiff(names(gl$cols), nms), collapse = ', ')))
+    if (!all(gl$cols$name %in% nms)) {
+      return(sprintf('Las siguientes columnas faltan en el archivo de entrada: %s', paste(setdiff(gl$cols$name, nms), collapse = ', ')))
     }
     x <- read_csv(
       file = input_file,
       col_names = TRUE,
-      col_types = generate_cols_spec(gl$cols, date_format = date_format)
+      col_types = generate_cols_spec(gl$cols$name, gl$cols$type, date_format = date_format)
     ) %>% 
-      .[names(gl$cols)] %>% 
+      .[gl$cols$name] %>% 
       mutate(
         fcst_or_sales = toupper(fcst_or_sales),
         display_key = paste(dept_nbr, old_nbr, negocio, sep = '.'),
@@ -53,7 +53,7 @@ validate_input <- function(data, gl, calendar_day, ch) {
     ## Condiciones básicas
     !is.data.frame(data) ||
     nrow(data) == 0 ||
-    length(setdiff(names(gl$cols), names(data))) > 0
+    length(setdiff(gl$cols$name, names(data))) > 0
   ) {
     return(FALSE)
   } else {
