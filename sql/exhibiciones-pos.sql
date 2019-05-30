@@ -168,7 +168,12 @@ FROM
 		SELECT
 			STORE_NBR,
 			PRIME_XREF_ITEM_NBR,
-			AVG(WKLY_QTY) / 7 AS AVG_DLY_QTY
+			SUM(WKLY_QTY) / (7.00000 * (
+				SELECT COUNT(DISTINCT WM_YR_WK)
+				FROM MX_CF_VM.CALENDAR_DAY
+				WHERE WM_YR_WK >= ('?WK_INICIO')
+					AND WM_YR_WK <= ('?WK_FINAL')
+			)) AS AVG_DLY_QTY
 		FROM
 			(
 				-- Pre sumarizar para quitar renglones con misma llave (misma combinación item-store-wk)
