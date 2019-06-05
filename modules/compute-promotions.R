@@ -342,6 +342,7 @@ generate_histogram_data <- function(output_filtered_data, bin_size = 0.2) {
       avg_store_cost = mean(temp_cost),
       total_qty = sum(temp_qty),
       avg_store_qty = mean(temp_qty),
+      avg_store_dly_pos_or_fcst = mean(coalesce(avg_dly_sales, avg_dly_forecast)),
       min_feature_qty = mean(min_feature_qty),
       max_feature_qty = mean(max_feature_qty),
       total_ddv = sum(temp_qty) / sum(coalesce(avg_dly_sales, avg_dly_forecast))
@@ -735,7 +736,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
         mutate(
           label_y = n_stores + 0.03 * max(n_stores),
           label = scales::percent(p_stores),
-          text = sprintf('Tiendas: %s (%s)<br>Costo total: %s<br>Costo promedio: %s<br>Cant. total: %s<br>Cant. promedio: %s', scales::comma(n_stores, digits = 0), scales::percent(p_stores), scales::comma(total_cost, digits = 0), scales::comma(avg_store_cost, digits = 0), scales::comma(total_qty, digits = 0), scales::comma(avg_store_qty, digits = 0))
+          text = sprintf('Tiendas: %s (%s)<br>Costo total: %s<br>Costo promedio: %s<br>Cant. total: %s<br>Cant. promedio: %s<br>Vta./Fcst. prom: %s', scales::comma(n_stores, digits = 0), scales::percent(p_stores), scales::comma(total_cost, digits = 0), scales::comma(avg_store_cost, digits = 0), scales::comma(total_qty, digits = 0), scales::comma(avg_store_qty, digits = 0), scales::comma(avg_store_dly_pos_or_fcst, digits = 0))
         ) %>% 
         plot_ly(x = ~perc_max_feature_qty_bin, y = ~n_stores, text = ~text, type = 'bar', name = NULL) %>% 
         add_text(y = ~label_y, text = ~label, name = NULL) %>% 
