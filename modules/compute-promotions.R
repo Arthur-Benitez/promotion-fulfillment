@@ -462,7 +462,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
             user = input$user
           )
         )))
-        r$ch <- odbcDriverConnect(sprintf("Driver={Teradata};DBCName=WMG;UID=f0g00bq;AUTHENTICATION=ldap;AUTHENTICATIONPARAMETER=%s", paste0(input$user, '@@', input$password)))
+        r$ch <- odbcDriverConnect(sprintf("Driver={Teradata};DBCName=WM3;AUTHENTICATION=ldap;AUTHENTICATIONPARAMETER=%s", paste0(input$user, '@@', input$password)))
         odbcGetInfo(r$ch) ## Truena si no se abrió la conexión
         r$is_open <- TRUE
         output$auth_ui <- renderUI({
@@ -609,7 +609,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
       if (is_dev) {
         ## Las conexiones no se pueden exportar a otros procesos de R, así que se tiene que generar una nueva conexión
         ## Ver: https://cran.r-project.org/web/packages/future/vignettes/future-4-issues.html
-        future_ch <- RODBC::odbcDriverConnect(sprintf("Driver={Teradata};DBCName=WMG;UID=f0g00bq;AUTHENTICATION=ldap;AUTHENTICATIONPARAMETER=%s", paste0(usr, '@@', pwd)))
+        future_ch <- RODBC::odbcDriverConnect(sprintf("Driver={Teradata};DBCName=WM3;AUTHENTICATION=ldap;AUTHENTICATIONPARAMETER=%s", paste0(usr, '@@', pwd)))
       } else {
         future_ch <- NULL
       }
