@@ -1,5 +1,4 @@
 
-library(fg)
 library(magrittr)
 library(plotly)
 library(tidyverse)

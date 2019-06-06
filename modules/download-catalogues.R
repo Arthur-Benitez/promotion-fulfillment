@@ -10,9 +10,9 @@ library(tidyverse)
 con <- DBI::dbConnect(
   odbc::odbc(),
   Driver = 'Teradata',
-  DBCName = 'WMG',
+  DBCName = 'WM3',
   AUTHENTICATION = 'ldap',
-  UID = 'f0g00bq',
+  UID = rstudioapi::askForPassword('User ID'),
   PWD = rstudioapi::askForPassword('Password')
 )
 
