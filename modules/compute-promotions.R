@@ -79,7 +79,7 @@ validate_input <- function(data, gl, calendar_day, ch) {
                 paste(gl$feature_const_cols, collapse = ', ')),
         data %>% 
           group_by(feature_name) %>% 
-          summarise_at(gl$feature_const_cols, funs(length(unique(.)))) %>% 
+          summarise_at(gl$feature_const_cols, list(~length(unique(.)))) %>% 
           ungroup() %>% 
           select_at(gl$feature_const_cols) %>% 
           equals(1) %>% 
@@ -197,18 +197,28 @@ run_query <- function(ch, input_data) {
     map('result') %>% 
     discard(is.null)
   if (length(res) > 0) {
-    res <- bind_rows(res) %>% 
-      mutate(
-        avg_dly_pos_or_fcst = ifelse(
-          is.na(avg_dly_pos_or_fcst) | avg_dly_pos_or_fcst <= 0,
-          0.01,
-          avg_dly_pos_or_fcst
-        )
-      )
+    res <- bind_rows(res)
   } else {
     res <- NULL
   }
   res
+}
+
+## Checar que el query haya regresado algo
+check_query_result_is_empty <- function(result, input) {
+  new_vars <- setdiff(names(result), names(input))
+  all(is.na(result[new_vars]))
+}
+
+## Regresar nombre de displays que no tuvieron info
+get_empty_features <- function(result, input) {
+  result %>% 
+    group_by(feature_name) %>% 
+    nest() %>% 
+    mutate(
+      is_empty = map_lgl(data, ~check_query_result_is_empty(.x, input))
+    ) %>% 
+    select(feature_name, is_empty)
 }
 
 ## Lógica en R
@@ -217,6 +227,11 @@ perform_computations <- function(data, min_feature_qty_toggle = 'none') {
   data <- data %>% 
     group_by(feature_name, store_nbr) %>% 
     mutate(
+      avg_dly_pos_or_fcst = ifelse(
+        is.na(avg_dly_pos_or_fcst) | avg_dly_pos_or_fcst <= 0,
+        0.01,
+        avg_dly_pos_or_fcst
+      ),
       feature_perc_pos_or_fcst = avg_dly_pos_or_fcst / sum(avg_dly_pos_or_fcst),
       ## Cantidades sin reglas
       feature_qty_req_min = feature_perc_pos_or_fcst * min_feature_qty,
@@ -261,7 +276,7 @@ perform_computations <- function(data, min_feature_qty_toggle = 'none') {
     arrange(feature_name, store_nbr, old_nbr)
   new_columns <- setdiff(names(data), initial_columns)
   data %>% 
-    mutate_at(new_columns, funs(replace_na(., 0)))
+    mutate_at(new_columns, list(~replace_na(., 0)))
 }
 
 ## Tabla de resumen
@@ -422,7 +437,6 @@ computePromotionsServer <- function(input, output, session, credentials) {
     items = NULL,
     query_was_tried = FALSE
   )
-  query_result <- reactiveVal()
   
   ## UI
   output$items_ui <- renderUI({
@@ -615,21 +629,43 @@ computePromotionsServer <- function(input, output, session, credentials) {
       } else {
         future_ch <- NULL
       }
-      run_query(future_ch, items)
+      list(
+        timestamp = Sys.time(),
+        data = run_query(future_ch, items)
+      )
     }) %...>% 
       query_result()
   }, ignoreInit = TRUE)
   
   ## Hacer cálculos
   final_result <- reactive({
-    req(query_result())
+    req(query_result()$data)
     flog.info(toJSON(list(
       session_info = msg_cred(isolate(credentials())),
       message = 'PERFORMING COMPUTATIONS',
       details = list()
     )))
-    shinyalert::closeAlert()
-    purrr::safely(perform_computations)(query_result(), input$min_feature_qty_toggle)$result
+    feature_info <- get_empty_features(query_result()$data, isolate(r$items))
+    good_features <- with(feature_info, feature_name[!is_empty])
+    empty_features <- with(feature_info, feature_name[is_empty])
+    if (length(empty_features) > 0) {
+      shinyalert::shinyalert(
+        title = lang$error,
+        text = sprintf('No se encontró información de los artículos en los formatos y fechas especificadas para las siguientes exhibiciones: %s', paste(empty_features, collapse  = ', ')),
+        type = 'warning',
+        closeOnEsc = TRUE,
+        closeOnClickOutside = TRUE
+      )
+    } else {
+      shinyalert::closeAlert()
+    }
+    if (length(good_features) > 0) {
+      good_data <- query_result()$data %>% 
+        filter(feature_name %in% good_features)
+      purrr::safely(perform_computations)(good_data, input$min_feature_qty_toggle)$result
+    } else {
+      NULL
+    }
   })
   
   ## Validaciones
@@ -640,7 +676,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
   })
   need_query_ready <- reactive({
     shiny::need(r$query_was_tried, lang$need_run) %then%
-      shiny::need(!is.null(query_result()), lang$need_query_result) %then%
+      shiny::need(!is.null(query_result()$data), lang$need_query_result) %then%
       shiny::need(!is.null(final_result()), lang$need_final_result)
   })
   need_histogram_ready <- reactive({
@@ -658,7 +694,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
       percent_columns <- c('feature_perc_pos_or_fcst')
       decimal_columns <- c('avg_dly_pos_or_fcst', 'feature_qty_req_min',	'feature_qty_req', 'feature_ddv_req', 'feature_qty_pre', 'feature_ddv_pre', 'feature_qty_pre_tot', 'feature_ddv_fin', 'feature_qty_fin', 'display_key', 'store_cost', 'vnpk_fin', 'cost')
       final_result() %>%
-        mutate_at(vars(percent_columns), funs(100 * .)) %>%
+        mutate_at(vars(percent_columns), list(~100 * .)) %>%
         datatable(
           filter = 'top',
           options = list(
@@ -699,9 +735,9 @@ computePromotionsServer <- function(input, output, session, credentials) {
   })
   
   output$output_feature_select_ui <- renderUI({
-    req(r$items)
+    req(final_result())
     ns <- session$ns
-    choices <- r$items %>% 
+    choices <- final_result() %>% 
       pull(feature_name) %>%
       unique() %>% 
       sort()
@@ -737,9 +773,9 @@ computePromotionsServer <- function(input, output, session, credentials) {
         mutate(
           label_y = n_stores + 0.03 * max(n_stores),
           label = scales::percent(p_stores),
-          text = sprintf('Tiendas: %s (%s)<br>Costo total: %s<br>Costo promedio: %s<br>Cant. total: %s<br>Cant. promedio: %s<br>%s promedio: %s', scales::comma(n_stores, digits = 0), scales::percent(p_stores), scales::comma(total_cost, digits = 0), scales::comma(avg_store_cost, digits = 0), scales::comma(total_qty, digits = 0), scales::comma(avg_store_qty, digits = 0), ifelse(first(fcst_or_sales) == 'F', 'Forecast', 'Venta'), scales::comma(avg_store_dly_pos_or_fcst, digits = 0))
+          text = sprintf('Tiendas: %s (%s)<br>Costo total: %s<br>Costo promedio: %s<br>Cant. total: %s<br>Cant. promedio: %s<br>%s promedio: %s', scales::comma(n_stores, accuracy = 1), scales::percent(p_stores), scales::comma(total_cost, accuracy = 1), scales::comma(avg_store_cost, accuracy = 1), scales::comma(total_qty, accuracy = 1), scales::comma(avg_store_qty, accuracy = 1), ifelse(first(fcst_or_sales) == 'F', 'Forecast', 'Venta'), scales::comma(avg_store_dly_pos_or_fcst, accuracy = 1))
         ) %>% 
-        plot_ly(x = ~perc_max_feature_qty_bin, y = ~n_stores, text = ~text, type = 'bar', name = NULL) %>% 
+        plot_ly(x = ~perc_max_feature_qty_bin, y = ~n_stores, text = ~text, hoverinfo = 'text', type = 'bar', name = NULL) %>% 
         add_text(y = ~label_y, text = ~label, name = NULL) %>% 
         plotly::layout(
           title = 'Alcance a piezas máximas por tienda',
@@ -764,7 +800,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
       percent_columns <- c('p_stores')
       decimal_columns <- str_subset(names(histogram_data()), '^(n|total|avg)_')
       histogram_data() %>%
-        mutate_at(vars(percent_columns), funs(100 * .)) %>%
+        mutate_at(vars(percent_columns), list(~100 * .)) %>%
         datatable(
           filter = 'none',
           options = list(
@@ -824,7 +860,8 @@ computePromotionsServer <- function(input, output, session, credentials) {
   output$download_template <- downloadHandler(
     filename = 'promo-fulfillment-template.csv',
     content = function(file) {
-      file.copy('data/sample-input.csv', file)
+      x <- generate_sample_input(calendar_day)
+      write_excel_csv(x, file)
     },
     contentType = 'text/csv'
   )
