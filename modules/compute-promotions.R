@@ -739,7 +739,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
         mutate(
           label_y = n_stores + 0.03 * max(n_stores),
           label = scales::percent(p_stores),
-          text = sprintf('Tiendas: %s (%s)<br>Costo total: %s<br>Costo promedio: %s<br>Cant. total: %s<br>Cant. promedio: %s<br>%s promedio: %s', scales::comma(n_stores, digits = 0), scales::percent(p_stores), scales::comma(total_cost, digits = 0), scales::comma(avg_store_cost, digits = 0), scales::comma(total_qty, digits = 0), scales::comma(avg_store_qty, digits = 0), ifelse(first(fcst_or_sales) == 'F', 'Forecast', 'Venta'), scales::comma(avg_store_dly_pos_or_fcst, digits = 0))
+          text = sprintf('Tiendas: %s (%s)<br>Costo total: %s<br>Costo promedio: %s<br>Cant. total: %s<br>Cant. promedio: %s<br>%s promedio: %s', scales::comma(n_stores, accuracy = 1), scales::percent(p_stores), scales::comma(total_cost, accuracy = 1), scales::comma(avg_store_cost, accuracy = 1), scales::comma(total_qty, accuracy = 1), scales::comma(avg_store_qty, accuracy = 1), ifelse(first(fcst_or_sales) == 'F', 'Forecast', 'Venta'), scales::comma(avg_store_dly_pos_or_fcst, accuracy = 1))
         ) %>% 
         plot_ly(x = ~perc_max_feature_qty_bin, y = ~n_stores, text = ~text, type = 'bar', name = NULL) %>% 
         add_text(y = ~label_y, text = ~label, name = NULL) %>% 
