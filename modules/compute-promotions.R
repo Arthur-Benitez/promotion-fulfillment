@@ -79,7 +79,7 @@ validate_input <- function(data, gl, calendar_day, ch) {
                 paste(gl$feature_const_cols, collapse = ', ')),
         data %>% 
           group_by(feature_name) %>% 
-          summarise_at(gl$feature_const_cols, funs(length(unique(.)))) %>% 
+          summarise_at(gl$feature_const_cols, list(~length(unique(.)))) %>% 
           ungroup() %>% 
           select_at(gl$feature_const_cols) %>% 
           equals(1) %>% 
@@ -261,7 +261,7 @@ perform_computations <- function(data, min_feature_qty_toggle = 'none') {
     arrange(feature_name, store_nbr, old_nbr)
   new_columns <- setdiff(names(data), initial_columns)
   data %>% 
-    mutate_at(new_columns, funs(replace_na(., 0)))
+    mutate_at(new_columns, list(~replace_na(., 0)))
 }
 
 ## Tabla de resumen
@@ -660,7 +660,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
       percent_columns <- c('feature_perc_pos_or_fcst')
       decimal_columns <- c('avg_dly_pos_or_fcst', 'feature_qty_req_min',	'feature_qty_req', 'feature_ddv_req', 'feature_qty_pre', 'feature_ddv_pre', 'feature_qty_pre_tot', 'feature_ddv_fin', 'feature_qty_fin', 'display_key', 'store_cost', 'vnpk_fin', 'cost')
       final_result() %>%
-        mutate_at(vars(percent_columns), funs(100 * .)) %>%
+        mutate_at(vars(percent_columns), list(~100 * .)) %>%
         datatable(
           filter = 'top',
           options = list(
@@ -766,7 +766,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
       percent_columns <- c('p_stores')
       decimal_columns <- str_subset(names(histogram_data()), '^(n|total|avg)_')
       histogram_data() %>%
-        mutate_at(vars(percent_columns), funs(100 * .)) %>%
+        mutate_at(vars(percent_columns), list(~100 * .)) %>%
         datatable(
           filter = 'none',
           options = list(
