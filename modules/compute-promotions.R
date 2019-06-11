@@ -741,7 +741,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
           label = scales::percent(p_stores),
           text = sprintf('Tiendas: %s (%s)<br>Costo total: %s<br>Costo promedio: %s<br>Cant. total: %s<br>Cant. promedio: %s<br>%s promedio: %s', scales::comma(n_stores, accuracy = 1), scales::percent(p_stores), scales::comma(total_cost, accuracy = 1), scales::comma(avg_store_cost, accuracy = 1), scales::comma(total_qty, accuracy = 1), scales::comma(avg_store_qty, accuracy = 1), ifelse(first(fcst_or_sales) == 'F', 'Forecast', 'Venta'), scales::comma(avg_store_dly_pos_or_fcst, accuracy = 1))
         ) %>% 
-        plot_ly(x = ~perc_max_feature_qty_bin, y = ~n_stores, text = ~text, type = 'bar', name = NULL) %>% 
+        plot_ly(x = ~perc_max_feature_qty_bin, y = ~n_stores, text = ~text, hoverinfo = 'text', type = 'bar', name = NULL) %>% 
         add_text(y = ~label_y, text = ~label, name = NULL) %>% 
         plotly::layout(
           title = 'Alcance a piezas máximas por tienda',
