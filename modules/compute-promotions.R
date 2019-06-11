@@ -422,7 +422,6 @@ computePromotionsServer <- function(input, output, session, credentials) {
     items = NULL,
     query_was_tried = FALSE
   )
-  query_result <- reactiveVal()
   
   ## UI
   output$items_ui <- renderUI({
@@ -615,21 +614,24 @@ computePromotionsServer <- function(input, output, session, credentials) {
       } else {
         future_ch <- NULL
       }
-      run_query(future_ch, items)
+      list(
+        timestamp = Sys.time(),
+        data = run_query(future_ch, items)
+      )
     }) %...>% 
       query_result()
   }, ignoreInit = TRUE)
   
   ## Hacer cálculos
   final_result <- reactive({
-    req(query_result())
+    shinyalert::closeAlert()
+    req(query_result()$data)
     flog.info(toJSON(list(
       session_info = msg_cred(isolate(credentials())),
       message = 'PERFORMING COMPUTATIONS',
       details = list()
     )))
-    shinyalert::closeAlert()
-    purrr::safely(perform_computations)(query_result(), input$min_feature_qty_toggle)$result
+    purrr::safely(perform_computations)(query_result()$data, input$min_feature_qty_toggle)$result
   })
   
   ## Validaciones
@@ -640,7 +642,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
   })
   need_query_ready <- reactive({
     shiny::need(r$query_was_tried, lang$need_run) %then%
-      shiny::need(!is.null(query_result()), lang$need_query_result) %then%
+      shiny::need(!is.null(query_result()$data), lang$need_query_result) %then%
       shiny::need(!is.null(final_result()), lang$need_final_result)
   })
   need_histogram_ready <- reactive({
