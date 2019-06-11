@@ -824,7 +824,8 @@ computePromotionsServer <- function(input, output, session, credentials) {
   output$download_template <- downloadHandler(
     filename = 'promo-fulfillment-template.csv',
     content = function(file) {
-      file.copy('data/sample-input.csv', file)
+      x <- generate_sample_input(calendar_day)
+      write_excel_csv(x, file)
     },
     contentType = 'text/csv'
   )
