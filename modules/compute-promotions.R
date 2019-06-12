@@ -204,6 +204,47 @@ run_query <- function(ch, input_data) {
   res
 }
 
+## Query para buscar los SS actuales
+search_ss <- function(ch, input_data_ss){
+  query_ss <- readLines('sql/ss-item-str.sql') %>%
+    str_replace_all('\\?OLD_NBRS', paste(unique(input_data_ss$old_nbr), collapse = ",")) %>%
+    str_replace_all('\\?NEGOCIOS', paste(unique(input_data_ss$negocio), collapse = "','")) %>%
+    paste(collapse = '\n')
+  
+  tryCatch({
+    if (is.null(ch)) {
+      query_ss_res <- mlutils::dataset.load(name = 'production-connector', query = query_ss)
+    } else {
+      query_ss_res <- sqlQuery(ch, query_ss, stringsAsFactors = FALSE)
+    }
+    query_ss_res <- query_ss_res %>% 
+      as_tibble() %>% 
+      set_names(tolower(names(.))) %>% 
+      mutate_if(is.factor, as.character)
+  }, error = function(e){
+    NULL
+  })
+}
+
+## Determinar nuevo SS ganador en cantidad
+compare_ss_qty <- function(sspress_tot, sscov_tot, min_ss, max_ss){
+  pmin(pmax(sspress_tot, sscov_tot, min_ss), max_ss)
+}
+
+## Determinar nuevo SS ganador en nombre
+compare_ss_name <- function(sspress_tot, sscov_tot, min_ss, max_ss, sspress, base_press, sscov, sstemp, win_qty){
+  win_ss = case_when(
+        win_qty == max_ss ~ "MAX_SS",
+        win_qty == min_ss ~ "MIN_SS",
+       (win_qty == sspress_tot & sspress == 0) ~ "BASE_PRESS",
+       (win_qty == sspress_tot & base_press == 0) ~ "SS_PRESS",
+        win_qty == sspress_tot ~ "SS_PRESS_Tot",
+       (win_qty == sscov_tot & sscov == 0) ~ "SSTEMP",
+       (win_qty == sscov_tot & sstemp == 0) ~ "SSCOV",
+        win_qty == sscov_tot ~ "SS_COV_Tot"
+      )
+  return(win_ss)
+
 ## Checar que el query haya regresado algo
 check_query_result_is_empty <- function(result, input) {
   new_vars <- setdiff(names(result), names(input))
@@ -222,8 +263,9 @@ get_empty_features <- function(result, input) {
 }
 
 ## Lógica en R
-perform_computations <- function(data, min_feature_qty_toggle = 'none') {
+perform_computations <- function(data, data_ss = NULL, min_feature_qty_toggle = 'none') {
   initial_columns <- names(data)
+  ##Transformaciones de distribución
   data <- data %>% 
     group_by(feature_name, store_nbr) %>% 
     mutate(
@@ -274,9 +316,32 @@ perform_computations <- function(data, min_feature_qty_toggle = 'none') {
       everything()
     ) %>% 
     arrange(feature_name, store_nbr, old_nbr)
+  
   new_columns <- setdiff(names(data), initial_columns)
-  data %>% 
+  data <- data %>%
     mutate_at(new_columns, list(~replace_na(., 0)))
+  
+  if(is.null(data_ss)){
+    data <- data %>%
+      mutate(
+        impact_qty = NA,
+        impact_cost = NA
+      )
+  } else {
+    ##Transformaciones para el impacto del SS
+    data <- data %>% 
+      left_join(data_ss, by = c("old_nbr", "store_nbr")) %>%
+      replace_na(list(ganador = "Unknown", max_ss = 999999999)) %>%
+      mutate_at(vars(contains("ss")), list(~round(replace_na(., 0),digits = 0))) %>%
+      mutate(
+        new_sspress_tot = feature_qty_fin + base_press,
+        ss_winner_qty = compare_ss_qty(new_sspress_tot, sscov_tot, min_ss, max_ss),
+        ss_winner_name = compare_ss_name(new_sspress_tot, sscov_tot, min_ss, max_ss, feature_qty_fin, base_press, sscov, sstemp, ss_winner_qty),
+        impact_qty = ss_winner_qty - ss_ganador,
+        impact_cost = impact_qty * cost
+      )
+  }
+  return(data)
 }
 
 ## Tabla de resumen
@@ -296,7 +361,7 @@ summarise_data <- function(data, group = c('feature_name', 'cid')) {
   group_order <- c('feature_name', 'store_nbr', 'cid', 'old_nbr')
   grp <- group_order[group_order %in% group]
   ## Variables numéricas de tabla de salida
-  vv <- c('avg_dly_sales', 'avg_dly_forecast', 'total_cost', 'total_qty', 'min_feature_qty', 'max_feature_qty', 'total_ddv', 'total_vnpk')
+  vv <- c('avg_dly_sales', 'avg_dly_forecast', 'total_cost', 'total_impact_cost', 'total_qty', 'total_impact_qty', 'min_feature_qty', 'max_feature_qty', 'total_ddv', 'total_vnpk')
   if ('store_nbr' %in% grp) {
     val_vars <- vv
   } else {
@@ -311,7 +376,9 @@ summarise_data <- function(data, group = c('feature_name', 'cid')) {
       avg_dly_sales = ifelse(any(fcst_or_sales == 'S'), sum(avg_dly_pos_or_fcst[fcst_or_sales=='S']), NA_real_),
       avg_dly_forecast = ifelse(any(fcst_or_sales == 'F'), sum(avg_dly_pos_or_fcst[fcst_or_sales=='F']), NA_real_),
       total_cost = sum(store_cost),
+      total_impact_cost = sum(impact_cost),
       total_qty = sum(feature_qty_fin),
+      total_impact_qty = sum(impact_qty),
       min_feature_qty = mean(min_feature_qty),
       max_feature_qty = mean(max_feature_qty),
       total_ddv = sum(feature_qty_fin) / sum(avg_dly_pos_or_fcst),
@@ -631,7 +698,8 @@ computePromotionsServer <- function(input, output, session, credentials) {
       }
       list(
         timestamp = Sys.time(),
-        data = run_query(future_ch, items)
+        data = run_query(future_ch, items),
+        data_ss = search_ss(future_ch, items)
       )
     }) %...>% 
       query_result()
@@ -662,7 +730,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
     if (length(good_features) > 0) {
       good_data <- query_result()$data %>% 
         filter(feature_name %in% good_features)
-      purrr::safely(perform_computations)(good_data, input$min_feature_qty_toggle)$result
+      purrr::safely(perform_computations)(good_data, query_result()$data_ss, input$min_feature_qty_toggle)$result
     } else {
       NULL
     }
