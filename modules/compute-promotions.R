@@ -235,13 +235,7 @@ search_ss <- function(ch, input_data_ss){
 
 ## Determinar nuevo SS ganador en cantidad
 compare_ss_qty <- function(sspress_tot, sscov_tot, min_ss, max_ss){
-  win_qty = case_when(
-        (pmin(pmax(sspress_tot, sscov_tot, min_ss), max_ss) == sspress_tot) ~ sspress_tot,
-        (pmin(pmax(sspress_tot, sscov_tot, min_ss), max_ss) == sscov_tot) ~ sscov_tot,
-        (pmin(pmax(sspress_tot, sscov_tot, min_ss), max_ss) == min_ss) ~ min_ss,
-        (pmin(pmax(sspress_tot, sscov_tot, min_ss), max_ss) == max_ss) ~ max_ss
-      )
-  return(win_qty)
+  pmin(pmax(sspress_tot, sscov_tot, min_ss), max_ss)
 }
 
 compare_ss_name <- function(sspress_tot, sscov_tot, min_ss, max_ss, sspress, base_press, sscov, sstemp, win_qty){
@@ -259,7 +253,7 @@ compare_ss_name <- function(sspress_tot, sscov_tot, min_ss, max_ss, sspress, bas
 }
 
 ## Lógica en R
-perform_computations <- function(data, min_feature_qty_toggle = 'none', data_ss = NULL) {
+perform_computations <- function(data, data_ss = NULL, min_feature_qty_toggle = 'none') {
   initial_columns <- names(data)
   ##Transformaciones de distribución
   data <- data %>% 
@@ -315,8 +309,8 @@ perform_computations <- function(data, min_feature_qty_toggle = 'none', data_ss 
   if(is.null(data_ss)){
     data <- data %>%
       mutate(
-        impacto_qty = NA,
-        impacto_costo = NA
+        impact_qty = NA,
+        impact_cost = NA
       )
   } else {
     ##Transformaciones para el impacto del SS
@@ -328,8 +322,8 @@ perform_computations <- function(data, min_feature_qty_toggle = 'none', data_ss 
         new_sspress_tot = feature_qty_fin + base_press,
         ss_winner_qty = compare_ss_qty(new_sspress_tot, sscov_tot, min_ss, max_ss),
         ss_winner_name = compare_ss_name(new_sspress_tot, sscov_tot, min_ss, max_ss, feature_qty_fin, base_press, sscov, sstemp, ss_winner_qty),
-        impacto_qty = ss_winner_qty - ss_ganador,
-        impacto_costo = impacto_qty * cost
+        impact_qty = ss_winner_qty - ss_ganador,
+        impact_cost = impact_qty * cost
       )
   }
   return(data)
@@ -367,9 +361,9 @@ summarise_data <- function(data, group = c('feature_name', 'cid')) {
       avg_dly_sales = ifelse(any(fcst_or_sales == 'S'), sum(avg_dly_pos_or_fcst[fcst_or_sales=='S']), NA_real_),
       avg_dly_forecast = ifelse(any(fcst_or_sales == 'F'), sum(avg_dly_pos_or_fcst[fcst_or_sales=='F']), NA_real_),
       total_cost = sum(store_cost),
-      total_impact_cost = sum(impacto_costo),
+      total_impact_cost = sum(impact_cost),
       total_qty = sum(feature_qty_fin),
-      total_impact_qty = sum(impacto_qty),
+      total_impact_qty = sum(impact_qty),
       min_feature_qty = mean(min_feature_qty),
       max_feature_qty = mean(max_feature_qty),
       total_ddv = sum(feature_qty_fin) / sum(avg_dly_pos_or_fcst),
@@ -705,7 +699,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
       message = 'PERFORMING COMPUTATIONS',
       details = list()
     )))
-    purrr::safely(perform_computations)(query_result()$data, input$min_feature_qty_toggle, query_result()$data_ss)$result
+    purrr::safely(perform_computations)(query_result()$data, query_result()$data_ss, input$min_feature_qty_toggle)$result
   })
   
   ## Validaciones
