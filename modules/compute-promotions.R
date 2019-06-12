@@ -218,11 +218,19 @@ search_ss <- function(ch, input_data_ss){
     str_replace_all('\\?NEGOCIOS', paste(unique(input_data_ss$negocio), collapse = "','")) %>%
     paste(collapse = '\n')
   
-  query_ss_res <- sqlQuery(ch, query_ss, stringsAsFactors = FALSE) %>%
-    as_tibble() %>%
-    set_names(tolower(names(.)))
-  
-  return(query_ss_res)
+  tryCatch({
+    if (is.null(ch)) {
+      query_ss_res <- mlutils::dataset.load(name = 'production-connector', query = query_ss)
+    } else {
+      query_ss_res <- sqlQuery(ch, query_ss, stringsAsFactors = FALSE)
+    }
+    query_ss_res <- query_ss_res %>% 
+      as_tibble() %>% 
+      set_names(tolower(names(.))) %>% 
+      mutate_if(is.factor, as.character)
+  }, error = function(e){
+    NULL
+  })
 }
 
 ## Determinar nuevo SS ganador en cantidad
@@ -310,8 +318,7 @@ perform_computations <- function(data, min_feature_qty_toggle = 'none', data_ss 
         impacto_qty = NA,
         impacto_costo = NA
       )
-  }
-  else{
+  } else {
     ##Transformaciones para el impacto del SS
     data <- data %>% 
       left_join(data_ss, by = c("old_nbr", "store_nbr")) %>%
