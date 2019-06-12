@@ -244,6 +244,7 @@ compare_ss_name <- function(sspress_tot, sscov_tot, min_ss, max_ss, sspress, bas
         win_qty == sscov_tot ~ "SS_COV_Tot"
       )
   return(win_ss)
+}
 
 ## Checar que el query haya regresado algo
 check_query_result_is_empty <- function(result, input) {
