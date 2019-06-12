@@ -339,7 +339,9 @@ perform_computations <- function(data, data_ss = NULL, min_feature_qty_toggle = 
         ss_winner_qty = compare_ss_qty(new_sspress_tot, sscov_tot, min_ss, max_ss),
         ss_winner_name = compare_ss_name(new_sspress_tot, sscov_tot, min_ss, max_ss, feature_qty_fin, base_press, sscov, sstemp, ss_winner_qty),
         impact_qty = ss_winner_qty - ss_ganador,
-        impact_cost = impact_qty * cost
+        impact_cost = impact_qty * cost,
+        impact_ddv = impact_qty / avg_dly_pos_or_fcst,
+        impact_vnpk = impact_qty / vnpk_qty
       )
   }
   return(data)
@@ -362,7 +364,7 @@ summarise_data <- function(data, group = c('feature_name', 'cid')) {
   group_order <- c('feature_name', 'store_nbr', 'cid', 'old_nbr')
   grp <- group_order[group_order %in% group]
   ## Variables numéricas de tabla de salida
-  vv <- c('avg_dly_sales', 'avg_dly_forecast', 'total_cost', 'total_impact_cost', 'total_qty', 'total_impact_qty', 'min_feature_qty', 'max_feature_qty', 'total_ddv', 'total_vnpk')
+  vv <- c('avg_dly_sales', 'avg_dly_forecast', 'min_feature_qty', 'max_feature_qty', 'total_cost', 'total_impact_cost', 'total_qty', 'total_impact_qty', 'total_ddv', 'total_impact_ddv', 'total_vnpk', 'total_impact_vnpk')
   if ('store_nbr' %in% grp) {
     val_vars <- vv
   } else {
@@ -376,14 +378,16 @@ summarise_data <- function(data, group = c('feature_name', 'cid')) {
       ## Las ventas ya son promedio, así que sumándolas dan las ventas promedio de una entidad más grande
       avg_dly_sales = ifelse(any(fcst_or_sales == 'S'), sum(avg_dly_pos_or_fcst[fcst_or_sales=='S']), NA_real_),
       avg_dly_forecast = ifelse(any(fcst_or_sales == 'F'), sum(avg_dly_pos_or_fcst[fcst_or_sales=='F']), NA_real_),
+      min_feature_qty = mean(min_feature_qty),
+      max_feature_qty = mean(max_feature_qty),
       total_cost = sum(store_cost),
       total_impact_cost = sum(impact_cost),
       total_qty = sum(feature_qty_fin),
       total_impact_qty = sum(impact_qty),
-      min_feature_qty = mean(min_feature_qty),
-      max_feature_qty = mean(max_feature_qty),
       total_ddv = sum(feature_qty_fin) / sum(avg_dly_pos_or_fcst),
-      total_vnpk = sum(vnpk_fin)
+      total_impact_ddv = sum(impact_qty) / sum(avg_dly_pos_or_fcst),
+      total_vnpk = sum(vnpk_fin),
+      total_impact_vnpk = sum(impact_vnpk)
     ) %>% 
     ungroup() %>% 
     arrange(!!!syms(grp)) %>% 
