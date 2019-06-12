@@ -317,11 +317,6 @@ perform_computations <- function(data, min_feature_qty_toggle = 'none', data_ss 
       left_join(data_ss, by = c("old_nbr", "store_nbr")) %>%
       replace_na(list(ganador = "Unknown", max_ss = 999999999)) %>%
       mutate_at(vars(contains("ss")), list(~round(replace_na(., 0),digits = 0))) %>%
-      rename(
-        sscov = sscov_piezas,
-        sstemp = sstemp_piezas,
-        sscov_tot = sscov_tot_piezas
-      ) %>%
       mutate(
         new_sspress_tot = feature_qty_fin + base_press,
         ss_winner_qty = compare_ss_qty(new_sspress_tot, sscov_tot, min_ss, max_ss),
