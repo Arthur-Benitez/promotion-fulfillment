@@ -197,14 +197,7 @@ run_query <- function(ch, input_data) {
     map('result') %>% 
     discard(is.null)
   if (length(res) > 0) {
-    res <- bind_rows(res) %>% 
-      mutate(
-        avg_dly_pos_or_fcst = ifelse(
-          is.na(avg_dly_pos_or_fcst) | avg_dly_pos_or_fcst <= 0,
-          0.01,
-          avg_dly_pos_or_fcst
-        )
-      )
+    res <- bind_rows(res)
   } else {
     res <- NULL
   }
@@ -238,6 +231,7 @@ compare_ss_qty <- function(sspress_tot, sscov_tot, min_ss, max_ss){
   pmin(pmax(sspress_tot, sscov_tot, min_ss), max_ss)
 }
 
+## Determinar nuevo SS ganador en nombre
 compare_ss_name <- function(sspress_tot, sscov_tot, min_ss, max_ss, sspress, base_press, sscov, sstemp, win_qty){
   win_ss = case_when(
         win_qty == max_ss ~ "MAX_SS",
@@ -250,6 +244,22 @@ compare_ss_name <- function(sspress_tot, sscov_tot, min_ss, max_ss, sspress, bas
         win_qty == sscov_tot ~ "SS_COV_Tot"
       )
   return(win_ss)
+
+## Checar que el query haya regresado algo
+check_query_result_is_empty <- function(result, input) {
+  new_vars <- setdiff(names(result), names(input))
+  all(is.na(result[new_vars]))
+}
+
+## Regresar nombre de displays que no tuvieron info
+get_empty_features <- function(result, input) {
+  result %>% 
+    group_by(feature_name) %>% 
+    nest() %>% 
+    mutate(
+      is_empty = map_lgl(data, ~check_query_result_is_empty(.x, input))
+    ) %>% 
+    select(feature_name, is_empty)
 }
 
 ## Lógica en R
@@ -259,6 +269,11 @@ perform_computations <- function(data, data_ss = NULL, min_feature_qty_toggle = 
   data <- data %>% 
     group_by(feature_name, store_nbr) %>% 
     mutate(
+      avg_dly_pos_or_fcst = ifelse(
+        is.na(avg_dly_pos_or_fcst) | avg_dly_pos_or_fcst <= 0,
+        0.01,
+        avg_dly_pos_or_fcst
+      ),
       feature_perc_pos_or_fcst = avg_dly_pos_or_fcst / sum(avg_dly_pos_or_fcst),
       ## Cantidades sin reglas
       feature_qty_req_min = feature_perc_pos_or_fcst * min_feature_qty,
@@ -692,14 +707,33 @@ computePromotionsServer <- function(input, output, session, credentials) {
   
   ## Hacer cálculos
   final_result <- reactive({
-    shinyalert::closeAlert()
     req(query_result()$data)
     flog.info(toJSON(list(
       session_info = msg_cred(isolate(credentials())),
       message = 'PERFORMING COMPUTATIONS',
       details = list()
     )))
-    purrr::safely(perform_computations)(query_result()$data, query_result()$data_ss, input$min_feature_qty_toggle)$result
+    feature_info <- get_empty_features(query_result()$data, isolate(r$items))
+    good_features <- with(feature_info, feature_name[!is_empty])
+    empty_features <- with(feature_info, feature_name[is_empty])
+    if (length(empty_features) > 0) {
+      shinyalert::shinyalert(
+        title = lang$error,
+        text = sprintf('No se encontró información de los artículos en los formatos y fechas especificadas para las siguientes exhibiciones: %s', paste(empty_features, collapse  = ', ')),
+        type = 'warning',
+        closeOnEsc = TRUE,
+        closeOnClickOutside = TRUE
+      )
+    } else {
+      shinyalert::closeAlert()
+    }
+    if (length(good_features) > 0) {
+      good_data <- query_result()$data %>% 
+        filter(feature_name %in% good_features)
+      purrr::safely(perform_computations)(good_data, query_result()$data_ss, input$min_feature_qty_toggle)$result
+    } else {
+      NULL
+    }
   })
   
   ## Validaciones
@@ -769,9 +803,9 @@ computePromotionsServer <- function(input, output, session, credentials) {
   })
   
   output$output_feature_select_ui <- renderUI({
-    req(r$items)
+    req(final_result())
     ns <- session$ns
-    choices <- r$items %>% 
+    choices <- final_result() %>% 
       pull(feature_name) %>%
       unique() %>% 
       sort()
@@ -807,9 +841,9 @@ computePromotionsServer <- function(input, output, session, credentials) {
         mutate(
           label_y = n_stores + 0.03 * max(n_stores),
           label = scales::percent(p_stores),
-          text = sprintf('Tiendas: %s (%s)<br>Costo total: %s<br>Costo promedio: %s<br>Cant. total: %s<br>Cant. promedio: %s<br>%s promedio: %s', scales::comma(n_stores, digits = 0), scales::percent(p_stores), scales::comma(total_cost, digits = 0), scales::comma(avg_store_cost, digits = 0), scales::comma(total_qty, digits = 0), scales::comma(avg_store_qty, digits = 0), ifelse(first(fcst_or_sales) == 'F', 'Forecast', 'Venta'), scales::comma(avg_store_dly_pos_or_fcst, digits = 0))
+          text = sprintf('Tiendas: %s (%s)<br>Costo total: %s<br>Costo promedio: %s<br>Cant. total: %s<br>Cant. promedio: %s<br>%s promedio: %s', scales::comma(n_stores, accuracy = 1), scales::percent(p_stores), scales::comma(total_cost, accuracy = 1), scales::comma(avg_store_cost, accuracy = 1), scales::comma(total_qty, accuracy = 1), scales::comma(avg_store_qty, accuracy = 1), ifelse(first(fcst_or_sales) == 'F', 'Forecast', 'Venta'), scales::comma(avg_store_dly_pos_or_fcst, accuracy = 1))
         ) %>% 
-        plot_ly(x = ~perc_max_feature_qty_bin, y = ~n_stores, text = ~text, type = 'bar', name = NULL) %>% 
+        plot_ly(x = ~perc_max_feature_qty_bin, y = ~n_stores, text = ~text, hoverinfo = 'text', type = 'bar', name = NULL) %>% 
         add_text(y = ~label_y, text = ~label, name = NULL) %>% 
         plotly::layout(
           title = 'Alcance a piezas máximas por tienda',
