@@ -679,10 +679,11 @@ computePromotionsServer <- function(input, output, session, credentials) {
       message = 'RUNNING QUERY',
       details = list()
     )))
+    time1 <- Sys.time()
     shinyalert(
       type = 'info',
       title = 'Calculando...',
-      text = sprintf('Hora de inicio: %s', format(Sys.time(), tz = 'America/Mexico_City')),
+      text = sprintf('Hora de inicio: %s', format(time1, "%X")),
       closeOnEsc = FALSE,
       showCancelButton = FALSE,
       showConfirmButton = FALSE
@@ -702,7 +703,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
         future_ch <- NULL
       }
       list(
-        timestamp = Sys.time(),
+        timestamp = time1,
         data = run_query(future_ch, items),
         data_ss = search_ss(future_ch, items)
       )
@@ -729,10 +730,17 @@ computePromotionsServer <- function(input, output, session, credentials) {
         closeOnEsc = TRUE,
         closeOnClickOutside = TRUE
       )
-    } else {
-      shinyalert::closeAlert()
     }
     if (length(good_features) > 0) {
+      shinyalert::shinyalert(
+        type = 'success',
+        title = '¡Éxito! :D',
+        text = sprintf('La información fue descargada de teradata en %s minutos.', round(difftime(Sys.time(), query_result()$timestamp, units = "mins"), 1)),
+        closeOnClickOutside = TRUE,
+        confirmButtonCol = "#1A75CF",
+        timer = 10000,
+        animation = "slide-from-top"
+      )
       good_data <- query_result()$data %>% 
         filter(feature_name %in% good_features)
       purrr::safely(perform_computations)(good_data, query_result()$data_ss, input$min_feature_qty_toggle)$result
