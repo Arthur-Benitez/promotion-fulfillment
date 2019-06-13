@@ -113,8 +113,8 @@ gl <- list(
       'dev'
     }
   },
-  app_version = '0.2.1',
-  app_version_date = '2019-05-29',
+  app_version = '0.2.2',
+  app_version_date = '2019-06-13',
   ## Compute promotions
   cols = tribble(
     ~name, ~type, ~is_constant_by_feature,
