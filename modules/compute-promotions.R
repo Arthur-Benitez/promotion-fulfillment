@@ -749,8 +749,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
       title = alert_info$title,
       text = alert_info$text,
       closeOnClickOutside = TRUE,
-      timer = 10000,
-      animation = "slide-from-top"
+      timer = 10000
     )
     flog.info(toJSON(list(
       session_info = msg_cred(isolate(credentials())),
