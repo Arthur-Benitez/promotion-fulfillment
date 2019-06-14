@@ -17,6 +17,24 @@ generate_cols_spec <- function(columns, types, date_format = '%Y-%m-%d') {
   cs
 }
 
+## Decide que alerta mostrar
+alert_param <- function(good_features, empty_features, timestamp) {
+  if (length(good_features) == 0){
+    title1 <- lang$error
+    text1 <- sprintf('No se encontró información para los parámetros especificados, favor de revisar que sean correctos. Exhibiciones que fallaron: %s', paste(empty_features, collapse  = ', '))
+    type1 <- 'error'
+  } else if (length(good_features) > 0 && length(empty_features) > 0){
+    title1 <- lang$warning
+    text1 <- sprintf('Se descargó la información de las exhibiciones: %s en %s, pero no se encontró información bajo los parámetros especificados para las siguientes exhibiciones: %s', paste(good_features, collapse  = ', '), format_difftime(difftime(Sys.time(), timestamp)), paste(empty_features, collapse  = ', '))
+    type1 <- 'warning'
+  } else {
+    title1 <- lang$success
+    text1 <- sprintf('La información fue descargada de Teradata en %s.', format_difftime(difftime(Sys.time(), timestamp)))
+    type1 <- 'success'
+  }
+  return(list(title = title1, text = text1, type = type1))
+}
+
 ## Leer entrada
 parse_input <- function(input_file, gl, calendar_day, ch = NULL, date_format = '%Y-%m-%d') {
   tryCatch({
@@ -722,25 +740,13 @@ computePromotionsServer <- function(input, output, session, credentials) {
     feature_info <- get_empty_features(query_result()$data, isolate(r$items))
     good_features <- with(feature_info, feature_name[!is_empty])
     empty_features <- with(feature_info, feature_name[is_empty])
-    if (length(good_features) == 0){
-      title1 <- lang$error
-      text1 <- sprintf('No se encontró información para los parámetros especificados, favor de revisar que sean correctos. Exhibiciones que fallaron: %s', paste(empty_features, collapse  = ', '))
-      type1 <- 'error'
-    } else if (length(good_features) > 0 && length(empty_features) > 0){
-      title1 <- lang$warning
-      text1 <- sprintf('Se descargó la información de las exhibiciones: %s en %s, pero no se encontró información bajo los parámetros especificados para las siguientes exhibiciones: %s', paste(good_features, collapse  = ', '), format_difftime(difftime(Sys.time(), query_result()$timestamp)), paste(empty_features, collapse  = ', '))
-      type1 <- 'warning'
-    } else {
-      title1 <- lang$success
-      text1 <- sprintf('La información fue descargada de Teradata en %s.', format_difftime(difftime(Sys.time(), query_result()$timestamp)))
-      type1 <- 'success'
-    }
+    alert_info <- alert_param(good_features, empty_features, query_result()$timestamp)
     shinyalert::shinyalert(
-      type = type1,
-      title = title1,
-      text = text1,
+      type = alert_info$type,
+      title = alert_info$title,
+      text = alert_info$text,
       closeOnClickOutside = TRUE,
-      timer = 15000,
+      timer = 10000,
       animation = "slide-from-top"
     )
     if (length(good_features) > 0) {
