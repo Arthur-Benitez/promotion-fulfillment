@@ -17,6 +17,7 @@ library(shinyalert)
 library(RODBC)
 library(future)
 library(promises)
+library(ggplot2)
 
 ## Procesamiento paralelo de future
 plan(multiprocess)
