@@ -23,16 +23,19 @@ alert_param <- function(good_features, empty_features, timestamp) {
     title1 <- lang$error
     text1 <- sprintf('No se encontró información para los parámetros especificados, favor de revisar que sean correctos. Exhibiciones que fallaron: %s', paste(empty_features, collapse  = ', '))
     type1 <- 'error'
+    message1 <- 'DOWNLOAD FAILED'
   } else if (length(good_features) > 0 && length(empty_features) > 0){
     title1 <- lang$warning
     text1 <- sprintf('Se descargó la información de las exhibiciones: %s en %s, pero no se encontró información bajo los parámetros especificados para las siguientes exhibiciones: %s', paste(good_features, collapse  = ', '), format_difftime(difftime(Sys.time(), timestamp)), paste(empty_features, collapse  = ', '))
     type1 <- 'warning'
+    message1 <- 'DOWNLOAD PARTIALLY FAILED'
   } else {
     title1 <- lang$success
     text1 <- sprintf('La información fue descargada de Teradata en %s.', format_difftime(difftime(Sys.time(), timestamp)))
     type1 <- 'success'
+    message1 <- 'DOWNLOAD SUCCESSFUL'
   }
-  return(list(title = title1, text = text1, type = type1))
+  return(list(title = title1, text = text1, type = type1, message = message1))
 }
 
 ## Leer entrada
@@ -749,6 +752,11 @@ computePromotionsServer <- function(input, output, session, credentials) {
       timer = 10000,
       animation = "slide-from-top"
     )
+    flog.info(toJSON(list(
+      session_info = msg_cred(isolate(credentials())),
+      message = alert_info$message,
+      details = list()
+    )))
     if (length(good_features) > 0) {
       good_data <- query_result()$data %>% 
         filter(feature_name %in% good_features)
