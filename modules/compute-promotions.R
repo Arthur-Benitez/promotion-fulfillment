@@ -722,25 +722,28 @@ computePromotionsServer <- function(input, output, session, credentials) {
     feature_info <- get_empty_features(query_result()$data, isolate(r$items))
     good_features <- with(feature_info, feature_name[!is_empty])
     empty_features <- with(feature_info, feature_name[is_empty])
-    if (length(empty_features) > 0) {
-      shinyalert::shinyalert(
-        title = lang$error,
-        text = sprintf('No se encontró información de los artículos en los formatos y fechas especificadas para las siguientes exhibiciones: %s', paste(empty_features, collapse  = ', ')),
-        type = 'warning',
-        closeOnEsc = TRUE,
-        closeOnClickOutside = TRUE
-      )
+    if (length(good_features) == 0){
+      title1 <- lang$error
+      text1 <- sprintf('No se encontró información para los parámetros especificados, favor de revisar que sean correctos. Exhibiciones que fallaron: %s', paste(empty_features, collapse  = ', '))
+      type1 <- 'error'
+    } else if (length(good_features) > 0 && length(empty_features) > 0){
+      title1 <- lang$warning
+      text1 <- sprintf('Se descargó la información de las exhibiciones: %s en %s, pero no se encontró información bajo los parámetros especificados para las siguientes exhibiciones: %s', paste(good_features, collapse  = ', '), format_difftime(difftime(Sys.time(), query_result()$timestamp)), paste(empty_features, collapse  = ', '))
+      type1 <- 'warning'
+    } else {
+      title1 <- lang$success
+      text1 <- sprintf('La información fue descargada de Teradata en %s.', format_difftime(difftime(Sys.time(), query_result()$timestamp)))
+      type1 <- 'success'
     }
+    shinyalert::shinyalert(
+      type = type1,
+      title = title1,
+      text = text1,
+      closeOnClickOutside = TRUE,
+      timer = 15000,
+      animation = "slide-from-top"
+    )
     if (length(good_features) > 0) {
-      shinyalert::shinyalert(
-        type = 'success',
-        title = '¡Éxito! :D',
-        text = sprintf('La información fue descargada de teradata en %s minutos.', round(difftime(Sys.time(), query_result()$timestamp, units = "mins"), 1)),
-        closeOnClickOutside = TRUE,
-        confirmButtonCol = "#1A75CF",
-        timer = 10000,
-        animation = "slide-from-top"
-      )
       good_data <- query_result()$data %>% 
         filter(feature_name %in% good_features)
       purrr::safely(perform_computations)(good_data, query_result()$data_ss, input$min_feature_qty_toggle)$result

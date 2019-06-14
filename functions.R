@@ -50,3 +50,13 @@ generate_sample_input <- function(calendar_day) {
   )
 }
 
+## Da formato a una diferencia de tiempos
+format_difftime <- function(x) {
+  units(x) <- "secs"
+  x <- round(as.numeric(x))
+  sprintf(
+    "%d minutos y %d segundos",
+    x %/% 60,
+    x %% 60
+  )
+}
