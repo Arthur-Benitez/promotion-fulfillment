@@ -172,7 +172,7 @@ prepare_query <- function(query, keys, old_nbrs, wk_inicio, wk_final) {
     str_replace_all('[^[:ascii:]]', '') %>% # quitar no ASCII porque truena en producción
     paste(collapse = '\n')
 }
-run_query_once <- function(ch, input_data) {
+run_query_once <- function(ch, input_data, connector = 'production-connector') {
   wk_inicio <- unique(input_data$semana_ini)
   wk_final <- unique(input_data$semana_fin)
   type <- toupper(unique(input_data$fcst_or_sales))
@@ -194,7 +194,7 @@ run_query_once <- function(ch, input_data) {
   )
   tryCatch({
     if (is.null(ch)) {
-      res <- mlutils::dataset.load(name = 'production-connector', query = query)
+      res <- mlutils::dataset.load(name = connector, query = query)
     } else {
       res <- sqlQuery(ch, query)
     }
@@ -209,11 +209,11 @@ run_query_once <- function(ch, input_data) {
     NULL
   })
 }
-run_query <- function(ch, input_data) {
+run_query <- function(ch, input_data, connector = 'production-connector') {
   res <- input_data %>% 
     split(., .$split_var) %>% 
     map(safely(function(x){
-      run_query_once(ch, x)
+      run_query_once(ch, x, connector)
     })) %>% 
     map('result') %>% 
     discard(is.null)
@@ -226,7 +226,7 @@ run_query <- function(ch, input_data) {
 }
 
 ## Query para buscar los SS actuales
-search_ss <- function(ch, input_data_ss){
+search_ss <- function(ch, input_data_ss, connector = 'production-connector'){
   query_ss <- readLines('sql/ss-item-str.sql') %>%
     str_replace_all('\\?OLD_NBRS', paste(unique(input_data_ss$old_nbr), collapse = ",")) %>%
     str_replace_all('\\?NEGOCIOS', paste(unique(input_data_ss$negocio), collapse = "','")) %>%
@@ -234,7 +234,7 @@ search_ss <- function(ch, input_data_ss){
   
   tryCatch({
     if (is.null(ch)) {
-      query_ss_res <- mlutils::dataset.load(name = 'production-connector', query = query_ss)
+      query_ss_res <- mlutils::dataset.load(name = connector, query = query_ss)
     } else {
       query_ss_res <- sqlQuery(ch, query_ss, stringsAsFactors = FALSE)
     }
@@ -725,8 +725,8 @@ computePromotionsServer <- function(input, output, session, credentials) {
       }
       list(
         timestamp = time1,
-        data = run_query(future_ch, items),
-        data_ss = search_ss(future_ch, items)
+        data = run_query(future_ch, items, 'production-connector'),
+        data_ss = search_ss(future_ch, items, 'WM3')
       )
     }) %...>% 
       query_result()
