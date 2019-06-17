@@ -17,6 +17,27 @@ generate_cols_spec <- function(columns, types, date_format = '%Y-%m-%d') {
   cs
 }
 
+## Decide que alerta mostrar
+alert_param <- function(good_features, empty_features, timestamp) {
+  if (length(good_features) == 0){
+    title1 <- lang$error
+    text1 <- sprintf('No se encontró información para los parámetros especificados, favor de revisar que sean correctos. Exhibiciones que fallaron: %s', paste(empty_features, collapse  = ', '))
+    type1 <- 'error'
+    message1 <- 'DOWNLOAD FAILED'
+  } else if (length(good_features) > 0 && length(empty_features) > 0){
+    title1 <- lang$warning
+    text1 <- sprintf('Se descargó la información de las exhibiciones: %s en %s, pero no se encontró información bajo los parámetros especificados para las siguientes exhibiciones: %s', paste(good_features, collapse  = ', '), format_difftime(difftime(Sys.time(), timestamp)), paste(empty_features, collapse  = ', '))
+    type1 <- 'warning'
+    message1 <- 'DOWNLOAD PARTIALLY FAILED'
+  } else {
+    title1 <- lang$success
+    text1 <- sprintf('La información fue descargada de Teradata en %s.', format_difftime(difftime(Sys.time(), timestamp)))
+    type1 <- 'success'
+    message1 <- 'DOWNLOAD SUCCESSFUL'
+  }
+  return(list(title = title1, text = text1, type = type1, message = message1))
+}
+
 ## Leer entrada
 parse_input <- function(input_file, gl, calendar_day, ch = NULL, date_format = '%Y-%m-%d') {
   tryCatch({
@@ -79,7 +100,7 @@ validate_input <- function(data, gl, calendar_day, ch) {
                 paste(gl$feature_const_cols, collapse = ', ')),
         data %>% 
           group_by(feature_name) %>% 
-          summarise_at(gl$feature_const_cols, funs(length(unique(.)))) %>% 
+          summarise_at(gl$feature_const_cols, list(~length(unique(.)))) %>% 
           ungroup() %>% 
           select_at(gl$feature_const_cols) %>% 
           equals(1) %>% 
@@ -197,26 +218,84 @@ run_query <- function(ch, input_data) {
     map('result') %>% 
     discard(is.null)
   if (length(res) > 0) {
-    res <- bind_rows(res) %>% 
-      mutate(
-        avg_dly_pos_or_fcst = ifelse(
-          is.na(avg_dly_pos_or_fcst) | avg_dly_pos_or_fcst <= 0,
-          0.01,
-          avg_dly_pos_or_fcst
-        )
-      )
+    res <- bind_rows(res)
   } else {
     res <- NULL
   }
   res
 }
 
+## Query para buscar los SS actuales
+search_ss <- function(ch, input_data_ss){
+  query_ss <- readLines('sql/ss-item-str.sql') %>%
+    str_replace_all('\\?OLD_NBRS', paste(unique(input_data_ss$old_nbr), collapse = ",")) %>%
+    str_replace_all('\\?NEGOCIOS', paste(unique(input_data_ss$negocio), collapse = "','")) %>%
+    paste(collapse = '\n')
+  
+  tryCatch({
+    if (is.null(ch)) {
+      query_ss_res <- mlutils::dataset.load(name = 'production-connector', query = query_ss)
+    } else {
+      query_ss_res <- sqlQuery(ch, query_ss, stringsAsFactors = FALSE)
+    }
+    query_ss_res <- query_ss_res %>% 
+      as_tibble() %>% 
+      set_names(tolower(names(.))) %>% 
+      mutate_if(is.factor, as.character)
+  }, error = function(e){
+    NULL
+  })
+}
+
+## Determinar nuevo SS ganador en cantidad
+compare_ss_qty <- function(sspress_tot, sscov_tot, min_ss, max_ss){
+  pmin(pmax(sspress_tot, sscov_tot, min_ss), max_ss)
+}
+
+## Determinar nuevo SS ganador en nombre
+compare_ss_name <- function(sspress_tot, sscov_tot, min_ss, max_ss, sspress, base_press, sscov, sstemp, win_qty){
+  win_ss = case_when(
+        win_qty == max_ss ~ "MAX_SS",
+        win_qty == min_ss ~ "MIN_SS",
+       (win_qty == sspress_tot & sspress == 0) ~ "BASE_PRESS",
+       (win_qty == sspress_tot & base_press == 0) ~ "SS_PRESS",
+        win_qty == sspress_tot ~ "SS_PRESS_Tot",
+       (win_qty == sscov_tot & sscov == 0) ~ "SSTEMP",
+       (win_qty == sscov_tot & sstemp == 0) ~ "SSCOV",
+        win_qty == sscov_tot ~ "SS_COV_Tot"
+      )
+  return(win_ss)
+}
+
+## Checar que el query haya regresado algo
+check_query_result_is_empty <- function(result, input) {
+  new_vars <- setdiff(names(result), names(input))
+  all(is.na(result[new_vars]))
+}
+
+## Regresar nombre de displays que no tuvieron info
+get_empty_features <- function(result, input) {
+  result %>% 
+    group_by(feature_name) %>% 
+    nest() %>% 
+    mutate(
+      is_empty = map_lgl(data, ~check_query_result_is_empty(.x, input))
+    ) %>% 
+    select(feature_name, is_empty)
+}
+
 ## Lógica en R
-perform_computations <- function(data, min_feature_qty_toggle = 'none') {
+perform_computations <- function(data, data_ss = NULL, min_feature_qty_toggle = 'none') {
   initial_columns <- names(data)
+  ##Transformaciones de distribución
   data <- data %>% 
     group_by(feature_name, store_nbr) %>% 
     mutate(
+      avg_dly_pos_or_fcst = ifelse(
+        is.na(avg_dly_pos_or_fcst) | avg_dly_pos_or_fcst <= 0,
+        0.01,
+        avg_dly_pos_or_fcst
+      ),
       feature_perc_pos_or_fcst = avg_dly_pos_or_fcst / sum(avg_dly_pos_or_fcst),
       ## Cantidades sin reglas
       feature_qty_req_min = feature_perc_pos_or_fcst * min_feature_qty,
@@ -259,9 +338,34 @@ perform_computations <- function(data, min_feature_qty_toggle = 'none') {
       everything()
     ) %>% 
     arrange(feature_name, store_nbr, old_nbr)
+  
   new_columns <- setdiff(names(data), initial_columns)
-  data %>% 
-    mutate_at(new_columns, funs(replace_na(., 0)))
+  data <- data %>%
+    mutate_at(new_columns, list(~replace_na(., 0)))
+  
+  if(is.null(data_ss)){
+    data <- data %>%
+      mutate(
+        impact_qty = NA,
+        impact_cost = NA
+      )
+  } else {
+    ##Transformaciones para el impacto del SS
+    data <- data %>% 
+      left_join(data_ss, by = c("old_nbr", "store_nbr")) %>%
+      replace_na(list(ganador = "Unknown", max_ss = 999999999)) %>%
+      mutate_at(vars(contains("ss")), list(~round(replace_na(., 0),digits = 0))) %>%
+      mutate(
+        new_sspress_tot = feature_qty_fin + base_press,
+        ss_winner_qty = compare_ss_qty(new_sspress_tot, sscov_tot, min_ss, max_ss),
+        ss_winner_name = compare_ss_name(new_sspress_tot, sscov_tot, min_ss, max_ss, feature_qty_fin, base_press, sscov, sstemp, ss_winner_qty),
+        impact_qty = ss_winner_qty - ss_ganador,
+        impact_cost = impact_qty * cost,
+        impact_ddv = impact_qty / avg_dly_pos_or_fcst,
+        impact_vnpk = impact_qty / vnpk_qty
+      )
+  }
+  return(data)
 }
 
 ## Tabla de resumen
@@ -281,7 +385,7 @@ summarise_data <- function(data, group = c('feature_name', 'cid')) {
   group_order <- c('feature_name', 'store_nbr', 'cid', 'old_nbr')
   grp <- group_order[group_order %in% group]
   ## Variables numéricas de tabla de salida
-  vv <- c('avg_dly_sales', 'avg_dly_forecast', 'total_cost', 'total_qty', 'min_feature_qty', 'max_feature_qty', 'total_ddv', 'total_vnpk')
+  vv <- c('avg_dly_sales', 'avg_dly_forecast', 'min_feature_qty', 'max_feature_qty', 'total_cost', 'total_impact_cost', 'total_qty', 'total_impact_qty', 'total_ddv', 'total_impact_ddv', 'total_vnpk', 'total_impact_vnpk')
   if ('store_nbr' %in% grp) {
     val_vars <- vv
   } else {
@@ -295,12 +399,16 @@ summarise_data <- function(data, group = c('feature_name', 'cid')) {
       ## Las ventas ya son promedio, así que sumándolas dan las ventas promedio de una entidad más grande
       avg_dly_sales = ifelse(any(fcst_or_sales == 'S'), sum(avg_dly_pos_or_fcst[fcst_or_sales=='S']), NA_real_),
       avg_dly_forecast = ifelse(any(fcst_or_sales == 'F'), sum(avg_dly_pos_or_fcst[fcst_or_sales=='F']), NA_real_),
-      total_cost = sum(store_cost),
-      total_qty = sum(feature_qty_fin),
       min_feature_qty = mean(min_feature_qty),
       max_feature_qty = mean(max_feature_qty),
+      total_cost = sum(store_cost),
+      total_impact_cost = sum(impact_cost),
+      total_qty = sum(feature_qty_fin),
+      total_impact_qty = sum(impact_qty),
       total_ddv = sum(feature_qty_fin) / sum(avg_dly_pos_or_fcst),
-      total_vnpk = sum(vnpk_fin)
+      total_impact_ddv = sum(impact_qty) / sum(avg_dly_pos_or_fcst),
+      total_vnpk = sum(vnpk_fin),
+      total_impact_vnpk = sum(impact_vnpk)
     ) %>% 
     ungroup() %>% 
     arrange(!!!syms(grp)) %>% 
@@ -342,6 +450,8 @@ generate_histogram_data <- function(output_filtered_data, bin_size = 0.2) {
       avg_store_cost = mean(temp_cost),
       total_qty = sum(temp_qty),
       avg_store_qty = mean(temp_qty),
+      fcst_or_sales = ifelse(any(is.na(avg_dly_sales)), "F", "S"),
+      avg_store_dly_pos_or_fcst = mean(coalesce(avg_dly_sales, avg_dly_forecast)),
       min_feature_qty = mean(min_feature_qty),
       max_feature_qty = mean(max_feature_qty),
       total_ddv = sum(temp_qty) / sum(coalesce(avg_dly_sales, avg_dly_forecast))
@@ -420,7 +530,6 @@ computePromotionsServer <- function(input, output, session, credentials) {
     items = NULL,
     query_was_tried = FALSE
   )
-  query_result <- reactiveVal()
   
   ## UI
   output$items_ui <- renderUI({
@@ -462,7 +571,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
             user = input$user
           )
         )))
-        r$ch <- odbcDriverConnect(sprintf("Driver={Teradata};DBCName=WMG;UID=f0g00bq;AUTHENTICATION=ldap;AUTHENTICATIONPARAMETER=%s", paste0(input$user, '@@', input$password)))
+        r$ch <- odbcDriverConnect(sprintf("Driver={Teradata};DBCName=WM3;AUTHENTICATION=ldap;AUTHENTICATIONPARAMETER=%s", paste0(input$user, '@@', input$password)))
         odbcGetInfo(r$ch) ## Truena si no se abrió la conexión
         r$is_open <- TRUE
         output$auth_ui <- renderUI({
@@ -591,10 +700,11 @@ computePromotionsServer <- function(input, output, session, credentials) {
       message = 'RUNNING QUERY',
       details = list()
     )))
+    time1 <- Sys.time()
     shinyalert(
       type = 'info',
       title = 'Calculando...',
-      text = sprintf('Hora de inicio: %s', format(Sys.time(), tz = 'America/Mexico_City')),
+      text = sprintf('Hora de inicio: %s', format(time1, "%X")),
       closeOnEsc = FALSE,
       showCancelButton = FALSE,
       showConfirmButton = FALSE
@@ -609,25 +719,50 @@ computePromotionsServer <- function(input, output, session, credentials) {
       if (is_dev) {
         ## Las conexiones no se pueden exportar a otros procesos de R, así que se tiene que generar una nueva conexión
         ## Ver: https://cran.r-project.org/web/packages/future/vignettes/future-4-issues.html
-        future_ch <- RODBC::odbcDriverConnect(sprintf("Driver={Teradata};DBCName=WMG;UID=f0g00bq;AUTHENTICATION=ldap;AUTHENTICATIONPARAMETER=%s", paste0(usr, '@@', pwd)))
+        future_ch <- RODBC::odbcDriverConnect(sprintf("Driver={Teradata};DBCName=WM3;AUTHENTICATION=ldap;AUTHENTICATIONPARAMETER=%s", paste0(usr, '@@', pwd)))
       } else {
         future_ch <- NULL
       }
-      run_query(future_ch, items)
+      list(
+        timestamp = time1,
+        data = run_query(future_ch, items),
+        data_ss = search_ss(future_ch, items)
+      )
     }) %...>% 
       query_result()
   }, ignoreInit = TRUE)
   
   ## Hacer cálculos
   final_result <- reactive({
-    req(query_result())
+    req(query_result()$data)
     flog.info(toJSON(list(
       session_info = msg_cred(isolate(credentials())),
       message = 'PERFORMING COMPUTATIONS',
       details = list()
     )))
-    shinyalert::closeAlert()
-    purrr::safely(perform_computations)(query_result(), input$min_feature_qty_toggle)$result
+    feature_info <- get_empty_features(query_result()$data, isolate(r$items))
+    good_features <- with(feature_info, feature_name[!is_empty])
+    empty_features <- with(feature_info, feature_name[is_empty])
+    alert_info <- alert_param(good_features, empty_features, query_result()$timestamp)
+    shinyalert::shinyalert(
+      type = alert_info$type,
+      title = alert_info$title,
+      text = alert_info$text,
+      closeOnClickOutside = TRUE,
+      timer = 10000
+    )
+    flog.info(toJSON(list(
+      session_info = msg_cred(isolate(credentials())),
+      message = alert_info$message,
+      details = list()
+    )))
+    if (length(good_features) > 0) {
+      good_data <- query_result()$data %>% 
+        filter(feature_name %in% good_features)
+      purrr::safely(perform_computations)(good_data, query_result()$data_ss, input$min_feature_qty_toggle)$result
+    } else {
+      NULL
+    }
   })
   
   ## Validaciones
@@ -638,7 +773,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
   })
   need_query_ready <- reactive({
     shiny::need(r$query_was_tried, lang$need_run) %then%
-      shiny::need(!is.null(query_result()), lang$need_query_result) %then%
+      shiny::need(!is.null(query_result()$data), lang$need_query_result) %then%
       shiny::need(!is.null(final_result()), lang$need_final_result)
   })
   need_histogram_ready <- reactive({
@@ -656,7 +791,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
       percent_columns <- c('feature_perc_pos_or_fcst')
       decimal_columns <- c('avg_dly_pos_or_fcst', 'feature_qty_req_min',	'feature_qty_req', 'feature_ddv_req', 'feature_qty_pre', 'feature_ddv_pre', 'feature_qty_pre_tot', 'feature_ddv_fin', 'feature_qty_fin', 'display_key', 'store_cost', 'vnpk_fin', 'cost')
       final_result() %>%
-        mutate_at(vars(percent_columns), funs(100 * .)) %>%
+        mutate_at(vars(percent_columns), list(~100 * .)) %>%
         datatable(
           filter = 'top',
           options = list(
@@ -697,9 +832,9 @@ computePromotionsServer <- function(input, output, session, credentials) {
   })
   
   output$output_feature_select_ui <- renderUI({
-    req(r$items)
+    req(final_result())
     ns <- session$ns
-    choices <- r$items %>% 
+    choices <- final_result() %>% 
       pull(feature_name) %>%
       unique() %>% 
       sort()
@@ -735,9 +870,9 @@ computePromotionsServer <- function(input, output, session, credentials) {
         mutate(
           label_y = n_stores + 0.03 * max(n_stores),
           label = scales::percent(p_stores),
-          text = sprintf('Tiendas: %s (%s)<br>Costo total: %s<br>Costo promedio: %s<br>Cant. total: %s<br>Cant. promedio: %s', scales::comma(n_stores, digits = 0), scales::percent(p_stores), scales::comma(total_cost, digits = 0), scales::comma(avg_store_cost, digits = 0), scales::comma(total_qty, digits = 0), scales::comma(avg_store_qty, digits = 0))
+          text = sprintf('Tiendas: %s (%s)<br>Costo total: %s<br>Costo promedio: %s<br>Cant. total: %s<br>Cant. promedio: %s<br>%s promedio: %s', scales::comma(n_stores, accuracy = 1), scales::percent(p_stores), scales::comma(total_cost, accuracy = 1), scales::comma(avg_store_cost, accuracy = 1), scales::comma(total_qty, accuracy = 1), scales::comma(avg_store_qty, accuracy = 1), ifelse(first(fcst_or_sales) == 'F', 'Forecast', 'Venta'), scales::comma(avg_store_dly_pos_or_fcst, accuracy = 1))
         ) %>% 
-        plot_ly(x = ~perc_max_feature_qty_bin, y = ~n_stores, text = ~text, type = 'bar', name = NULL) %>% 
+        plot_ly(x = ~perc_max_feature_qty_bin, y = ~n_stores, text = ~text, hoverinfo = 'text', type = 'bar', name = NULL) %>% 
         add_text(y = ~label_y, text = ~label, name = NULL) %>% 
         plotly::layout(
           title = 'Alcance a piezas máximas por tienda',
@@ -762,7 +897,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
       percent_columns <- c('p_stores')
       decimal_columns <- str_subset(names(histogram_data()), '^(n|total|avg)_')
       histogram_data() %>%
-        mutate_at(vars(percent_columns), funs(100 * .)) %>%
+        mutate_at(vars(percent_columns), list(~100 * .)) %>%
         datatable(
           filter = 'none',
           options = list(
@@ -822,7 +957,8 @@ computePromotionsServer <- function(input, output, session, credentials) {
   output$download_template <- downloadHandler(
     filename = 'promo-fulfillment-template.csv',
     content = function(file) {
-      file.copy('data/sample-input.csv', file)
+      x <- generate_sample_input(calendar_day)
+      write_excel_csv(x, file)
     },
     contentType = 'text/csv'
   )
