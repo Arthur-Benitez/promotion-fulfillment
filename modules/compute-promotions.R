@@ -346,25 +346,34 @@ perform_computations <- function(data, data_ss = NULL, min_feature_qty_toggle = 
   if(is.null(data_ss)){
     data <- data %>%
       mutate(
-        impact_qty = NA,
-        impact_cost = NA
+        ss_press = 0,
+        sspress = 0,
+        base_press = 0,
+        ss_press_tot = 0,
+        sscov = 0,
+        sstemp = 0,
+        sscov_tot = 0,
+        min_ss = 0,
+        max_ss = NA, # se sustituye después
+        ganador = NA, # se sustituye después
+        ss_ganador = 0
       )
   } else {
-    ##Transformaciones para el impacto del SS
     data <- data %>% 
-      left_join(data_ss, by = c("old_nbr", "store_nbr")) %>%
-      replace_na(list(ganador = "Unknown", max_ss = 999999999)) %>%
-      mutate_at(vars(contains("ss")), list(~round(replace_na(., 0),digits = 0))) %>%
-      mutate(
-        new_sspress_tot = feature_qty_fin + base_press,
-        ss_winner_qty = compare_ss_qty(new_sspress_tot, sscov_tot, min_ss, max_ss),
-        ss_winner_name = compare_ss_name(new_sspress_tot, sscov_tot, min_ss, max_ss, feature_qty_fin, base_press, sscov, sstemp, ss_winner_qty),
-        impact_qty = ss_winner_qty - ss_ganador,
-        impact_cost = impact_qty * cost,
-        impact_ddv = impact_qty / avg_dly_pos_or_fcst,
-        impact_vnpk = impact_qty / vnpk_qty
-      )
+      left_join(data_ss, by = c("old_nbr", "store_nbr"))
   }
+  data <- data %>%
+    replace_na(list(ganador = "Unknown", max_ss = 999999999)) %>%
+    mutate_at(vars(contains("ss")), list(~round(replace_na(., 0), digits = 0))) %>%
+    mutate(
+      new_sspress_tot = feature_qty_fin + base_press,
+      ss_winner_qty = compare_ss_qty(new_sspress_tot, sscov_tot, min_ss, max_ss),
+      ss_winner_name = compare_ss_name(new_sspress_tot, sscov_tot, min_ss, max_ss, feature_qty_fin, base_press, sscov, sstemp, ss_winner_qty),
+      impact_qty = ss_winner_qty - ss_ganador,
+      impact_cost = impact_qty * cost,
+      impact_ddv = impact_qty / avg_dly_pos_or_fcst,
+      impact_vnpk = impact_qty / vnpk_qty
+    )
   return(data)
 }
 
