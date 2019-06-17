@@ -44,6 +44,8 @@ lang <- list(
   ok = 'Aceptar',
   cancel = 'Cancelar',
   error = 'Error',
+  success = 'Éxito',
+  warning = 'Advertencia',
   done = 'Listo',
   days = 'Días',
   weeks = 'Semanas',
