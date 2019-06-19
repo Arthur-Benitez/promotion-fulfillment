@@ -76,8 +76,8 @@ lang <- list(
   toggle_round_down = 'Conservadora (qty < min ==> qty := 0)',
   toggle_round_up = 'Agresiva (qty < min ==> qty := min)',
   ## Validation
-  need_items_file = 'Carga un archivo de items para comenzar.',
-  need_auth = 'Inicia sesión para continuar.',
+  need_items_file = 'Cargar un archivo de items para comenzar.',
+  need_auth = 'Iniciar sesión para continuar.',
   need_input_format = 'Descarga el formato de ejemplo para más información.',
   need_run = 'Click en *Correr* para empezar.',
   need_query_result = 'El query falló :(',
