@@ -17,7 +17,6 @@ library(shinyalert)
 library(RODBC)
 library(future)
 library(promises)
-library(ggplot2)
 
 ## Procesamiento paralelo de future
 plan(multiprocess)
@@ -161,5 +160,4 @@ gl$clearance_levels <- c(
   'admin' = 1,
   'basic' = 2
 )
-
 
