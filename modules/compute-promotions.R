@@ -235,7 +235,6 @@ get_graph_data <- function(ch, input_data_graph) {
     
     graph_table <- bind_rows(
       pos,
-      fcst %>% head(1) %>% mutate(type = "Ventas"),
       fcst
     ) %>%
       as_tibble() %>%
@@ -757,10 +756,14 @@ computePromotionsServer <- function(input, output, session, credentials) {
     )
     
     df <- graph_table() %>% 
-      filter(
-        paste(old_nbr, '-', negocio) == input$input_grafica_ventas
-      ) %>% 
+      filter(paste(old_nbr, '-', negocio) == input$input_grafica_ventas) %>% 
       na.omit()
+    forecast <- df %>% filter(type == "Forecast")
+    ventas <- df %>% filter(type == "Ventas")
+    df <- bind_rows(ventas,
+                    forecast %>% head(1) %>% mutate(type = "Ventas"),
+                    forecast) %>% 
+      arrange(wm_yr_wk)
       
     # Lineas verticales de la gráfica
     lines <- df$date %>% 
@@ -793,9 +796,11 @@ computePromotionsServer <- function(input, output, session, credentials) {
             x = ~date, 
             y = ~wkly_qty,
             hoverinfo = 'text',
-            text = ~sprintf("Fecha: %s<br>Semana WM: %s<br>%s: %s", date, wm_yr_wk, ifelse(type == 'Forecast', 'Forecast', 'Venta'), scales::comma(wkly_qty, accuracy = 1))
+            text = ~sprintf("Fecha: %s<br>Semana WM: %s<br>%s: %s", date, wm_yr_wk, ifelse(type == 'Forecast', 'Forecast', 'Venta'), scales::comma(wkly_qty, accuracy = 1)),
+            color = ~type,
+            colors = (c('blue', 'orange') %>% setNames(c('Ventas', 'Forecast')))
     ) %>%
-      add_lines(color = ~type) %>% 
+      add_lines() %>% 
       layout(
         title = list(
           text = "Ventas semanales (piezas)"
@@ -1214,6 +1219,7 @@ computePromotionsUI <- function(id) {
         value = 'input_table',
         title = lang$tab_input,
         DTOutput(ns('input_table')),
+        hr(),
         uiOutput(ns('input_grafica_ventas')),
         plotlyOutput(ns('grafica_ventas')) %>% withSpinner(type = 8)
       ),
