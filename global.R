@@ -161,4 +161,3 @@ gl$clearance_levels <- c(
   'basic' = 2
 )
 
-
