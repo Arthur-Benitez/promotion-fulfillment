@@ -213,30 +213,16 @@ prepare_query_graph <- function(query, input_data_graph) {
 
 ## Query para descargar las ventas y forecast para la grafica
 get_graph_data <- function(ch, input_data_graph) {
-  query_fcst <- prepare_query_graph(readLines('sql/grafica-fcst.sql'), input_data_graph)
-  query_pos <- prepare_query_graph(readLines('sql/grafica-pos.sql'), input_data_graph)
+  query_graph <- prepare_query_graph(readLines('sql/grafica.sql'), input_data_graph)
   
   tryCatch({
     if (is.null(ch)) {
-      fcst <- mlutils::dataset.load(name = 'production-connector', query = query_fcst)
-      pos <- mlutils::dataset.load(name = 'production-connector', query = query_pos)
+      graph_table <- mlutils::dataset.load(name = 'production-connector', query = query_graph)
     } else {
-      fcst <- sqlQuery(ch, query_fcst, stringsAsFactors = FALSE)
-      pos <- sqlQuery(ch, query_pos, stringsAsFactors = FALSE)
+      graph_table <- sqlQuery(ch, query_graph, stringsAsFactors = FALSE)
     }
-    fcst <- fcst %>% 
+    graph_table <- graph_table %>% 
       set_names(tolower(names(.))) %>%
-      mutate(type = "Forecast")
-    
-    pos <- pos %>% 
-      set_names(tolower(names(.))) %>%
-      arrange(wm_yr_wk) %>% 
-      mutate(type = "Ventas")
-    
-    graph_table <- bind_rows(
-      pos,
-      fcst
-    ) %>%
       as_tibble() %>%
       mutate_if(is.factor, as.character) %>%
       arrange(wm_yr_wk) %>% 
