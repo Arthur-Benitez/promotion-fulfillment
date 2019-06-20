@@ -17,6 +17,27 @@ generate_cols_spec <- function(columns, types, date_format = '%Y-%m-%d') {
   cs
 }
 
+## Decide que alerta mostrar
+alert_param <- function(good_features, empty_features, timestamp) {
+  if (length(good_features) == 0){
+    title1 <- lang$error
+    text1 <- sprintf('No se encontró información para los parámetros especificados, favor de revisar que sean correctos. Exhibiciones que fallaron: %s', paste(empty_features, collapse  = ', '))
+    type1 <- 'error'
+    message1 <- 'DOWNLOAD FAILED'
+  } else if (length(good_features) > 0 && length(empty_features) > 0){
+    title1 <- lang$warning
+    text1 <- sprintf('Se descargó la información de las exhibiciones: %s en %s, pero no se encontró información bajo los parámetros especificados para las siguientes exhibiciones: %s', paste(good_features, collapse  = ', '), format_difftime(difftime(Sys.time(), timestamp)), paste(empty_features, collapse  = ', '))
+    type1 <- 'warning'
+    message1 <- 'DOWNLOAD PARTIALLY FAILED'
+  } else {
+    title1 <- lang$success
+    text1 <- sprintf('La información fue descargada de Teradata en %s.', format_difftime(difftime(Sys.time(), timestamp)))
+    type1 <- 'success'
+    message1 <- 'DOWNLOAD SUCCESSFUL'
+  }
+  return(list(title = title1, text = text1, type = type1, message = message1))
+}
+
 ## Leer entrada
 parse_input <- function(input_file, gl, calendar_day, ch = NULL, date_format = '%Y-%m-%d') {
   tryCatch({
@@ -151,7 +172,7 @@ prepare_query <- function(query, keys, old_nbrs, wk_inicio, wk_final) {
     str_replace_all('[^[:ascii:]]', '') %>% # quitar no ASCII porque truena en producción
     paste(collapse = '\n')
 }
-run_query_once <- function(ch, input_data) {
+run_query_once <- function(ch, input_data, connector = 'production-connector') {
   wk_inicio <- unique(input_data$semana_ini)
   wk_final <- unique(input_data$semana_fin)
   type <- toupper(unique(input_data$fcst_or_sales))
@@ -173,7 +194,7 @@ run_query_once <- function(ch, input_data) {
   )
   tryCatch({
     if (is.null(ch)) {
-      res <- mlutils::dataset.load(name = 'production-connector', query = query)
+      res <- mlutils::dataset.load(name = connector, query = query)
     } else {
       res <- sqlQuery(ch, query)
     }
@@ -188,11 +209,11 @@ run_query_once <- function(ch, input_data) {
     NULL
   })
 }
-run_query <- function(ch, input_data) {
+run_query <- function(ch, input_data, connector = 'production-connector') {
   res <- input_data %>% 
     split(., .$split_var) %>% 
     map(safely(function(x){
-      run_query_once(ch, x)
+      run_query_once(ch, x, connector)
     })) %>% 
     map('result') %>% 
     discard(is.null)
@@ -233,7 +254,7 @@ get_graph_data <- function(ch, input_data_graph) {
 }
 
 ## Query para buscar los SS actuales
-search_ss <- function(ch, input_data_ss) {
+search_ss <- function(ch, input_data_ss, connector = 'production-connector'){
   query_ss <- readLines('sql/ss-item-str.sql') %>%
     str_replace_all('\\?OLD_NBRS', paste(unique(input_data_ss$old_nbr), collapse = ",")) %>%
     str_replace_all('\\?NEGOCIOS', paste(unique(input_data_ss$negocio), collapse = "','")) %>%
@@ -241,7 +262,7 @@ search_ss <- function(ch, input_data_ss) {
   
   tryCatch({
     if (is.null(ch)) {
-      query_ss_res <- mlutils::dataset.load(name = 'production-connector', query = query_ss)
+      query_ss_res <- mlutils::dataset.load(name = connector, query = query_ss)
     } else {
       query_ss_res <- sqlQuery(ch, query_ss, stringsAsFactors = FALSE)
     }
@@ -353,25 +374,34 @@ perform_computations <- function(data, data_ss = NULL, min_feature_qty_toggle = 
   if(is.null(data_ss)){
     data <- data %>%
       mutate(
-        impact_qty = NA,
-        impact_cost = NA
+        ss_press = 0,
+        sspress = 0,
+        base_press = 0,
+        ss_press_tot = 0,
+        sscov = 0,
+        sstemp = 0,
+        sscov_tot = 0,
+        min_ss = 0,
+        max_ss = NA, # se sustituye después
+        ganador = NA, # se sustituye después
+        ss_ganador = 0
       )
   } else {
-    ##Transformaciones para el impacto del SS
     data <- data %>% 
-      left_join(data_ss, by = c("old_nbr", "store_nbr")) %>%
-      replace_na(list(ganador = "Unknown", max_ss = 999999999)) %>%
-      mutate_at(vars(contains("ss")), list(~round(replace_na(., 0),digits = 0))) %>%
-      mutate(
-        new_sspress_tot = feature_qty_fin + base_press,
-        ss_winner_qty = compare_ss_qty(new_sspress_tot, sscov_tot, min_ss, max_ss),
-        ss_winner_name = compare_ss_name(new_sspress_tot, sscov_tot, min_ss, max_ss, feature_qty_fin, base_press, sscov, sstemp, ss_winner_qty),
-        impact_qty = ss_winner_qty - ss_ganador,
-        impact_cost = impact_qty * cost,
-        impact_ddv = impact_qty / avg_dly_pos_or_fcst,
-        impact_vnpk = impact_qty / vnpk_qty
-      )
+      left_join(data_ss, by = c("old_nbr", "store_nbr"))
   }
+  data <- data %>%
+    replace_na(list(ganador = "Unknown", max_ss = 999999999)) %>%
+    mutate_at(vars(contains("ss")), list(~round(replace_na(., 0), digits = 0))) %>%
+    mutate(
+      new_sspress_tot = feature_qty_fin + base_press,
+      ss_winner_qty = compare_ss_qty(new_sspress_tot, sscov_tot, min_ss, max_ss),
+      ss_winner_name = compare_ss_name(new_sspress_tot, sscov_tot, min_ss, max_ss, feature_qty_fin, base_press, sscov, sstemp, ss_winner_qty),
+      impact_qty = ss_winner_qty - ss_ganador,
+      impact_cost = impact_qty * cost,
+      impact_ddv = impact_qty / avg_dly_pos_or_fcst,
+      impact_vnpk = impact_qty / vnpk_qty
+    )
   return(data)
 }
 
@@ -863,8 +893,8 @@ computePromotionsServer <- function(input, output, session, credentials) {
       }
       list(
         timestamp = time1,
-        data = run_query(future_ch, items),
-        data_ss = search_ss(future_ch, items)
+        data = run_query(future_ch, items, 'production-connector'),
+        data_ss = search_ss(future_ch, items, 'WM3')
       )
     }) %...>% 
       query_result()
@@ -881,25 +911,20 @@ computePromotionsServer <- function(input, output, session, credentials) {
     feature_info <- get_empty_features(query_result()$data, isolate(r$items))
     good_features <- with(feature_info, feature_name[!is_empty])
     empty_features <- with(feature_info, feature_name[is_empty])
-    if (length(empty_features) > 0) {
-      shinyalert::shinyalert(
-        title = lang$error,
-        text = sprintf('No se encontró información de los artículos en los formatos y fechas especificadas para las siguientes exhibiciones: %s', paste(empty_features, collapse  = ', ')),
-        type = 'warning',
-        closeOnEsc = TRUE,
-        closeOnClickOutside = TRUE
-      )
-    }
+    alert_info <- alert_param(good_features, empty_features, query_result()$timestamp)
+    shinyalert::shinyalert(
+      type = alert_info$type,
+      title = alert_info$title,
+      text = alert_info$text,
+      closeOnClickOutside = TRUE,
+      timer = 10000
+    )
+    flog.info(toJSON(list(
+      session_info = msg_cred(isolate(credentials())),
+      message = alert_info$message,
+      details = list()
+    )))
     if (length(good_features) > 0) {
-      shinyalert::shinyalert(
-        type = 'success',
-        title = '¡Éxito! :D',
-        text = sprintf('La información fue descargada de teradata en %s minutos.', round(difftime(Sys.time(), query_result()$timestamp, units = "mins"), 1)),
-        closeOnClickOutside = TRUE,
-        confirmButtonCol = "#1A75CF",
-        timer = 10000,
-        animation = "slide-from-top"
-      )
       good_data <- query_result()$data %>% 
         filter(feature_name %in% good_features)
       purrr::safely(perform_computations)(good_data, query_result()$data_ss, input$min_feature_qty_toggle)$result
