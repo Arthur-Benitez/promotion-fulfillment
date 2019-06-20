@@ -247,7 +247,7 @@ get_graph_data <- function(ch, input, calendar_day) {
       arrange(wm_yr_wk) %>% 
       left_join(calendar_day)
   }, error = function(e){
-    NULL
+    1
   })
 }
 
@@ -768,7 +768,8 @@ computePromotionsServer <- function(input, output, session, credentials) {
     shiny::validate(
       shiny::need(r$is_open || gl$app_deployment_environment == 'prod', '') %then%
         shiny::need(!is.null(r$items), '') %then%
-        shiny::need(!is.null(graph_table()), lang$plotting)
+        shiny::need(!is.null(graph_table()), lang$plotting) %then%
+        shiny::need(graph_table() != 1, lang$need_query_result)
     )
     
     df <- graph_table() %>% 
