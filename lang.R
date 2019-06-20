@@ -73,6 +73,7 @@ lang <- list(
   running_query = 'Ejecutando consulta...',
   running_computations = 'Realizando cálculos...',
   plotting = 'Cargando gráfica de ventas...',
+  item_error = 'Esta combinación no tiene información :(',
   min_feature_qty_toggle = 'Lógica mínimo',
   toggle_none = 'No hacer nada',
   toggle_round_down = 'Conservadora (qty < min ==> qty := 0)',
