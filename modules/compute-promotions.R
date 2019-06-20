@@ -754,7 +754,6 @@ computePromotionsServer <- function(input, output, session, credentials) {
   
   output$input_grafica_ventas <- renderUI({
     req(r$items)
-    req(r$is_open == TRUE)
     ns <- session$ns
     choices <- r$items %>%
       mutate(combinacion = paste(old_nbr, '-', negocio)) %>%
