@@ -65,6 +65,12 @@
   color: white;
 }
 
+/* Loading de gráfica de ventas */
+#compute_promotions-grafica_ventas + .shiny-output-error-validation {
+    color: #1a75cf;
+    font-size: 20px;
+}
+
 /* Título */
 #app-logo-container {
   width: 40%;
