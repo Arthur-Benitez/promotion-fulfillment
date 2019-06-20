@@ -225,16 +225,14 @@ run_query <- function(ch, input_data, connector = 'production-connector') {
   res
 }
 
-prepare_query_graph <- function(query, input_data_graph) {
-  query %>% 
-    str_replace_all('\\?OLD_NBRS', paste(unique(input_data_graph$old_nbr), collapse = ",")) %>%
-    str_replace_all('\\?NEGOCIO', paste(unique(input_data_graph$negocio), collapse = "','")) %>%
-    paste(collapse = '\n')
-}
 
 ## Query para descargar las ventas y forecast para la grafica
-get_graph_data <- function(ch, input_data_graph) {
-  query_graph <- prepare_query_graph(readLines('sql/grafica.sql'), input_data_graph)
+get_graph_data <- function(ch, input, calendar_day) {
+  
+  query_graph <- readLines('sql/grafica.sql') %>% 
+    str_replace_all('\\?OLD_NBRS', paste(unique(input$old_nbr), collapse = ",")) %>%
+    str_replace_all('\\?NEGOCIO', paste(unique(input$negocio), collapse = "','")) %>%
+    paste(collapse = '\n')
   
   tryCatch({
     if (is.null(ch)) {
@@ -736,7 +734,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
       } else {
         future_ch <- NULL
       }
-      get_graph_data(future_ch, items)
+      get_graph_data(ch = future_ch, input = items, calendar_day = calendar_day)
     }) %...>% 
       graph_table()
   })
