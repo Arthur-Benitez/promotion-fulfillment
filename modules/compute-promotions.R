@@ -726,6 +726,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
   
   output$input_grafica_ventas <- renderUI({
     req(r$items)
+    req(r$is_open == TRUE)
     ns <- session$ns
     choices <- r$items %>%
       mutate(combinacion = paste(old_nbr, '-', negocio)) %>%
@@ -737,7 +738,8 @@ computePromotionsServer <- function(input, output, session, credentials) {
   ## Grafica reactiva
   output$grafica_ventas <- renderPlotly({
     shiny::validate(
-      shiny::need(!is.null(r$items), '') %then%
+      shiny::need(r$is_open || gl$app_deployment_environment == 'prod', '') %then%
+        shiny::need(!is.null(r$items), '') %then%
         shiny::need(!is.null(graph_table()), lang$plotting)
     )
     
