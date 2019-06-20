@@ -1,5 +1,4 @@
 WITH 
--- Subconsultas
 T2 AS 
 (	SELECT 
 		ITEM_NBR, 
@@ -51,7 +50,6 @@ T7 AS
 		INNER JOIN T6 ON A.FCST_WM_YR_WK = T6.WM_YR_WK
 		GROUP BY 1,2,3),
 		
--- Partes importantes
 TG AS
 (SELECT DISTINCT
 		T1.STORE_NBR,
@@ -95,7 +93,7 @@ SELECT DISTINCT
 TG.OLD_NBR,
 TG.NEGOCIO,
 FCST.WM_YR_WK,
-'Forecast' AS Tipo,
+'Forecast' AS "type",
 SUM(FCST.WK_FCST_QTY) AS WKLY_QTY
 FROM
 	TG
@@ -108,7 +106,7 @@ SELECT DISTINCT
 TG.OLD_NBR,
 TG.NEGOCIO,
 POS.WM_YR_WK,
-'Venta' AS Tipo,
+'Ventas' AS "type",
 SUM(POS.WKLY_QTY) AS WKLY_QTY
 FROM
 	TG
