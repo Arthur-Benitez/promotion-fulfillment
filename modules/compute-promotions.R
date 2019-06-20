@@ -247,7 +247,7 @@ get_graph_data <- function(ch, input, calendar_day) {
       arrange(wm_yr_wk) %>% 
       left_join(calendar_day)
   }, error = function(e){
-    NULL
+    1
   })
 }
 
@@ -768,77 +768,100 @@ computePromotionsServer <- function(input, output, session, credentials) {
     shiny::validate(
       shiny::need(r$is_open || gl$app_deployment_environment == 'prod', '') %then%
         shiny::need(!is.null(r$items), '') %then%
-        shiny::need(!is.null(graph_table()), lang$plotting)
+        shiny::need(!is.null(graph_table()), lang$plotting) %then%
+        shiny::need(graph_table() != 1, lang$need_query_result)
     )
     
     df <- graph_table() %>% 
       filter(paste(old_nbr, '-', negocio) == input$input_grafica_ventas) %>% 
       na.omit()
-    forecast <- df %>% filter(type == "Forecast")
-    ventas <- df %>% filter(type == "Ventas")
-    df <- bind_rows(ventas,
-                    forecast %>% head(1) %>% mutate(type = "Ventas"),
-                    forecast) %>% 
-      arrange(wm_yr_wk)
+    if (nrow(df) == 0) {
+      plot_ly() %>%
+        add_text(x = 0, y = 0, text = lang$item_error, textfont = list(size = 40)) %>%
+        layout(
+          title = list(
+            text = lang$error,
+            font = list(size = 30)
+          ),
+          xaxis = list(
+            showgrid = FALSE,
+            zeroline = FALSE,
+            showticklabels = FALSE
+          ),
+          yaxis = list(
+            showgrid = FALSE,
+            zeroline = FALSE,
+            showticklabels = FALSE
+          ),
+          margin = list(t = 60)
+        )
+    } else {
+      forecast <- df %>% filter(type == "Forecast")
+      ventas <- df %>% filter(type == "Ventas")
+      df <- bind_rows(ventas,
+                      forecast %>% head(1) %>% mutate(type = "Ventas"),
+                      forecast) %>% 
+        arrange(wm_yr_wk)
       
-    # Lineas verticales de la gráfica
-    lines <- df$date %>% 
-      year() %>% 
-      unique() %>% 
-      sort() %>% 
-      .[-1] %>% 
-      paste0("-01-01") %>% 
-      ymd() %>% 
-      map(function(fc){ # Lineas verticales para los cambios de año
-        list(
-          x0 = fc,
-          x1 = fc,
+      # Lineas verticales de la gráfica
+      lines <- df$date %>% 
+        year() %>% 
+        unique() %>% 
+        sort() %>% 
+        .[-1] %>% 
+        paste0("-01-01") %>% 
+        ymd() %>% 
+        map(function(fc){ # Lineas verticales para los cambios de año
+          list(
+            x0 = fc,
+            x1 = fc,
+            y0 = 0,
+            y1 = 1.1 * max(df$wkly_qty),
+            line = list(color = "black", dash = "dash"),
+            type = "line"
+          )
+        }) %>% 
+        c(list(list( # Linea vertical para el presente
+          x0 = max(calendar_day$date[calendar_day$date <= Sys.Date()]),
+          x1 = max(calendar_day$date[calendar_day$date <= Sys.Date()]),
           y0 = 0,
           y1 = 1.1 * max(df$wkly_qty),
-          line = list(color = "black", dash = "dash"),
+          line = list(color = "black"),
           type = "line"
+        )))
+      # La gráfica
+      plot_ly(data = df, 
+              x = ~date, 
+              y = ~wkly_qty,
+              hoverinfo = 'text',
+              text = ~sprintf("Fecha: %s<br>Semana WM: %s<br>%s: %s", date, wm_yr_wk, ifelse(type == 'Forecast', 'Forecast', 'Venta'), scales::comma(wkly_qty, accuracy = 1)),
+              color = ~type,
+              colors = (c('blue', 'orange') %>% setNames(c('Ventas', 'Forecast')))
+      ) %>%
+        add_lines() %>% 
+        layout(
+          title = list(
+            text = "Ventas semanales (piezas)"
+            #x = 0.07
+          ),
+          xaxis = list(
+            title = '',
+            type = 'date',
+            tickformat = "%d %b %y",
+            ticks = 'outside'
+          ),
+          yaxis = list(
+            title = '',
+            exponentformat = "none"
+          ),
+          legend = list(
+            x = 0,
+            y = 1.05,
+            orientation = 'h'
+          ),
+          shapes = lines
         )
-      }) %>% 
-      c(list(list( # Linea vertical para el presente
-        x0 = max(calendar_day$date[calendar_day$date <= Sys.Date()]),
-        x1 = max(calendar_day$date[calendar_day$date <= Sys.Date()]),
-        y0 = 0,
-        y1 = 1.1 * max(df$wkly_qty),
-        line = list(color = "black"),
-        type = "line"
-      )))
-    # La gráfica
-    plot_ly(data = df, 
-            x = ~date, 
-            y = ~wkly_qty,
-            hoverinfo = 'text',
-            text = ~sprintf("Fecha: %s<br>Semana WM: %s<br>%s: %s", date, wm_yr_wk, ifelse(type == 'Forecast', 'Forecast', 'Venta'), scales::comma(wkly_qty, accuracy = 1)),
-            color = ~type,
-            colors = (c('blue', 'orange') %>% setNames(c('Ventas', 'Forecast')))
-    ) %>%
-      add_lines() %>% 
-      layout(
-        title = list(
-          text = "Ventas semanales (piezas)"
-          #x = 0.07
-        ),
-        xaxis = list(
-          title = '',
-          type = 'date',
-          tickformat = "%d %b %y",
-          ticks = 'outside'
-        ),
-        yaxis = list(
-          title = '',
-          exponentformat = "none"
-        ),
-        legend = list(
-          x = 0,
-          y = 1.05,
-          orientation = 'h'
-        ),
-        shapes = lines
-      )
+    }
   })
   ## Seleccionar pestaña de output para que se vea el loader
   rr <- reactiveVal(0)
