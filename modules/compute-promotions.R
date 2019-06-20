@@ -225,6 +225,32 @@ run_query <- function(ch, input_data, connector = 'production-connector') {
   res
 }
 
+
+## Query para descargar las ventas y forecast para la grafica
+get_graph_data <- function(ch, input, calendar_day) {
+  
+  query_graph <- readLines('sql/grafica.sql') %>% 
+    str_replace_all('\\?OLD_NBRS', paste(unique(input$old_nbr), collapse = ",")) %>%
+    str_replace_all('\\?NEGOCIO', paste(unique(input$negocio), collapse = "','")) %>%
+    paste(collapse = '\n')
+  
+  tryCatch({
+    if (is.null(ch)) {
+      graph_table <- mlutils::dataset.load(name = 'production-connector', query = query_graph)
+    } else {
+      graph_table <- sqlQuery(ch, query_graph, stringsAsFactors = FALSE)
+    }
+    graph_table <- graph_table %>% 
+      set_names(tolower(names(.))) %>%
+      as_tibble() %>%
+      mutate_if(is.factor, as.character) %>%
+      arrange(wm_yr_wk) %>% 
+      left_join(calendar_day)
+  }, error = function(e){
+    1
+  })
+}
+
 ## Query para buscar los SS actuales
 search_ss <- function(ch, input_data_ss, connector = 'production-connector'){
   query_ss <- readLines('sql/ss-item-str.sql') %>%
@@ -248,12 +274,12 @@ search_ss <- function(ch, input_data_ss, connector = 'production-connector'){
 }
 
 ## Determinar nuevo SS ganador en cantidad
-compare_ss_qty <- function(sspress_tot, sscov_tot, min_ss, max_ss){
+compare_ss_qty <- function(sspress_tot, sscov_tot, min_ss, max_ss) {
   pmin(pmax(sspress_tot, sscov_tot, min_ss), max_ss)
 }
 
 ## Determinar nuevo SS ganador en nombre
-compare_ss_name <- function(sspress_tot, sscov_tot, min_ss, max_ss, sspress, base_press, sscov, sstemp, win_qty){
+compare_ss_name <- function(sspress_tot, sscov_tot, min_ss, max_ss, sspress, base_press, sscov, sstemp, win_qty) {
   win_ss = case_when(
         win_qty == max_ss ~ "MAX_SS",
         win_qty == min_ss ~ "MIN_SS",
@@ -674,6 +700,45 @@ computePromotionsServer <- function(input, output, session, credentials) {
       )))
     }
   })
+  
+  graph_table <- reactiveVal(NULL)
+  sales_graph_flag <- reactiveVal(FALSE)
+  sales_graph_trigger <- reactiveVal(0)
+  
+  observe({
+    req(r$items)
+    if (isolate(sales_graph_flag()) == FALSE) {
+      sales_graph_flag(TRUE)
+      invalidateLater(500)
+    } else {
+      sales_graph_flag(FALSE)
+      # Correr query para descargar info para gráfica y asignar a variable
+      isolate(sales_graph_trigger(sales_graph_trigger() + 1))
+    }
+  })
+  
+  observeEvent(sales_graph_trigger(), {
+    req(sales_graph_trigger() > 0)
+    flog.info(toJSON(list(
+      session_info = msg_cred(credentials()),
+      message = 'DOWNLOADING SALES GRAPH DATA',
+      details = list()
+    )))
+    is_dev <- !is.null(r$ch)
+    items <- r$items
+    usr <- input$user
+    pwd <- input$password
+    future({
+      if (is_dev) {
+        future_ch <- RODBC::odbcDriverConnect(sprintf("Driver={Teradata};DBCName=WM3;AUTHENTICATION=ldap;AUTHENTICATIONPARAMETER=%s", paste0(usr, '@@', pwd)))
+      } else {
+        future_ch <- NULL
+      }
+      get_graph_data(ch = future_ch, input = items, calendar_day = calendar_day)
+    }) %...>% 
+      graph_table()
+  })
+  
   output$input_table <- renderDT({
     shiny::validate(
       shiny::need(r$is_open || gl$app_deployment_environment == 'prod', lang$need_auth) %then%
@@ -684,20 +749,135 @@ computePromotionsServer <- function(input, output, session, credentials) {
   }, options = list(
     filter = 'top',
     scrollX = TRUE,
-    scrollY = '400px'
+    scrollY = '300px'
   ))
   
+  output$input_grafica_ventas <- renderUI({
+    req(r$items)
+    req(r$is_open == TRUE)
+    ns <- session$ns
+    choices <- r$items %>%
+      mutate(combinacion = paste(old_nbr, '-', negocio)) %>%
+      pull(combinacion) %>%
+      unique()
+    selectInput(ns('input_grafica_ventas'), lang$grafica_ventas, choices = choices)
+  })
+  
+  ## Grafica reactiva
+  output$grafica_ventas <- renderPlotly({
+    shiny::validate(
+      shiny::need(r$is_open || gl$app_deployment_environment == 'prod', '') %then%
+        shiny::need(!is.null(r$items), '') %then%
+        shiny::need(!is.null(graph_table()), lang$plotting) %then%
+        shiny::need(graph_table() != 1, lang$need_query_result)
+    )
+    
+    df <- graph_table() %>% 
+      filter(paste(old_nbr, '-', negocio) == input$input_grafica_ventas) %>% 
+      na.omit()
+    if (nrow(df) == 0) {
+      plot_ly() %>%
+        add_text(x = 0, y = 0, text = lang$item_error, textfont = list(size = 40)) %>%
+        layout(
+          title = list(
+            text = lang$error,
+            font = list(size = 30)
+          ),
+          xaxis = list(
+            showgrid = FALSE,
+            zeroline = FALSE,
+            showticklabels = FALSE
+          ),
+          yaxis = list(
+            showgrid = FALSE,
+            zeroline = FALSE,
+            showticklabels = FALSE
+          ),
+          margin = list(t = 60)
+        )
+    } else {
+      forecast <- df %>% filter(type == "Forecast")
+      ventas <- df %>% filter(type == "Ventas")
+      df <- bind_rows(ventas,
+                      forecast %>% head(1) %>% mutate(type = "Ventas"),
+                      forecast) %>% 
+        arrange(wm_yr_wk)
+      
+      # Lineas verticales de la gráfica
+      lines <- df$date %>% 
+        year() %>% 
+        unique() %>% 
+        sort() %>% 
+        .[-1] %>% 
+        paste0("-01-01") %>% 
+        ymd() %>% 
+        map(function(fc){ # Lineas verticales para los cambios de año
+          list(
+            x0 = fc,
+            x1 = fc,
+            y0 = 0,
+            y1 = 1.1 * max(df$wkly_qty),
+            line = list(color = "black", dash = "dash"),
+            type = "line"
+          )
+        }) %>% 
+        c(list(list( # Linea vertical para el presente
+          x0 = max(calendar_day$date[calendar_day$date <= Sys.Date()]),
+          x1 = max(calendar_day$date[calendar_day$date <= Sys.Date()]),
+          y0 = 0,
+          y1 = 1.1 * max(df$wkly_qty),
+          line = list(color = "black"),
+          type = "line"
+        )))
+      # La gráfica
+      plot_ly(data = df, 
+              x = ~date, 
+              y = ~wkly_qty,
+              hoverinfo = 'text',
+              text = ~sprintf("Fecha: %s<br>Semana WM: %s<br>%s: %s", date, wm_yr_wk, ifelse(type == 'Forecast', 'Forecast', 'Venta'), scales::comma(wkly_qty, accuracy = 1)),
+              color = ~type,
+              colors = (c('blue', 'orange') %>% setNames(c('Ventas', 'Forecast')))
+      ) %>%
+        add_lines() %>% 
+        layout(
+          title = list(
+            text = "Ventas semanales (piezas)"
+            #x = 0.07
+          ),
+          xaxis = list(
+            title = '',
+            type = 'date',
+            tickformat = "%d %b %y",
+            ticks = 'outside'
+          ),
+          yaxis = list(
+            title = '',
+            exponentformat = "none"
+          ),
+          legend = list(
+            x = 0,
+            y = 1.05,
+            orientation = 'h'
+          ),
+          shapes = lines
+        )
+    }
+  })
   ## Seleccionar pestaña de output para que se vea el loader
   rr <- reactiveVal(0)
+  tik <- reactiveVal(NULL)
   observeEvent(input$run, {
-    ns <- session$ns
-    if (is.null(r$items)) {
-      r$query_was_tried <- FALSE
-    } else {
-      updateTabItems(session, 'io', selected = 'output_summary')
-      output$output_table <- renderDT(NULL)
-      r$query_was_tried <- TRUE
-      rr(rr() + 1)
+    if (is.null(tik()) || as.numeric(difftime(Sys.time(), tik(), units = 'secs')) >= 30) {
+      tik(Sys.time())
+      ns <- session$ns
+      if (is.null(r$items)) {
+        r$query_was_tried <- FALSE
+      } else {
+        updateTabItems(session, 'io', selected = 'output_summary')
+        output$output_table <- renderDT(NULL)
+        r$query_was_tried <- TRUE
+        rr(rr() + 1)
+      }
     }
   })
   
@@ -926,6 +1106,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
     ## Esto es necesario porque al resetear la UI de input$items, no cambia el datapath
     r$items_file <- NULL
     r$items <- NULL
+    graph_table(NULL)
     query_result(NULL)
     r$query_was_tried <- NULL
   })
@@ -1071,7 +1252,10 @@ computePromotionsUI <- function(id) {
       tabPanel(
         value = 'input_table',
         title = lang$tab_input,
-        DTOutput(ns('input_table'))
+        DTOutput(ns('input_table')),
+        hr(),
+        uiOutput(ns('input_grafica_ventas')),
+        plotlyOutput(ns('grafica_ventas')) %>% withSpinner(type = 8)
       ),
       tabPanel(
         value = 'output_summary',

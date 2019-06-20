@@ -53,6 +53,7 @@ lang <- list(
   years = 'Años',
   ## Compute Promotions
   date_format = 'Formato de fechas',
+  grafica_ventas = 'Old_nbr - Formato',
   items = 'Items',
   browse = 'Archivo...',
   browse_empty = 'Seleccionar un archivo',
@@ -71,6 +72,8 @@ lang <- list(
   summary_groups = 'Nivel de detalle',
   running_query = 'Ejecutando consulta...',
   running_computations = 'Realizando cálculos...',
+  plotting = 'Cargando gráfica de ventas...',
+  item_error = 'Esta combinación no tiene información :(',
   min_feature_qty_toggle = 'Lógica mínimo',
   toggle_none = 'No hacer nada',
   toggle_round_down = 'Conservadora (qty < min ==> qty := 0)',

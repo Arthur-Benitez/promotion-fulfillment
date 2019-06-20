@@ -113,8 +113,8 @@ gl <- list(
       'dev'
     }
   },
-  app_version = '0.2.2',
-  app_version_date = '2019-06-13',
+  app_version = '0.2.3',
+  app_version_date = '2019-06-20',
   ## Compute promotions
   cols = tribble(
     ~name, ~type, ~is_constant_by_feature,
@@ -160,5 +160,4 @@ gl$clearance_levels <- c(
   'admin' = 1,
   'basic' = 2
 )
-
 
