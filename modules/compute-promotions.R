@@ -892,7 +892,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
     shinyalert(
       type = 'info',
       title = 'Calculando...',
-      text = sprintf('Hora de inicio: %s', format(time1, "%X")),
+      text = sprintf('Hora de inicio: %s', format(time1, "%X", tz = 'America/Mexico_City')),
       closeOnEsc = FALSE,
       showCancelButton = FALSE,
       showConfirmButton = FALSE
