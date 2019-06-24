@@ -198,6 +198,9 @@ run_query_once <- function(ch, input_data, connector = 'production-connector') {
     } else {
       res <- sqlQuery(ch, query)
     }
+    if (!is.data.frame(res)) {
+      stop('Query failed.')
+    }
     res <- res %>% 
       as_tibble() %>% 
       set_names(tolower(names(.))) %>% 
@@ -240,6 +243,9 @@ get_graph_data <- function(ch, input, calendar_day) {
     } else {
       graph_table <- sqlQuery(ch, query_graph, stringsAsFactors = FALSE)
     }
+    if (!is.data.frame(graph_table)) {
+      stop("Graph query failed.")
+    }
     graph_table <- graph_table %>% 
       set_names(tolower(names(.))) %>%
       as_tibble() %>%
@@ -263,6 +269,9 @@ search_ss <- function(ch, input_data_ss, connector = 'production-connector'){
       query_ss_res <- mlutils::dataset.load(name = connector, query = query_ss)
     } else {
       query_ss_res <- sqlQuery(ch, query_ss, stringsAsFactors = FALSE)
+    }
+    if (!is.data.frame(query_ss_res)) {
+      stop("SS Query failed.")
     }
     query_ss_res <- query_ss_res %>% 
       as_tibble() %>% 
