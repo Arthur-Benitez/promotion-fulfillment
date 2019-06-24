@@ -361,6 +361,7 @@ perform_computations <- function(data, data_ss = NULL, min_feature_qty_toggle = 
       dept_nbr,
       negocio,
       old_nbr,
+      dc,
       primary_desc,
       min_feature_qty,
       max_feature_qty,
@@ -415,7 +416,7 @@ perform_computations <- function(data, data_ss = NULL, min_feature_qty_toggle = 
 ## Tabla de resumen
 summarise_data <- function(data, group = c('feature_name', 'cid')) {
   ## Checks
-  stopifnot(is.null(group) || all(group %in% c('feature_name', 'store_nbr', 'cid')))
+  stopifnot(is.null(group) || all(group %in% c('feature_name', 'store_nbr', 'cid', 'dc')))
   ## Cambios a combinaciones específicas
   if ('cid' %in% group) {
     group <- c(group, 'old_nbr')
@@ -426,7 +427,7 @@ summarise_data <- function(data, group = c('feature_name', 'cid')) {
       mutate(feature_name = 'Total')
   }
   ## Grupos de tabla de salida
-  group_order <- c('feature_name', 'store_nbr', 'cid', 'old_nbr')
+  group_order <- c('feature_name', 'store_nbr', 'cid', 'old_nbr', 'dc')
   grp <- group_order[group_order %in% group]
   ## Variables numéricas de tabla de salida
   vv <- c('avg_dly_sales', 'avg_dly_forecast', 'min_feature_qty', 'max_feature_qty', 'total_cost', 'total_impact_cost', 'total_qty', 'total_impact_qty', 'total_ddv', 'total_impact_ddv', 'total_vnpk', 'total_impact_vnpk')
@@ -1284,8 +1285,8 @@ computePromotionsUI <- function(id) {
           checkboxGroupInput(
             ns('summary_groups'),
             label = lang$summary_groups,
-            choices = c('feature_name', 'cid', 'store_nbr') %>% 
-              set_names(c(lang$feature_name, lang$cid, lang$store_nbr)),
+            choices = c('feature_name', 'cid', 'store_nbr', 'dc') %>% 
+              set_names(c(lang$feature_name, lang$cid, lang$store_nbr, lang$dc)),
             selected = c('feature_name', 'cid'),
             inline = TRUE
           ),
