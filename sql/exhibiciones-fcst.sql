@@ -1,8 +1,8 @@
 /*
-ESTE QUERY GENERA LA CONSULTA A NIVEL ITST DEL PROMEDIO DE FCST DE UN PERIODO ESPECÍFICO,
-QUE RESULTARÁ EN LA BASE PARA LA GENERACIÓN DE ANÁLISIS Y CARGA DE ESTRATEGIAS DE FULFILLMENT DE LOS EQUIPOS DE RESURTIDO.
+ESTE QUERY GENERA LA CONSULTA A NIVEL ITST DEL PROMEDIO DE FCST DE UN PERIODO ESPECIFICO,
+QUE RESULTARA EN LA BASE PARA LA GENERACION DE ANALISIS Y CARGA DE ESTRATEGIAS DE FULFILLMENT DE LOS EQUIPOS DE RESURTIDO.
 
-AUTOR: Alejandra Zúñiga Hernández  - Especialista Central Team -
+AUTOR: Alejandra Zuniga Hernandez  - Especialista Central Team -
 */
 
 SELECT DISTINCT
@@ -42,7 +42,7 @@ SUM(FCST.AVG_WKLY_FCST / 7) AS AVG_DLY_FCST
 
 FROM
 
---=================Tabla General (TG) de combinaciones ITST activas, válidas y con inventario de Artículos Resurtibles. Contiene especificaciones del artículo, banderas de validez, inventario en piezas y a costo==============
+--=================Tabla General (TG) de combinaciones ITST activas, validas y con inventario de Articulos Resurtibles. Contiene especificaciones del articulo, banderas de validez, inventario en piezas y a costo==============
 
 	(
 		SELECT DISTINCT
@@ -138,7 +138,7 @@ FROM
 	
 	LEFT JOIN
 
---=================Tabla Vendor Status. Contiene Status de los proveedores a 9 dígitos (0, 1 o 2)==============
+--=================Tabla Vendor Status. Contiene Status de los proveedores a 9 digitos (0, 1 o 2)==============
 
 	(
 	
@@ -198,7 +198,7 @@ FROM
 /*
 	LEFT JOIN 
 
---=================Tabla LeadTime. Obtiene el Cumulative Lead Time de cada combinación ITST==============
+--=================Tabla LeadTime. Obtiene el Cumulative Lead Time de cada combinacion ITST==============
 	
 	(
 
