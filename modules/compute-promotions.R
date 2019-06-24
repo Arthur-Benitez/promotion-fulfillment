@@ -769,6 +769,12 @@ computePromotionsServer <- function(input, output, session, credentials) {
     scrollY = '300px'
   ))
   
+  output$hr <- renderUI({
+    req(r$items)
+    ns <- session$ns
+    tags$hr()
+  })
+  
   output$input_grafica_ventas <- renderUI({
     req(r$items)
     ns <- session$ns
@@ -1273,7 +1279,7 @@ computePromotionsUI <- function(id) {
         value = 'input_table',
         title = lang$tab_input,
         DTOutput(ns('input_table')),
-        hr(),
+        uiOutput(ns('hr')),
         uiOutput(ns('input_grafica_ventas')),
         plotlyOutput(ns('grafica_ventas')) %>% withSpinner(type = 8)
       ),
