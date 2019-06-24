@@ -435,10 +435,14 @@ summarise_data <- function(data, group = c('feature_name', 'cid')) {
   } else {
     val_vars <- c('n_stores', vv)
   }
+  if ('cid' %in% grp || 'old_nbr' %in% grp) {
+    val_vars <- c('primary_desc', val_vars)
+  }
   ## Sumarizar
   data_summary <- data  %>%
     group_by(!!!syms(grp)) %>%
     summarise(
+      primary_desc = first(primary_desc),
       n_stores = n_distinct(store_nbr),
       ## Las ventas ya son promedio, así que sumándolas dan las ventas promedio de una entidad más grande
       avg_dly_sales = ifelse(any(fcst_or_sales == 'S'), sum(avg_dly_pos_or_fcst[fcst_or_sales=='S']), NA_real_),
