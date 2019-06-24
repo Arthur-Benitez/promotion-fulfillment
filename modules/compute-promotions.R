@@ -630,6 +630,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
           )
         )))
         shinyalert::closeAlert()
+        r$reset_trigger <- 0
       }, error = function(e){
         shinyalert(
           type = "error",
@@ -663,6 +664,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
           user = input$user
         )
       )))
+      r$reset_trigger <- r$reset_trigger + 1
     }
   }, ignoreInit = TRUE)
   
@@ -1111,6 +1113,9 @@ computePromotionsServer <- function(input, output, session, credentials) {
   
   ## Reset
   observeEvent(input$reset, {
+    r$reset_trigger <- r$reset_trigger + 1
+  })
+  observeEvent(r$reset_trigger, {
     ## Esto es necesario porque al resetear la UI de input$items, no cambia el datapath
     r$items_file <- NULL
     r$items <- NULL
