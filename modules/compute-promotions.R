@@ -440,6 +440,7 @@ summarise_data <- function(data, group = c('feature_name', 'cid')) {
   }
   ## Sumarizar
   data_summary <- data  %>%
+    mutate(store_nbr = as.character(store_nbr)) %>% 
     group_by(!!!syms(grp)) %>%
     summarise(
       primary_desc = first(primary_desc),
@@ -994,6 +995,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
       percent_columns <- c('feature_perc_pos_or_fcst')
       decimal_columns <- c('avg_dly_pos_or_fcst', 'feature_qty_req_min',	'feature_qty_req', 'feature_ddv_req', 'feature_qty_pre', 'feature_ddv_pre', 'feature_qty_pre_tot', 'feature_ddv_fin', 'feature_qty_fin', 'display_key', 'store_cost', 'vnpk_fin', 'cost')
       final_result() %>%
+        mutate(store_nbr = as.character(store_nbr)) %>% 
         mutate_at(vars(percent_columns), list(~100 * .)) %>%
         datatable(
           filter = 'top',
