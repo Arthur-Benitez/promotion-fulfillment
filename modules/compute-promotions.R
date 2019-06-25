@@ -419,7 +419,7 @@ summarise_data <- function(data, group = c('feature_name', 'cid')) {
   stopifnot(is.null(group) || all(group %in% c('feature_name', 'store_nbr', 'cid', 'dc')))
   ## Cambios a combinaciones específicas
   if ('cid' %in% group) {
-    group <- c(group, 'old_nbr')
+    group <- c(group, 'old_nbr', 'primary_desc')
   }
   if (is.null(group)) {
     group <- 'feature_name'
@@ -427,7 +427,7 @@ summarise_data <- function(data, group = c('feature_name', 'cid')) {
       mutate(feature_name = 'Total')
   }
   ## Grupos de tabla de salida
-  group_order <- c('feature_name', 'store_nbr', 'cid', 'old_nbr', 'dc')
+  group_order <- c('feature_name', 'store_nbr', 'cid', 'old_nbr', 'dc', 'primary_desc')
   grp <- group_order[group_order %in% group]
   ## Variables numéricas de tabla de salida
   vv <- c('avg_dly_sales', 'avg_dly_forecast', 'min_feature_qty', 'max_feature_qty', 'total_cost', 'total_impact_cost', 'total_qty', 'total_impact_qty', 'total_ddv', 'total_impact_ddv', 'total_vnpk', 'total_impact_vnpk')
@@ -436,14 +436,10 @@ summarise_data <- function(data, group = c('feature_name', 'cid')) {
   } else {
     val_vars <- c('n_stores', vv)
   }
-  if ('cid' %in% grp || 'old_nbr' %in% grp) {
-    val_vars <- c('primary_desc', val_vars)
-  }
   ## Sumarizar
   data_summary <- data  %>%
     group_by(!!!syms(grp)) %>%
     summarise(
-      primary_desc = first(primary_desc),
       n_stores = n_distinct(store_nbr),
       ## Las ventas ya son promedio, así que sumándolas dan las ventas promedio de una entidad más grande
       avg_dly_sales = ifelse(any(fcst_or_sales == 'S'), sum(avg_dly_pos_or_fcst[fcst_or_sales=='S']), NA_real_),
