@@ -578,7 +578,8 @@ computePromotionsServer <- function(input, output, session, credentials) {
     auth_trigger = 0,
     items_file = NULL,
     items = NULL,
-    query_was_tried = FALSE
+    query_was_tried = FALSE,
+    reset_trigger = 0
   )
   
   ## UI
@@ -636,7 +637,6 @@ computePromotionsServer <- function(input, output, session, credentials) {
           )
         )))
         shinyalert::closeAlert()
-        r$reset_trigger <- 0
       }, error = function(e){
         shinyalert(
           type = "error",
@@ -771,7 +771,6 @@ computePromotionsServer <- function(input, output, session, credentials) {
   
   output$hr <- renderUI({
     req(r$items)
-    ns <- session$ns
     tags$hr()
   })
   
