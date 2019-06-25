@@ -441,7 +441,6 @@ summarise_data <- function(data, group = c('feature_name', 'cid')) {
   }
   ## Sumarizar
   data_summary <- data  %>%
-    mutate(store_nbr = as.character(store_nbr)) %>% 
     group_by(!!!syms(grp)) %>%
     summarise(
       primary_desc = first(primary_desc),
@@ -1029,7 +1028,11 @@ computePromotionsServer <- function(input, output, session, credentials) {
     )
     tryCatch({
       datatable(
-        summary_table(),
+        if ('store_nbr' %in% input$summary_groups) {
+          summary_table() %>% mutate(store_nbr = as.character(store_nbr))
+        } else {
+          summary_table()
+        },
         filter = 'top',
         options = list(
           scrollX = TRUE,
