@@ -87,7 +87,7 @@ lang <- list(
   need_final_result = 'Los cálculos fallaron :(',
   need_select_feature = 'Selecciona una promoción para continuar.',
   ## Variables
-  dc = 'CD',
+  dc = 'CEDIS',
   store_nbr = 'Tienda',
   cid = 'Artículo',
   old_nbr = 'Artículo',
