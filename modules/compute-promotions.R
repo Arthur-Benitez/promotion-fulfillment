@@ -427,7 +427,7 @@ summarise_data <- function(data, group = c('feature_name', 'cid')) {
       mutate(feature_name = 'Total')
   }
   ## Grupos de tabla de salida
-  group_order <- c('feature_name', 'store_nbr', 'cid', 'old_nbr', 'dc', 'primary_desc')
+  group_order <- c('feature_name', 'store_nbr', 'cid', 'old_nbr', 'primary_desc', 'dc')
   grp <- group_order[group_order %in% group]
   ## Variables numéricas de tabla de salida
   vv <- c('avg_dly_sales', 'avg_dly_forecast', 'min_feature_qty', 'max_feature_qty', 'total_cost', 'total_impact_cost', 'total_qty', 'total_impact_qty', 'total_ddv', 'total_impact_ddv', 'total_vnpk', 'total_impact_vnpk')
