@@ -361,6 +361,7 @@ perform_computations <- function(data, data_ss = NULL, min_feature_qty_toggle = 
       dept_nbr,
       negocio,
       old_nbr,
+      dc,
       primary_desc,
       min_feature_qty,
       max_feature_qty,
@@ -415,10 +416,10 @@ perform_computations <- function(data, data_ss = NULL, min_feature_qty_toggle = 
 ## Tabla de resumen
 summarise_data <- function(data, group = c('feature_name', 'cid')) {
   ## Checks
-  stopifnot(is.null(group) || all(group %in% c('feature_name', 'store_nbr', 'cid')))
+  stopifnot(is.null(group) || all(group %in% c('feature_name', 'store_nbr', 'cid', 'dc')))
   ## Cambios a combinaciones específicas
   if ('cid' %in% group) {
-    group <- c(group, 'old_nbr')
+    group <- c(group, 'old_nbr', 'primary_desc')
   }
   if (is.null(group)) {
     group <- 'feature_name'
@@ -426,7 +427,7 @@ summarise_data <- function(data, group = c('feature_name', 'cid')) {
       mutate(feature_name = 'Total')
   }
   ## Grupos de tabla de salida
-  group_order <- c('feature_name', 'store_nbr', 'cid', 'old_nbr')
+  group_order <- c('feature_name', 'store_nbr', 'cid', 'old_nbr', 'primary_desc', 'dc')
   grp <- group_order[group_order %in% group]
   ## Variables numéricas de tabla de salida
   vv <- c('avg_dly_sales', 'avg_dly_forecast', 'min_feature_qty', 'max_feature_qty', 'total_cost', 'total_impact_cost', 'total_qty', 'total_impact_qty', 'total_ddv', 'total_impact_ddv', 'total_vnpk', 'total_impact_vnpk')
@@ -573,7 +574,8 @@ computePromotionsServer <- function(input, output, session, credentials) {
     items_file = NULL,
     items = NULL,
     query_was_tried = FALSE,
-    final_result_trigger = 0
+    final_result_trigger = 0,
+    reset_trigger = 0
   )
   
   ## UI
@@ -664,6 +666,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
           user = input$user
         )
       )))
+      r$reset_trigger <- r$reset_trigger + 1
     }
   }, ignoreInit = TRUE)
   
@@ -761,6 +764,11 @@ computePromotionsServer <- function(input, output, session, credentials) {
     scrollX = TRUE,
     scrollY = '300px'
   ))
+  
+  output$hr <- renderUI({
+    req(r$items)
+    tags$hr()
+  })
   
   output$input_grafica_ventas <- renderUI({
     req(r$items)
@@ -902,7 +910,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
     shinyalert(
       type = 'info',
       title = 'Calculando...',
-      text = sprintf('Hora de inicio: %s', format(time1, "%X")),
+      text = sprintf('Hora de inicio: %s', format(time1, "%X", tz = 'America/Mexico_City')),
       closeOnEsc = FALSE,
       showCancelButton = FALSE,
       showConfirmButton = FALSE
@@ -1001,6 +1009,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
       percent_columns <- c('feature_perc_pos_or_fcst')
       decimal_columns <- c('avg_dly_pos_or_fcst', 'feature_qty_req_min',	'feature_qty_req', 'feature_ddv_req', 'feature_qty_pre', 'feature_ddv_pre', 'feature_qty_pre_tot', 'feature_ddv_fin', 'feature_qty_fin', 'display_key', 'store_cost', 'vnpk_fin', 'cost')
       final_result() %>%
+        mutate(store_nbr = as.character(store_nbr)) %>% 
         mutate_at(vars(percent_columns), list(~100 * .)) %>%
         datatable(
           filter = 'top',
@@ -1028,7 +1037,11 @@ computePromotionsServer <- function(input, output, session, credentials) {
     )
     tryCatch({
       datatable(
-        summary_table(),
+        if ('store_nbr' %in% input$summary_groups) {
+          summary_table() %>% mutate(store_nbr = as.character(store_nbr))
+        } else {
+          summary_table()
+        },
         filter = 'top',
         options = list(
           scrollX = TRUE,
@@ -1124,6 +1137,9 @@ computePromotionsServer <- function(input, output, session, credentials) {
   
   ## Reset
   observeEvent(input$reset, {
+    r$reset_trigger <- r$reset_trigger + 1
+  })
+  observeEvent(r$reset_trigger, {
     ## Esto es necesario porque al resetear la UI de input$items, no cambia el datapath
     r$items_file <- NULL
     r$items <- NULL
@@ -1274,7 +1290,7 @@ computePromotionsUI <- function(id) {
         value = 'input_table',
         title = lang$tab_input,
         DTOutput(ns('input_table')),
-        hr(),
+        uiOutput(ns('hr')),
         uiOutput(ns('input_grafica_ventas')),
         plotlyOutput(ns('grafica_ventas')) %>% withSpinner(type = 8)
       ),
@@ -1286,8 +1302,8 @@ computePromotionsUI <- function(id) {
           checkboxGroupInput(
             ns('summary_groups'),
             label = lang$summary_groups,
-            choices = c('feature_name', 'cid', 'store_nbr') %>% 
-              set_names(c(lang$feature_name, lang$cid, lang$store_nbr)),
+            choices = c('feature_name', 'cid', 'store_nbr', 'dc') %>% 
+              set_names(c(lang$feature_name, lang$cid, lang$store_nbr, lang$dc)),
             selected = c('feature_name', 'cid'),
             inline = TRUE
           ),
