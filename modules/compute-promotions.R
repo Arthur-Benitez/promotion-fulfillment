@@ -1042,9 +1042,9 @@ computePromotionsServer <- function(input, output, session, credentials) {
   })
   
   output$output_feature_select_ui <- renderUI({
-    req(final_result())
+    req(query_result())
     ns <- session$ns
-    choices <- final_result() %>% 
+    choices <- query_result()$data %>% 
       pull(feature_name) %>%
       unique() %>% 
       sort()
