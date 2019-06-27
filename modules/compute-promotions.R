@@ -574,6 +574,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
     items_file = NULL,
     items = NULL,
     query_was_tried = FALSE,
+    final_result_trigger = 0,
     reset_trigger = 0
   )
   
@@ -938,7 +939,9 @@ computePromotionsServer <- function(input, output, session, credentials) {
   }, ignoreInit = TRUE)
   
   ## Hacer cálculos
-  final_result <- reactive({
+  ### Mostrar alertas y checar info
+  good_features_rv <- reactiveVal()
+  observeEvent(query_result(), {
     req(query_result()$data)
     flog.info(toJSON(list(
       session_info = msg_cred(isolate(credentials())),
@@ -961,9 +964,19 @@ computePromotionsServer <- function(input, output, session, credentials) {
       message = alert_info$message,
       details = list()
     )))
-    if (length(good_features) > 0) {
+    good_features_rv(good_features)
+    r$final_result_trigger <- r$final_result_trigger + 1
+  })
+  ### Ahora sí cálculos
+  final_result <- eventReactive({
+    input$min_feature_qty_toggle
+    r$final_result_trigger
+  }, {
+    req(r$final_result_trigger > 0)
+    req(query_result()$data)
+    if (length(good_features_rv()) > 0) {
       good_data <- query_result()$data %>% 
-        filter(feature_name %in% good_features)
+        filter(feature_name %in% good_features_rv())
       purrr::safely(perform_computations)(good_data, query_result()$data_ss, input$min_feature_qty_toggle)$result
     } else {
       NULL
@@ -1042,9 +1055,9 @@ computePromotionsServer <- function(input, output, session, credentials) {
   })
   
   output$output_feature_select_ui <- renderUI({
-    req(final_result())
+    req(query_result())
     ns <- session$ns
-    choices <- final_result() %>% 
+    choices <- query_result()$data %>% 
       pull(feature_name) %>%
       unique() %>% 
       sort()
