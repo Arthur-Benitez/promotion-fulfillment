@@ -259,9 +259,11 @@ get_graph_data <- function(ch, input, calendar_day) {
 
 ## Query para buscar los SS actuales
 search_ss <- function(ch, input_data_ss, connector = 'production-connector'){
-  query_ss <- readLines('sql/ss-item-str.sql') %>%
+  query_ss <- readLines('sql/ss-item-str2.sql') %>%
     str_replace_all('\\?OLD_NBRS', paste(unique(input_data_ss$old_nbr), collapse = ",")) %>%
     str_replace_all('\\?NEGOCIOS', paste(unique(input_data_ss$negocio), collapse = "','")) %>%
+    str_replace_all('\\?WK_INICIO', as.character(11926)) %>% 
+    str_replace_all('\\?WK_FINAL', as.character(11927)) %>% 
     paste(collapse = '\n')
   
   tryCatch({
@@ -293,11 +295,11 @@ compare_ss_name <- function(sspress_tot, sscov_tot, min_ss, max_ss, sspress, bas
         win_qty == max_ss ~ "MAX_SS",
         win_qty == min_ss ~ "MIN_SS",
        (win_qty == sspress_tot & sspress == 0) ~ "BASE_PRESS",
-       (win_qty == sspress_tot & base_press == 0) ~ "SS_PRESS",
-        win_qty == sspress_tot ~ "SS_PRESS_Tot",
+       (win_qty == sspress_tot & base_press == 0) ~ "SSPRESS",
+        win_qty == sspress_tot ~ "SSPRESS_Tot",
        (win_qty == sscov_tot & sscov == 0) ~ "SSTEMP",
        (win_qty == sscov_tot & sstemp == 0) ~ "SSCOV",
-        win_qty == sscov_tot ~ "SS_COV_Tot"
+        win_qty == sscov_tot ~ "SSCOV_Tot"
       )
   return(win_ss)
 }
@@ -382,10 +384,9 @@ perform_computations <- function(data, data_ss = NULL, min_feature_qty_toggle = 
   if(is.null(data_ss)){
     data <- data %>%
       mutate(
-        ss_press = 0,
         sspress = 0,
         base_press = 0,
-        ss_press_tot = 0,
+        sspress_tot = 0,
         sscov = 0,
         sstemp = 0,
         sscov_tot = 0,
