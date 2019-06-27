@@ -257,13 +257,12 @@ get_graph_data <- function(ch, input, calendar_day) {
   })
 }
 
-## Query para buscar los SS actuales
-search_ss <- function(ch, input_data_ss, connector = 'production-connector'){
+search_ss_once <- function(ch, input_data_ss, connector = 'production-connector') {
   query_ss <- readLines('sql/ss-item-str2.sql') %>%
     str_replace_all('\\?OLD_NBRS', paste(unique(input_data_ss$old_nbr), collapse = ",")) %>%
     str_replace_all('\\?NEGOCIOS', paste(unique(input_data_ss$negocio), collapse = "','")) %>%
-    str_replace_all('\\?WK_INICIO', as.character(11926)) %>% 
-    str_replace_all('\\?WK_FINAL', as.character(11927)) %>% 
+    str_replace_all('\\?START_DATE', as.character(unique(input_data_ss$StartDate))) %>% 
+    str_replace_all('\\?END_DATE', as.character(unique(input_data_ss$EndDate))) %>% 
     paste(collapse = '\n')
   
   tryCatch({
@@ -282,6 +281,24 @@ search_ss <- function(ch, input_data_ss, connector = 'production-connector'){
   }, error = function(e){
     NULL
   })
+}
+
+## Query para buscar los SS actuales
+search_ss <- function(ch, input_data_ss, connector = 'production-connector') {
+  res <- input_data_ss %>% 
+    mutate(split_var2 = paste(StartDate, EndDate, sep = '-')) %>%
+    split(., .$split_var2) %>% 
+    map(safely(function(x){
+      search_ss_once(ch, x, connector)
+    })) %>% 
+    map('result') %>% 
+    discard(is.null)
+  if (length(res) > 0) {
+    res <- bind_rows(res)
+  } else {
+    res <- NULL
+  }
+  res
 }
 
 ## Determinar nuevo SS ganador en cantidad
