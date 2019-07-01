@@ -383,7 +383,6 @@ perform_computations <- function(data, data_ss = NULL, min_feature_qty_toggle = 
     data <- data %>%
       mutate(
         ss_press = 0,
-        sspress = 0,
         base_press = 0,
         ss_press_tot = 0,
         sscov = 0,
