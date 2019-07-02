@@ -1352,7 +1352,7 @@ computePromotionsUI <- function(id) {
           tags$div(
             class = 'input-margin',
             sliderInput(ns('feature_histogram_bin_size'), lang$bin_size,
-                        min = 0.05, max = 1, value = 0.2, step = 0.05)
+                        min = 0.05, max = 0.5, value = 0.10, step = 0.05)
           )
         ),
         plotlyOutput(ns('feature_histogram')) %>% withSpinner(type = 8),
