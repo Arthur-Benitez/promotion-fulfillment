@@ -339,7 +339,7 @@ get_empty_features <- function(result, input) {
 }
 
 ## Lógica en R
-perform_computations <- function(data, data_ss = NULL, min_feature_qty_toggle = 'none') {
+perform_computations <- function(data, data_ss = NULL, min_feature_qty_toggle = 'none', sspres_benchmark_toggle = 'none') {
   initial_columns <- names(data)
   ##Transformaciones de distribución
   data <- data %>% 
@@ -398,7 +398,7 @@ perform_computations <- function(data, data_ss = NULL, min_feature_qty_toggle = 
   data <- data %>%
     mutate_at(new_columns, list(~replace_na(., 0)))
   
-  if(is.null(data_ss)){
+  if (is.null(data_ss)) {
     data <- data %>%
       mutate(
         sspress = 0,
@@ -415,15 +415,30 @@ perform_computations <- function(data, data_ss = NULL, min_feature_qty_toggle = 
   } else {
     data <- data %>% 
       left_join(data_ss, by = c("old_nbr", "store_nbr"))
+    
+    if (sspres_benchmark_toggle == 'none') {
+      data$comp_sspress <- 0
+    } else if (sspres_benchmark_toggle == 'current') {
+      data$comp_sspress <- data$sspress
+    } else if (sspres_benchmark_toggle == 'future') {
+      # Aún no existe la columna
+      # data$comp_sspress <- data$sspress_future
+      data$comp_sspress <- data$sspress
+    }
   }
   data <- data %>%
     replace_na(list(ganador = "Unknown", max_ss = 999999999)) %>%
     mutate_at(vars(contains("ss")), list(~round(replace_na(., 0), digits = 0))) %>%
     mutate(
+      comp_sspress_tot = base_press + comp_sspress,
+      comp_ss_winner_qty = compare_ss_qty(comp_sspress_tot, sscov_tot, min_ss, max_ss),
+      comp_ss_winner_name = compare_ss_name(comp_sspress_tot, sscov_tot, min_ss, max_ss, comp_sspress, base_press, sscov, sstemp, comp_ss_winner_qty),
+      
       new_sspress_tot = feature_qty_fin + base_press,
       ss_winner_qty = compare_ss_qty(new_sspress_tot, sscov_tot, min_ss, max_ss),
       ss_winner_name = compare_ss_name(new_sspress_tot, sscov_tot, min_ss, max_ss, feature_qty_fin, base_press, sscov, sstemp, ss_winner_qty),
-      impact_qty = ss_winner_qty - ss_ganador,
+      
+      impact_qty = ss_winner_qty - comp_ss_winner_qty,
       impact_cost = impact_qty * cost,
       impact_ddv = impact_qty / avg_dly_pos_or_fcst,
       impact_vnpk = impact_qty / vnpk_qty
@@ -988,6 +1003,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
   ### Ahora sí cálculos
   final_result <- eventReactive({
     input$min_feature_qty_toggle
+    input$sspres_benchmark_toggle
     r$final_result_trigger
   }, {
     req(r$final_result_trigger > 0)
@@ -995,7 +1011,12 @@ computePromotionsServer <- function(input, output, session, credentials) {
     if (length(good_features_rv()) > 0) {
       good_data <- query_result()$data %>% 
         filter(feature_name %in% good_features_rv())
-      purrr::safely(perform_computations)(good_data, query_result()$data_ss, input$min_feature_qty_toggle)$result
+      purrr::safely(perform_computations)(
+        data = good_data,
+        data_ss = query_result()$data_ss,
+        min_feature_qty_toggle = input$min_feature_qty_toggle,
+        sspres_benchmark_toggle = input$sspres_benchmark_toggle
+      )$result
     } else {
       NULL
     }
@@ -1298,6 +1319,12 @@ computePromotionsUI <- function(id) {
         label = lang$min_feature_qty_toggle,
         choices = c('none', 'round_down', 'round_up') %>%
           set_names(c(lang$toggle_none, lang$toggle_round_down, lang$toggle_round_up))
+      ),
+      selectInput(
+        ns('sspres_benchmark_toggle'),
+        label = lang$sspres_benchmark_toggle,
+        choices = c('none', 'current', 'future') %>% 
+          set_names(c(lang$sspres_benchmark_toggle_none, lang$sspres_benchmark_toggle_current, lang$sspres_benchmark_toggle_future))
       )
     ),
     tabBox(
