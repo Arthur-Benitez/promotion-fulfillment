@@ -258,7 +258,7 @@ get_graph_data <- function(ch, input, calendar_day) {
 }
 
 search_ss_once <- function(ch, input_data_ss, connector = 'production-connector') {
-  query_ss <- readLines('sql/ss-item-str2.sql') %>%
+  query_ss <- readLines('sql/ss-item-str.sql') %>%
     str_replace_all('\\?OLD_NBRS', paste(unique(input_data_ss$old_nbr), collapse = ",")) %>%
     str_replace_all('\\?NEGOCIOS', paste(unique(input_data_ss$negocio), collapse = "','")) %>%
     str_replace_all('\\?START_DATE', as.character(unique(input_data_ss$StartDate))) %>% 
