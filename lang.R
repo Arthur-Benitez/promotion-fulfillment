@@ -78,6 +78,10 @@ lang <- list(
   toggle_none = 'No hacer nada',
   toggle_round_down = 'Conservadora (qty < min ==> qty := 0)',
   toggle_round_up = 'Agresiva (qty < min ==> qty := min)',
+  sspres_benchmark_toggle = 'SSPres Comparativo',
+  sspres_benchmark_toggle_none = 'No comparar (SSPres = 0)',
+  sspres_benchmark_toggle_current = 'Comparar vs SSPres actual',
+  sspres_benchmark_toggle_future = 'Comparar vs SSPres futuro (NO IMPLEMENTADO AÚN)',
   ## Validation
   need_items_file = 'Cargar un archivo de items para comenzar.',
   need_auth = 'Iniciar sesión para continuar.',
