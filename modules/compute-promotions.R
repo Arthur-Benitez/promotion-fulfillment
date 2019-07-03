@@ -823,13 +823,20 @@ computePromotionsServer <- function(input, output, session, credentials) {
   
   output$input_grafica_ventas <- renderUI({
     req(r$items)
+    req(is.data.frame(graph_table()))
     req(isTRUE(input$graph_toggle))
     ns <- session$ns
-    choices <- r$items %>%
-      mutate(combinacion = paste(old_nbr, '-', negocio)) %>%
-      pull(combinacion) %>%
-      unique()
-    selectInput(ns('input_grafica_ventas'), lang$grafica_ventas, choices = choices)
+    info <- graph_table() %>%
+      distinct_at(c('old_nbr', 'primary_desc'))
+    choices <- r$items %>% 
+      left_join(info, by = 'old_nbr') %>% 
+      transmute(
+        name = paste0(negocio, ' - ', primary_desc, ' (', old_nbr, ')'),
+        combinacion = paste(old_nbr, '-', negocio)
+      ) %>%
+      distinct() %>% 
+      deframe()
+    selectInput(ns('input_grafica_ventas'), lang$grafica_ventas, choices = choices, width = '400px')
   })
   
   ## Grafica reactiva
@@ -838,8 +845,10 @@ computePromotionsServer <- function(input, output, session, credentials) {
       shiny::need(r$is_open || gl$app_deployment_environment == 'prod', '') %then%
         shiny::need(!is.null(r$items) && isTRUE(input$graph_toggle), '') %then%
         shiny::need(!is.null(graph_table()), lang$plotting) %then%
-        shiny::need(graph_table() != 1, lang$need_query_result)
+        shiny::need(input$input_grafica_ventas, '') %then%
+        shiny::need(is.data.frame(graph_table()), lang$need_query_result)
     )
+    
     if (is.data.frame(graph_table())) {
       flog.info(toJSON(list(
         session_info = msg_cred(credentials()),
