@@ -53,8 +53,11 @@ lang <- list(
   years = 'Años',
   ## Compute Promotions
   compute_promotions_inputs = 'Inputs',
+  compute_promotions_inputs_title = 'Controles principales. Para más ayuda haz click en "(?) Instrucciones".',
   compute_promotions_computation_parameters = 'Exhibiciones',
+  compute_promotions_computation_parameters_title = 'Parámetros que afectan el cálculo de las exhibiciones.',
   compute_promotions_impact_parameters = 'Impacto',
+  compute_promotions_impact_parameters_title = 'Parámetros que afectan el cálculo de impacto.',
   date_format = 'Formato de fechas',
   grafica_ventas = 'Old_nbr - Formato',
   graph_toggle = 'Gráfica de ventas/forecast',
