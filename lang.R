@@ -54,6 +54,7 @@ lang <- list(
   ## Compute Promotions
   date_format = 'Formato de fechas',
   grafica_ventas = 'Old_nbr - Formato',
+  graph_toggle = 'Gráfica de ventas/forecast',
   items = 'Items',
   browse = 'Archivo...',
   browse_empty = 'Seleccionar un archivo',

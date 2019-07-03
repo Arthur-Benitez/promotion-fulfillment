@@ -750,16 +750,26 @@ computePromotionsServer <- function(input, output, session, credentials) {
   graph_table <- reactiveVal(NULL)
   sales_graph_flag <- reactiveVal(FALSE)
   sales_graph_trigger <- reactiveVal(0)
-  
+  items_changed_toggle <- reactiveVal(FALSE)
+  graph_toggle <- debounce(reactive(input$graph_toggle), millis = 2000)
+  observeEvent(r$items, {
+    ## Esto sirve para detectar si lo que cambió fue r$items o el botón de
+    ## mostrar gráfica. Si sólo cambió el botón, no hace falta correr el query
+    ## de nuevo
+    items_changed_toggle(TRUE)
+  })
   observe({
-    req(r$items)
-    if (isolate(sales_graph_flag()) == FALSE) {
-      sales_graph_flag(TRUE)
-      invalidateLater(500)
-    } else {
-      sales_graph_flag(FALSE)
-      # Correr query para descargar info para gráfica y asignar a variable
-      isolate(sales_graph_trigger(sales_graph_trigger() + 1))
+    req(isTRUE(items_changed_toggle()))
+    if (graph_toggle()) {
+      if (isolate(sales_graph_flag()) == FALSE) {
+        sales_graph_flag(TRUE)
+        invalidateLater(500)
+      } else {
+        sales_graph_flag(FALSE)
+        items_changed_toggle(FALSE)
+        # Correr query para descargar info para gráfica y asignar a variable
+        isolate(sales_graph_trigger(sales_graph_trigger() + 1))
+      }
     }
   })
   
@@ -800,11 +810,13 @@ computePromotionsServer <- function(input, output, session, credentials) {
   
   output$hr <- renderUI({
     req(r$items)
+    req(isTRUE(input$graph_toggle))
     tags$hr()
   })
   
   output$input_grafica_ventas <- renderUI({
     req(r$items)
+    req(isTRUE(input$graph_toggle))
     ns <- session$ns
     choices <- r$items %>%
       mutate(combinacion = paste(old_nbr, '-', negocio)) %>%
@@ -817,7 +829,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
   output$grafica_ventas <- renderPlotly({
     shiny::validate(
       shiny::need(r$is_open || gl$app_deployment_environment == 'prod', '') %then%
-        shiny::need(!is.null(r$items), '') %then%
+        shiny::need(!is.null(r$items) && isTRUE(input$graph_toggle), '') %then%
         shiny::need(!is.null(graph_table()), lang$plotting) %then%
         shiny::need(graph_table() != 1, lang$need_query_result)
     )
@@ -1312,7 +1324,8 @@ computePromotionsUI <- function(id) {
       tags$div(
         class = 'input-margin',
         actionButton(ns('run'), lang$run, icon = icon('play')),
-        actionButton(ns('reset'), lang$reset, icon = icon('redo-alt'))
+        actionButton(ns('reset'), lang$reset, icon = icon('redo-alt')),
+        checkboxInput(ns('graph_toggle'), lang$graph_toggle, value = TRUE)
       ),
       radioButtons(
         ns('min_feature_qty_toggle'),
