@@ -52,6 +52,9 @@ lang <- list(
   months = 'Meses',
   years = 'Años',
   ## Compute Promotions
+  compute_promotions_inputs = 'Inputs',
+  compute_promotions_computation_parameters = 'Exhibiciones',
+  compute_promotions_impact_parameters = 'Impacto',
   date_format = 'Formato de fechas',
   grafica_ventas = 'Old_nbr - Formato',
   graph_toggle = 'Gráfica de ventas/forecast',
