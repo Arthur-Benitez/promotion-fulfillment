@@ -39,7 +39,7 @@ alert_param <- function(good_features, empty_features, timestamp) {
 }
 
 ## Leer entrada
-parse_input <- function(input_file, gl, calendar_day, ch = NULL, date_format = '%Y-%m-%d') {
+parse_input <- function(input_file, gl, calendar_day, date_format = '%Y-%m-%d') {
   tryCatch({
     nms <- names(read_csv(input_file, n_max = 0))
     if (!all(gl$cols$name %in% nms)) {
@@ -56,7 +56,7 @@ parse_input <- function(input_file, gl, calendar_day, ch = NULL, date_format = '
         display_key = paste(dept_nbr, old_nbr, negocio, sep = '.'),
         split_var = paste(semana_ini, semana_fin, fcst_or_sales, sep = '-')
       )
-    val <- validate_input(x, gl = gl, calendar_day = calendar_day, ch = ch)
+    val <- validate_input(x, gl = gl, calendar_day = calendar_day)
     if (isTRUE(val)) {
       return(x)
     } else {
@@ -69,7 +69,7 @@ parse_input <- function(input_file, gl, calendar_day, ch = NULL, date_format = '
 
 
 ## Validar inputs
-validate_input <- function(data, gl, calendar_day, ch) {
+validate_input <- function(data, gl, calendar_day) {
   if (
     ## Condiciones básicas
     !is.data.frame(data) ||
@@ -724,7 +724,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
         file = r$items_file
       )
     )))
-    val <- parse_input(r$items_file, gl = gl, calendar_day = calendar_day, ch = r$ch, date_format = input$date_format)
+    val <- parse_input(r$items_file, gl = gl, calendar_day = calendar_day, date_format = input$date_format)
     if (!is.data.frame(val)) {
       shinyalert(
         type = "error", 
