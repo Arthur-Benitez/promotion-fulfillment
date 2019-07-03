@@ -705,6 +705,13 @@ computePromotionsServer <- function(input, output, session, credentials) {
   
   ## Leer input
   observeEvent(input$items, {
+    ## Resetear primero
+    r$items_file <- NULL
+    r$items <- NULL
+    graph_table(NULL)
+    query_result(NULL)
+    r$query_was_tried <- NULL
+    ## Luego actualizar items
     r$items_file <- input$items$datapath
   })
   observe({
@@ -1186,7 +1193,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
     })
   })
   
-  ## Reset
+  ## Reset con botón
   observeEvent(input$reset, {
     r$reset_trigger <- r$reset_trigger + 1
   })
