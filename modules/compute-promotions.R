@@ -1319,7 +1319,10 @@ computePromotionsUI <- function(id) {
     box(
       width = 2,
       login,
-      h3(lang$compute_promotions_inputs),
+      h3(
+        lang$compute_promotions_inputs,
+        title = lang$compute_promotions_inputs_title
+      ),
       selectInput(ns('date_format'), lang$date_format, c('yyyy-mm-dd' = '%Y-%m-%d',
                                                          'dd/mm/yyyy' = '%d/%m/%Y',
                                                          'mm/dd/yyyy' = '%m/%d/%Y')),
@@ -1335,14 +1338,20 @@ computePromotionsUI <- function(id) {
         actionButton(ns('reset'), lang$reset, icon = icon('redo-alt')),
         checkboxInput(ns('graph_toggle'), lang$graph_toggle, value = TRUE)
       ),
-      h3(lang$compute_promotions_computation_parameters),
+      h3(
+        lang$compute_promotions_computation_parameters,
+        title = lang$compute_promotions_computation_parameters_title
+      ),
       selectInput(
         ns('min_feature_qty_toggle'),
         label = lang$min_feature_qty_toggle,
         choices = c('none', 'round_down', 'round_up') %>%
           set_names(c(lang$toggle_none, lang$toggle_round_down, lang$toggle_round_up))
       ),
-      h3(lang$compute_promotions_impact_parameters),
+      h3(
+        lang$compute_promotions_impact_parameters,
+        title = lang$compute_promotions_impact_parameters_title
+      ),
       selectInput(
         ns('sspres_benchmark_toggle'),
         label = lang$sspres_benchmark_toggle,
