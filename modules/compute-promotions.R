@@ -841,6 +841,20 @@ computePromotionsServer <- function(input, output, session, credentials) {
         shiny::need(graph_table() != 1, lang$need_query_result)
     )
     
+    if (is.data.frame(graph_table())) {
+      flog.info(toJSON(list(
+        session_info = msg_cred(credentials()),
+        message = 'DONE DOWNLOADING SALES GRAPH DATA',
+        details = list()
+      )))
+    } else {
+      flog.warn(toJSON(list(
+        session_info = msg_cred(credentials()),
+        message = 'FAILED TO DOWNLOAD SALES GRAPH DATA',
+        details = list()
+      )))
+    }
+    
     df <- graph_table() %>% 
       filter(paste(old_nbr, '-', negocio) == input$input_grafica_ventas) %>% 
       na.omit()
