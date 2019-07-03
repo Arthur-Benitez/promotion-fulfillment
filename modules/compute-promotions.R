@@ -852,7 +852,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
     if (is.data.frame(graph_table())) {
       flog.info(toJSON(list(
         session_info = msg_cred(credentials()),
-        message = 'DONE DOWNLOADING SALES GRAPH DATA',
+        message = 'GENERATING SALES GRAPH',
         details = list()
       )))
     } else {
@@ -1017,11 +1017,6 @@ computePromotionsServer <- function(input, output, session, credentials) {
   good_features_rv <- reactiveVal()
   observeEvent(query_result(), {
     req(query_result()$data)
-    flog.info(toJSON(list(
-      session_info = msg_cred(isolate(credentials())),
-      message = 'PERFORMING COMPUTATIONS',
-      details = list()
-    )))
     feature_info <- get_empty_features(query_result()$data, isolate(r$items))
     good_features <- with(feature_info, feature_name[!is_empty])
     empty_features <- with(feature_info, feature_name[is_empty])
@@ -1050,6 +1045,11 @@ computePromotionsServer <- function(input, output, session, credentials) {
     req(r$final_result_trigger > 0)
     req(query_result()$data)
     if (length(good_features_rv()) > 0) {
+      flog.info(toJSON(list(
+        session_info = msg_cred(isolate(credentials())),
+        message = 'PERFORMING COMPUTATIONS',
+        details = list()
+      )))
       good_data <- query_result()$data %>% 
         filter(feature_name %in% good_features_rv())
       purrr::safely(perform_computations)(
