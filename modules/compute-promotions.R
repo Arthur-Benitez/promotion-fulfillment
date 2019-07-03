@@ -234,7 +234,7 @@ get_graph_data <- function(ch, input, calendar_day) {
   
   query_graph <- readLines('sql/grafica.sql') %>% 
     str_replace_all('\\?OLD_NBRS', paste(unique(input$old_nbr), collapse = ",")) %>%
-    str_replace_all('\\?NEGOCIO', paste(unique(input$negocio), collapse = "','")) %>%
+    str_replace_all('\\?NEGOCIO', paste0("'", paste(unique(input$negocio), collapse = "','"), "'")) %>%
     paste(collapse = '\n')
   
   tryCatch({
@@ -840,7 +840,6 @@ computePromotionsServer <- function(input, output, session, credentials) {
         shiny::need(!is.null(graph_table()), lang$plotting) %then%
         shiny::need(graph_table() != 1, lang$need_query_result)
     )
-    
     if (is.data.frame(graph_table())) {
       flog.info(toJSON(list(
         session_info = msg_cred(credentials()),
