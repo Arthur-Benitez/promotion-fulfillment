@@ -112,3 +112,6 @@ lang <- list(
 )
 
 lang$need_valid_input <- paste0('El archivo de items no está en el formato correcto.\n', lang$need_input_format)
+
+## Necesario para que siempre se lean bien los encodings. Si no, de repente hay textos que no se interpretan bien...
+lang <- map(lang, enc2native)
