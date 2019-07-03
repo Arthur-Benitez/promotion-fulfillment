@@ -1358,7 +1358,10 @@ computePromotionsUI <- function(id) {
         class = 'input-margin',
         actionButton(ns('run'), lang$run, icon = icon('play')),
         actionButton(ns('reset'), lang$reset, icon = icon('redo-alt')),
-        checkboxInput(ns('graph_toggle'), lang$graph_toggle, value = FALSE)
+        tags$div(
+          title = lang$input_grafica_ventas_title,
+          checkboxInput(ns('graph_toggle'), lang$graph_toggle, value = FALSE)
+        )
       ),
       h3(
         lang$compute_promotions_computation_parameters,
