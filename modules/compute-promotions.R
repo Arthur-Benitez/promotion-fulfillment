@@ -554,13 +554,13 @@ generate_loc_id <- function(store_nbr) {
 }
 
 ## Generar el HEADER.csv para cargar al sistema
-generate_header <- function(input_data) {
+generate_header <- function(input_data, date_format = '%Y-%m-%d') {
   input_data %>% 
     transmute(
       `*Promotion` = generate_promo_name(dept_nbr, user, feature_name),
       Description = '',
-      StartDate,
-      EndDate,
+      StartDate = format(StartDate, date_format),
+      EndDate = format(EndDate, date_format),
       ApprovedSw = 'TRUE',
       AdditiveSw = 'TRUE',
       `CLEANSE HIST` = 'TRUE',
@@ -575,11 +575,11 @@ generate_header <- function(input_data) {
 }
 
 ## Generar el DETAIL.csv para cargar al sistema
-generate_detail <- function(output_data) {
+generate_detail <- function(output_data, date_format = '%Y-%m-%d') {
   output_data %>% 
     transmute(
       `*Promotion` = generate_promo_name(dept_nbr, user, feature_name),
-      `*StartDate` = StartDate,
+      `*StartDate` = format(StartDate, date_format),
       `*CID DMDUNIT NBR` = cid,
       `*DMDGroup` = '-',
       `*Loc` = generate_loc_id(store_nbr),
@@ -1274,7 +1274,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
     filename = sprintf('HEADER_%s.csv', Sys.Date()),
     content = function(file) {
       r$items %>% 
-        generate_header() %>% 
+        generate_header(date_format = input$date_format) %>% 
         write_excel_csv(path = file, na = '')
     },
     contentType = 'text/csv'
@@ -1290,7 +1290,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
     filename = sprintf('DETAIL_%s.csv', Sys.Date()),
     content = function(file) {
       final_result() %>% 
-        generate_detail() %>% 
+        generate_detail(date_format = input$date_format) %>% 
         write_excel_csv(path = file, na = '')
     },
     contentType = 'text/csv'
