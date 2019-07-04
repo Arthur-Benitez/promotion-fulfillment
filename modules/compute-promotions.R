@@ -836,7 +836,18 @@ computePromotionsServer <- function(input, output, session, credentials) {
       ) %>%
       distinct() %>% 
       deframe()
-    selectInput(ns('input_grafica_ventas'), lang$grafica_ventas, choices = choices, width = '400px')
+    tags$div(
+      class = 'inline-inputs',
+      tags$div(
+        style = 'margin-right: 20px',
+        selectInput(ns('input_grafica_ventas'), lang$grafica_ventas, choices = choices, width = '400px')
+      ),
+      selectInput(
+        ns('agg_grafica_ventas'),
+        lang$agg_grafica_ventas,
+        choices = c('avg', 'sum') %>% set_names(lang$agg_grafica_ventas_names)
+      )
+    )
   })
   
   ## Grafica reactiva
@@ -856,6 +867,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
         details = list()
       )))
     } else {
+      ## Esto nunca entra
       flog.warn(toJSON(list(
         session_info = msg_cred(credentials()),
         message = 'FAILED TO DOWNLOAD SALES GRAPH DATA',
@@ -892,6 +904,14 @@ computePromotionsServer <- function(input, output, session, credentials) {
       df <- bind_rows(ventas,
                       forecast %>% head(1) %>% mutate(type = "Ventas"),
                       forecast) %>% 
+        mutate(
+          wkly_qty = case_when(
+            input$agg_grafica_ventas == 'avg' ~ wkly_qty / n_stores,
+            input$agg_grafica_ventas == 'sum' ~ wkly_qty,
+            TRUE ~ wkly_qty / n_stores
+          ),
+          dly_qty = wkly_qty / 7
+        ) %>% 
         arrange(wm_yr_wk)
       
       # Lineas verticales de la gráfica
@@ -925,14 +945,24 @@ computePromotionsServer <- function(input, output, session, credentials) {
               x = ~date, 
               y = ~wkly_qty,
               hoverinfo = 'text',
-              text = ~sprintf("Fecha: %s<br>Semana WM: %s<br>%s: %s", date, wm_yr_wk, ifelse(type == 'Forecast', 'Forecast', 'Venta'), scales::comma(wkly_qty, accuracy = 1)),
+              text = ~sprintf(
+                "Fecha: %s<br>Semana WM: %s<br>%s %s: %s<br>%s %s: %s",
+                date,
+                wm_yr_wk,
+                type,
+                ifelse(type == 'Ventas', 'semanales', 'semanal'),
+                scales::comma(wkly_qty, accuracy = 1),
+                type,
+                ifelse(type == 'Ventas', 'diarias', 'diario'),
+                scales::comma(dly_qty, accuracy = 0.1)
+              ),
               color = ~type,
               colors = (c('blue', 'orange') %>% setNames(c('Ventas', 'Forecast')))
       ) %>%
         add_lines() %>% 
         layout(
           title = list(
-            text = "Ventas semanales (piezas)"
+            text = sprintf("Ventas semanales en piezas (%s)", lang$agg_grafica_ventas_names[input$agg_grafica_ventas])
             #x = 0.07
           ),
           xaxis = list(

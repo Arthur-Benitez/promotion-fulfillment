@@ -61,6 +61,8 @@ lang <- list(
   date_format = 'Formato de fechas',
   grafica_ventas = 'Old_nbr - Formato',
   input_grafica_ventas_title = 'Mostrar gráfica informativa de ventas y forecast.',
+  agg_grafica_ventas = 'Sumarización',
+  agg_grafica_ventas_names = c('avg' = 'Promedio por tienda', 'sum' = 'Total'),
   graph_toggle = 'Gráfica de ventas/forecast',
   items = 'Items',
   browse = 'Archivo...',
