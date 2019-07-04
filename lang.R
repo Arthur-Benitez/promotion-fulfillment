@@ -92,6 +92,9 @@ lang <- list(
   sspres_benchmark_toggle_none = 'No comparar (SSPres = 0)',
   sspres_benchmark_toggle_current = 'Comparar vs SSPres actual',
   sspres_benchmark_toggle_future = 'Comparar vs SSPres futuro (NO IMPLEMENTADO AÚN)',
+  impact_toggle = 'Acción SSPres',
+  impact_toggle_title = '¿Qué hacer con el SSPres cargado?',
+  impact_toggle_names = c('Sustituir (+ Additive = TRUE)', 'Sumar (+ Additive = TRUE)', 'Competir (+ Additive = FALSE)'),
   ## Validation
   need_items_file = 'Cargar un archivo de items para comenzar.',
   need_auth = 'Iniciar sesión para continuar.',
