@@ -345,7 +345,7 @@ get_empty_features <- function(result, input) {
 }
 
 ## Lógica en R
-perform_computations <- function(data, data_ss = NULL, min_feature_qty_toggle = 'none', sspres_benchmark_toggle = 'none') {
+perform_computations <- function(data, data_ss = NULL, min_feature_qty_toggle = 'none', sspres_benchmark_toggle = 'none', impact_toggle = 'swap') {
   initial_columns <- names(data)
   ##Transformaciones de distribución
   data <- data %>% 
@@ -441,7 +441,11 @@ perform_computations <- function(data, data_ss = NULL, min_feature_qty_toggle = 
       comp_ss_winner_qty = compare_ss_qty(comp_sspress_tot, sscov_tot, min_ss, max_ss),
       comp_ss_winner_name = compare_ss_name(comp_sspress_tot, sscov_tot, min_ss, max_ss, comp_sspress, base_press, sscov, sstemp, comp_ss_winner_qty),
       
-      new_sspress_tot = feature_qty_fin + base_press,
+      new_sspress_tot = case_when(
+        impact_toggle == 'swap' ~ feature_qty_fin + base_press,
+        impact_toggle == 'add' ~ feature_qty_fin + comp_sspress_tot,
+        impact_toggle == 'max' ~ pmax(feature_qty_fin + base_press, comp_sspress_tot)
+      ),
       ss_winner_qty = compare_ss_qty(new_sspress_tot, sscov_tot, min_ss, max_ss),
       ss_winner_name = compare_ss_name(new_sspress_tot, sscov_tot, min_ss, max_ss, feature_qty_fin, base_press, sscov, sstemp, ss_winner_qty),
       
@@ -564,7 +568,7 @@ generate_loc_id <- function(store_nbr) {
 }
 
 ## Generar el HEADER.csv para cargar al sistema
-generate_header <- function(input_data, date_format = '%Y-%m-%d') {
+generate_header <- function(input_data, date_format = '%Y-%m-%d', impact_toggle = 'swap') {
   input_data %>% 
     transmute(
       `*Promotion` = generate_promo_name(dept_nbr, user, feature_name),
@@ -572,7 +576,11 @@ generate_header <- function(input_data, date_format = '%Y-%m-%d') {
       StartDate = format(StartDate, date_format),
       EndDate = format(EndDate, date_format),
       ApprovedSw = 'TRUE',
-      AdditiveSw = 'TRUE',
+      AdditiveSw = case_when(
+        impact_toggle == 'swap' ~ 'TRUE',
+        impact_toggle == 'add' ~ 'TRUE',
+        impact_toggle == 'max' ~ 'FALSE'
+      ),
       `CLEANSE HIST` = 'TRUE',
       `REPLACE PRES/DISPLAY` = 'FALSE',
       Priority,
@@ -1113,6 +1121,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
   final_result <- eventReactive({
     input$min_feature_qty_toggle
     input$sspres_benchmark_toggle
+    input$impact_toggle
     r$final_result_trigger
   }, {
     req(r$final_result_trigger > 0)
@@ -1129,7 +1138,8 @@ computePromotionsServer <- function(input, output, session, credentials) {
         data = good_data,
         data_ss = query_result()$data_ss,
         min_feature_qty_toggle = input$min_feature_qty_toggle,
-        sspres_benchmark_toggle = input$sspres_benchmark_toggle
+        sspres_benchmark_toggle = input$sspres_benchmark_toggle,
+        impact_toggle = input$impact_toggle
       )$result
     } else {
       NULL
@@ -1372,7 +1382,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
     filename = sprintf('HEADER_%s.csv', Sys.Date()),
     content = function(file) {
       r$items %>% 
-        generate_header(date_format = input$date_format) %>% 
+        generate_header(date_format = input$date_format, impact_toggle = input$impact_toggle) %>% 
         write_excel_csv(path = file, na = '')
     },
     contentType = 'text/csv'
@@ -1458,6 +1468,15 @@ computePromotionsUI <- function(id) {
         label = lang$sspres_benchmark_toggle,
         choices = c('none', 'current', 'future') %>% 
           set_names(c(lang$sspres_benchmark_toggle_none, lang$sspres_benchmark_toggle_current, lang$sspres_benchmark_toggle_future))
+      ),
+      tags$div(
+        title = lang$impact_toggle_title,
+        selectInput(
+          ns('impact_toggle'),
+          label = lang$impact_toggle,
+          choices = c('swap', 'add', 'max') %>% 
+            set_names(lang$impact_toggle_names)
+        )
       )
     ),
     tabBox(
