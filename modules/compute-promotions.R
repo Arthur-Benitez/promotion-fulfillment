@@ -815,12 +815,16 @@ computePromotionsServer <- function(input, output, session, credentials) {
         shiny::need(!is.null(r$items_file), lang$need_items_file) %then%
         shiny::need(!is.null(r$items), lang$need_valid_input)
     )
-    r$items
-  }, options = list(
-    filter = 'top',
-    scrollX = TRUE,
-    scrollY = '300px'
-  ))
+    datatable(
+      data = r$items,
+      options = list(
+        filter = 'top',
+        scrollX = TRUE,
+        scrollY = ifelse(input$graph_toggle, '150px', '600px'),
+        pageLength = 100
+      )
+    )
+  })
   
   output$hr <- renderUI({
     req(r$items)
@@ -866,6 +870,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
         details = list()
       )))
     }
+    
     shiny::validate(
       shiny::need(r$is_open || gl$app_deployment_environment == 'prod', '') %then%
         shiny::need(!is.null(r$items) && isTRUE(input$graph_toggle), '') %then%
@@ -1131,7 +1136,8 @@ computePromotionsServer <- function(input, output, session, credentials) {
           filter = 'top',
           options = list(
             scrollX = TRUE,
-            scrollY = '400px'
+            scrollY = '500px',
+            pageLength = 100
           )
         ) %>%
         formatCurrency(columns = decimal_columns, digits = 1, currency = '') %>%
@@ -1161,7 +1167,8 @@ computePromotionsServer <- function(input, output, session, credentials) {
         filter = 'top',
         options = list(
           scrollX = TRUE,
-          scrollY = '400px'
+          scrollY = '500px',
+          pageLength = 100
         )
       ) %>%
         formatCurrency(columns = str_subset(names(summary_table()), '^(total|avg)_'), digits = 1, currency = '')
@@ -1241,7 +1248,8 @@ computePromotionsServer <- function(input, output, session, credentials) {
           filter = 'none',
           options = list(
             scrollX = TRUE,
-            scrollY = '200px'
+            scrollY = '200x',
+            pageLength = 20
           )
         ) %>%
         formatCurrency(columns = decimal_columns, digits = 1, currency = '') %>%
