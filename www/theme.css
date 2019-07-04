@@ -65,6 +65,20 @@
   color: white;
 }
 
+/* Botón de ayuda */
+#help {
+  color: white;
+  background-color: #1A75CF;
+  border-color: #1A75CF;
+  margin: 0;
+  font-size: 25px;
+}
+
+#help:hover {
+  background-color: #003896;
+  border-color: #003896;
+}
+
 /* Loading de gráfica de ventas */
 #compute_promotions-grafica_ventas + .shiny-output-error-validation {
     color: #1a75cf;

@@ -14,6 +14,7 @@ header <- dashboardHeader(
       # tags$p(id = 'app-description', 'XXXXXXX')
     )
   ),
+  tags$li(class = 'dropdown', actionButton('help', '', icon = icon('question-circle'))),
   tags$li(class = 'dropdown', uiOutput('logout_button'))
 )
 
