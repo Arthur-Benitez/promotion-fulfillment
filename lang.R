@@ -84,17 +84,23 @@ lang <- list(
   running_computations = 'Realizando cálculos...',
   plotting = 'Cargando gráfica de ventas...',
   item_error = 'Esta combinación no tiene información :(',
+  
   min_feature_qty_toggle = 'Lógica mínimo',
-  toggle_none = 'No hacer nada',
-  toggle_round_down = 'Conservadora (qty < min ==> qty := 0)',
-  toggle_round_up = 'Agresiva (qty < min ==> qty := min)',
+  min_feature_qty_toggle_title = '¿Qué hacer con las tiendas que no llegan a min_feature_qty con los días de venta?',
+  min_feature_qty_toggle_names = c('No hacer nada', 'Conservadora (qty < min ==> qty := 0)', 'Agresiva (qty < min ==> qty := min)'),
+  
   sspres_benchmark_toggle = 'SSPres Comparativo',
-  sspres_benchmark_toggle_none = 'No comparar (SSPres = 0)',
-  sspres_benchmark_toggle_current = 'Comparar vs SSPres actual',
-  sspres_benchmark_toggle_future = 'Comparar vs SSPres futuro (NO IMPLEMENTADO AÚN)',
+  sspres_benchmark_toggle_title = '¿Contra qué SSPres comparar las sugerencias?',
+  sspres_benchmark_toggle_names = c(
+    'No comparar (SSPres = 0)',
+    'Comparar vs SSPres actual',
+    'Comparar vs SSPres futuro (NO IMPLEMENTADO AÚN)'
+  ),
+  
   impact_toggle = 'Acción SSPres',
   impact_toggle_title = '¿Qué hacer con el SSPres cargado?',
   impact_toggle_names = c('Sustituir (+ Additive = TRUE)', 'Sumar (+ Additive = TRUE)', 'Competir (+ Additive = FALSE)'),
+  
   ## Validation
   need_items_file = 'Cargar un archivo de items para comenzar.',
   need_auth = 'Iniciar sesión para continuar.',
