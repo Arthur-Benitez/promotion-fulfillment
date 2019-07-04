@@ -37,6 +37,7 @@ lang <- list(
   promo = 'Calculadora de Promociones',
   login = 'Login',
   logout = 'Logout',
+  auto_logout_title = 'La sesión se cerró por inactividad',
   password_update = 'Actualizar contraseña',
   user_management = 'Administrar usuarios',
   button = 'Aplicar',

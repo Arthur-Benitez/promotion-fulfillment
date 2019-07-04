@@ -493,8 +493,8 @@ logoutServer <- function(input, output, session, user_auth, active) {
     )
   })
   ## Contador de tiempo hasta logout automático
-  counter_millis <- 60000
-  counter_max <- 20
+  counter_sec <- 60
+  counter_max <- 60 * 20
   rv <- reactiveValues(
     counter = counter_max
   )
@@ -502,16 +502,21 @@ logoutServer <- function(input, output, session, user_auth, active) {
   observeEvent(user_auth() + active() + input$button, {
     rv$counter <- counter_max
   })
-  ## Se restan un contador cada counter_millis
-  timer <- reactiveTimer(counter_millis)
+  ## Se restan un contador cada counter_sec
+  timer <- reactiveTimer(1000)
   observeEvent(timer(), {
     rv$counter <- rv$counter - 1
     if (rv$counter <= 0) {
+      shinyalert(
+        title = lang$auto_logout_title,
+        type = 'info'
+      )
       session$close()
     }
   })
   output$counter <- renderText({
-    sprintf("%s'", rv$counter)
+    s <- ifelse(rv$counter < counter_sec, '"', "'")
+    sprintf("%d%s", rv$counter %/% ifelse(rv$counter < counter_sec, 1, counter_sec), s)
   })
   shiny::reactive({input$button})
 }
