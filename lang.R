@@ -7,6 +7,7 @@ lang <- list(
   recover_password = 'Recuperar contraseña',
   login = 'Iniciar sesión',
   logout = 'Cerrar sesión',
+  logout_timeout_info = 'Minutos hasta que se cierre la sesión automáticamente.',
   wrong_user_or_password = 'Usuario o contraseña incorrectos',
   old_password = 'Contraseña anterior',
   new_password_1 = 'Contraseña nueva',
