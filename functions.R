@@ -1,4 +1,17 @@
 
+## Inicializar logger (necesario para reinicializar desde futures)
+init_log <- function(log_dir) {
+  if (!dir.exists(log_dir)) {
+    dir.create(log_dir)
+  }
+  log_file <- file.path(log_dir, paste0(as.character(Sys.Date()), '.log'))
+  futile.logger::flog.logger(
+    name = 'ROOT',
+    threshold = futile.logger::INFO,
+    appender = appender.tee(log_file)
+  )
+}
+
 ## Función para encadenar condiciones dentro de validate()
 `%then%` <- shiny:::`%OR%`
 

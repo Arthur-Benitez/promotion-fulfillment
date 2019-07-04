@@ -675,7 +675,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
         )
         flog.warn(toJSON(list(
           session_info = msg_cred(credentials()),
-          message = 'USER LOGIN FAILED',
+          message = 'TERADATA LOGIN FAILED',
           details = list(
             user = input$user
           )
@@ -694,7 +694,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
       })
       flog.info(toJSON(list(
         session_info = msg_cred(credentials()),
-        message = 'USER LOGOUT SUCCESSFUL',
+        message = 'TERADATA LOGOUT SUCCESSFUL',
         details = list(
           user = input$user
         )
@@ -784,7 +784,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
     req(sales_graph_trigger() > 0)
     flog.info(toJSON(list(
       session_info = msg_cred(credentials()),
-      message = 'DOWNLOADING SALES GRAPH DATA',
+      message = 'RUNNING SALES GRAPH QUERY',
       details = list()
     )))
     is_dev <- !is.null(r$ch)
@@ -792,6 +792,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
     usr <- input$user
     pwd <- input$password
     future({
+      # init_log(log_dir)
       if (is_dev) {
         future_ch <- RODBC::odbcDriverConnect(sprintf("Driver={Teradata};DBCName=WM3;AUTHENTICATION=ldap;AUTHENTICATIONPARAMETER=%s", paste0(usr, '@@', pwd)))
       } else {
@@ -852,6 +853,13 @@ computePromotionsServer <- function(input, output, session, credentials) {
   
   ## Grafica reactiva
   output$grafica_ventas <- renderPlotly({
+    if (identical(graph_table(), 1)) {
+      flog.warn(toJSON(list(
+        session_info = msg_cred(credentials()),
+        message = 'SALES GRAPH QUERY FAILED',
+        details = list()
+      )))
+    }
     shiny::validate(
       shiny::need(r$is_open || gl$app_deployment_environment == 'prod', '') %then%
         shiny::need(!is.null(r$items) && isTRUE(input$graph_toggle), '') %then%
@@ -860,20 +868,11 @@ computePromotionsServer <- function(input, output, session, credentials) {
         shiny::need(is.data.frame(graph_table()), lang$need_query_result)
     )
     
-    if (is.data.frame(graph_table())) {
-      flog.info(toJSON(list(
-        session_info = msg_cred(credentials()),
-        message = 'GENERATING SALES GRAPH',
-        details = list()
-      )))
-    } else {
-      ## Esto nunca entra
-      flog.warn(toJSON(list(
-        session_info = msg_cred(credentials()),
-        message = 'FAILED TO DOWNLOAD SALES GRAPH DATA',
-        details = list()
-      )))
-    }
+    flog.info(toJSON(list(
+      session_info = msg_cred(credentials()),
+      message = 'GENERATING SALES GRAPH',
+      details = list()
+    )))
     
     df <- graph_table() %>% 
       filter(paste(old_nbr, '-', negocio) == input$input_grafica_ventas) %>% 
@@ -1026,6 +1025,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
     usr <- input$user
     pwd <- input$password
     future({
+      # init_log(log_dir)
       if (is_dev) {
         ## Las conexiones no se pueden exportar a otros procesos de R, así que se tiene que generar una nueva conexión
         ## Ver: https://cran.r-project.org/web/packages/future/vignettes/future-4-issues.html
