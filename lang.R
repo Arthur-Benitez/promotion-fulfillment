@@ -51,6 +51,7 @@ lang <- list(
   weeks = 'Semanas',
   months = 'Meses',
   years = 'Años',
+  help_title = 'Ayuda',
   ## Compute Promotions
   compute_promotions_inputs = 'Inputs',
   compute_promotions_inputs_title = 'Controles principales. Para más ayuda haz click en "(?) Instrucciones".',

@@ -89,6 +89,21 @@ shinyServer(function(input, output, session){
     }
   })
   
+  ## Ayuda
+  observeEvent(input$help, {
+    shinyalert(
+      title = lang$help_title,
+      text = includeHTML('html/help.html'),
+      type = 'info',
+      html = TRUE,
+      closeOnEsc = TRUE,
+      closeOnClickOutside = TRUE,
+      showCancelButton = FALSE,
+      showConfirmButton = TRUE,
+      confirmButtonText = lang$ok
+    )
+  })
+  
   ## Login
   credentials <- callModule(
     loginServer,
