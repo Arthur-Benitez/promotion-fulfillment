@@ -219,7 +219,7 @@ run_query <- function(ch, input_data, connector = 'production-connector') {
       run_query_once(ch, x, connector)
     })) %>% 
     map('result') %>% 
-    discard(is.null)
+    keep(is.data.frame)
   if (length(res) > 0) {
     res <- bind_rows(res)
   } else {
@@ -232,9 +232,11 @@ run_query <- function(ch, input_data, connector = 'production-connector') {
 ## Query para descargar las ventas y forecast para la grafica
 get_graph_data <- function(ch, input, calendar_day) {
   
+  old_nbrs <- unique(input$old_nbr)
+  negocios <- unique(input$negocio)
   query_graph <- readLines('sql/grafica.sql') %>% 
-    str_replace_all('\\?OLD_NBRS', paste(unique(input$old_nbr), collapse = ",")) %>%
-    str_replace_all('\\?NEGOCIO', paste0("'", paste(unique(input$negocio), collapse = "','"), "'")) %>%
+    str_replace_all('\\?OLD_NBRS', paste(old_nbrs, collapse = ",")) %>%
+    str_replace_all('\\?NEGOCIO', paste0("'", paste(negocios, collapse = "','"), "'")) %>%
     paste(collapse = '\n')
   
   tryCatch({
@@ -258,11 +260,15 @@ get_graph_data <- function(ch, input, calendar_day) {
 }
 
 search_ss_once <- function(ch, input_data_ss, connector = 'production-connector') {
+  old_nbrs <- paste(unique(input_data_ss$old_nbr), collapse = ",")
+  negocios <- paste(unique(input_data_ss$negocio), collapse = "','")
+  start_date <- as.character(unique(input_data_ss$StartDate))
+  end_date <- as.character(unique(input_data_ss$EndDate))
   query_ss <- readLines('sql/ss-item-str.sql') %>%
-    str_replace_all('\\?OLD_NBRS', paste(unique(input_data_ss$old_nbr), collapse = ",")) %>%
-    str_replace_all('\\?NEGOCIOS', paste(unique(input_data_ss$negocio), collapse = "','")) %>%
-    str_replace_all('\\?START_DATE', as.character(unique(input_data_ss$StartDate))) %>% 
-    str_replace_all('\\?END_DATE', as.character(unique(input_data_ss$EndDate))) %>% 
+    str_replace_all('\\?OLD_NBRS', old_nbrs) %>%
+    str_replace_all('\\?NEGOCIOS', negocios) %>%
+    str_replace_all('\\?START_DATE', start_date) %>% 
+    str_replace_all('\\?END_DATE', end_date) %>% 
     paste(collapse = '\n')
   
   tryCatch({
@@ -292,7 +298,7 @@ search_ss <- function(ch, input_data_ss, connector = 'production-connector') {
       search_ss_once(ch, x, connector)
     })) %>% 
     map('result') %>% 
-    discard(is.null)
+    keep(is.data.frame)
   if (length(res) > 0) {
     res <- bind_rows(res)
   } else {
@@ -1101,8 +1107,8 @@ computePromotionsServer <- function(input, output, session, credentials) {
   })
   need_query_ready <- reactive({
     shiny::need(r$query_was_tried, lang$need_run) %then%
-      shiny::need(!is.null(query_result()$data), lang$need_query_result) %then%
-      shiny::need(!is.null(final_result()), lang$need_final_result)
+      shiny::need(is.data.frame(query_result()$data), lang$need_query_result) %then%
+      shiny::need(is.data.frame(final_result()), lang$need_final_result)
   })
   need_histogram_ready <- reactive({
     shiny::need(!is.null(histogram_data()), lang$need_final_result) %then%
