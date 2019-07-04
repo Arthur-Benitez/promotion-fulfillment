@@ -796,7 +796,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
   sales_graph_flag <- reactiveVal(FALSE)
   sales_graph_trigger <- reactiveVal(0)
   items_changed_toggle <- reactiveVal(FALSE)
-  graph_toggle <- debounce(reactive(input$graph_toggle), millis = 2000)
+  # graph_toggle <- debounce(reactive(input$graph_toggle), millis = 2000)
   observeEvent(r$items, {
     ## Esto sirve para detectar si lo que cambió fue r$items o el botón de
     ## mostrar gráfica. Si sólo cambió el botón, no hace falta correr el query
@@ -805,7 +805,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
   })
   observe({
     req(isTRUE(items_changed_toggle()))
-    if (graph_toggle()) {
+    if (input$graph_toggle) {
       if (isolate(sales_graph_flag()) == FALSE) {
         sales_graph_flag(TRUE)
         invalidateLater(500)
