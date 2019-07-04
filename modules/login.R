@@ -475,14 +475,21 @@ logoutServer <- function(input, output, session, user_auth, active) {
   output$ui <- renderUI({
     ns <- session$ns
     if (user_auth()) {
-      button <- shiny::actionButton(ns("button"), lang$logout, class = "btn-danger")
+      button <- shiny::actionButton(ns("button"), '', icon = icon('power-off'), class = "header-icon")
     } else {
       button <- NULL
     }
     tags$div(
-      class = 'logout-info',
-      tags$div(textOutput(ns('counter')), class = 'logout-timeout-info'),
-      button
+      id = 'header-icons',
+      tags$div(
+        title = lang$logout_timeout_info,
+        class = 'header-text',
+        textOutput(ns('counter'))
+      ),
+      tags$div(
+        title = lang$logout,
+        button
+      )
     )
   })
   ## Contador de tiempo hasta logout automático
@@ -504,8 +511,7 @@ logoutServer <- function(input, output, session, user_auth, active) {
     }
   })
   output$counter <- renderText({
-    s <- if (rv$counter == 1) '' else 's'
-    sprintf('La sesión se cerrará automáticamente en %d minuto%s.', as.numeric(rv$counter), s)
+    sprintf("%s'", rv$counter)
   })
   shiny::reactive({input$button})
 }
