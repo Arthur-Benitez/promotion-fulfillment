@@ -1453,21 +1453,27 @@ computePromotionsUI <- function(id) {
         lang$compute_promotions_computation_parameters,
         title = lang$compute_promotions_computation_parameters_title
       ),
-      selectInput(
-        ns('min_feature_qty_toggle'),
-        label = lang$min_feature_qty_toggle,
-        choices = c('none', 'round_down', 'round_up') %>%
-          set_names(c(lang$toggle_none, lang$toggle_round_down, lang$toggle_round_up))
+      tags$div(
+        title = lang$min_feature_qty_toggle_title,
+        selectInput(
+          ns('min_feature_qty_toggle'),
+          label = lang$min_feature_qty_toggle,
+          choices = c('none', 'round_down', 'round_up') %>%
+            set_names(lang$min_feature_qty_toggle_names)
+        )
       ),
       h3(
         lang$compute_promotions_impact_parameters,
         title = lang$compute_promotions_impact_parameters_title
       ),
-      selectInput(
-        ns('sspres_benchmark_toggle'),
-        label = lang$sspres_benchmark_toggle,
-        choices = c('none', 'current', 'future') %>% 
-          set_names(c(lang$sspres_benchmark_toggle_none, lang$sspres_benchmark_toggle_current, lang$sspres_benchmark_toggle_future))
+      tags$div(
+        title = lang$sspres_benchmark_toggle_title,
+        selectInput(
+          ns('sspres_benchmark_toggle'),
+          label = lang$sspres_benchmark_toggle,
+          choices = c('none', 'current', 'future') %>% 
+            set_names(lang$sspres_benchmark_toggle_names)
+        )
       ),
       tags$div(
         title = lang$impact_toggle_title,
