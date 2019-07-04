@@ -870,8 +870,8 @@ computePromotionsServer <- function(input, output, session, credentials) {
       shiny::need(r$is_open || gl$app_deployment_environment == 'prod', '') %then%
         shiny::need(!is.null(r$items) && isTRUE(input$graph_toggle), '') %then%
         shiny::need(!is.null(graph_table()), lang$plotting) %then%
-        shiny::need(input$input_grafica_ventas, '') %then%
-        shiny::need(is.data.frame(graph_table()), lang$need_query_result)
+        shiny::need(is.data.frame(graph_table()), lang$need_query_result) %then%
+        shiny::need(input$input_grafica_ventas, '')
     )
     
     flog.info(toJSON(list(
