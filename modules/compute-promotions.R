@@ -878,11 +878,14 @@ computePromotionsServer <- function(input, output, session, credentials) {
     req(isTRUE(input$graph_toggle))
     ns <- session$ns
     info <- graph_table() %>%
-      distinct_at(c('old_nbr', 'primary_desc'))
+      distinct_at(c('old_nbr', 'negocio', 'primary_desc'))
     choices <- r$items %>% 
-      left_join(info, by = 'old_nbr') %>% 
+      left_join(info, by = c('old_nbr', 'negocio')) %>% 
+      group_by(feature_name) %>% 
+      filter(sum(!is.na(primary_desc)) > 0) %>% 
+      ungroup() %>% 
       transmute(
-        name = paste0(negocio, ' - ', primary_desc, ' (', old_nbr, ')'),
+        name = paste0(negocio, ' - ', ifelse(is.na(primary_desc), lang$no_info, primary_desc), ' (', old_nbr, ')'),
         combinacion = paste(old_nbr, '-', negocio)
       ) %>%
       distinct() %>% 
@@ -918,7 +921,6 @@ computePromotionsServer <- function(input, output, session, credentials) {
         shiny::need(is.data.frame(graph_table()), lang$need_query_result) %then%
         shiny::need(input$input_grafica_ventas, '')
     )
-    
     flog.info(toJSON(list(
       session_info = msg_cred(credentials()),
       message = 'GENERATING SALES GRAPH',
@@ -1220,9 +1222,9 @@ computePromotionsServer <- function(input, output, session, credentials) {
   })
   
   output$output_feature_select_ui <- renderUI({
-    req(query_result())
+    req(final_result())
     ns <- session$ns
-    choices <- query_result()$data %>% 
+    choices <- final_result() %>% 
       pull(feature_name) %>%
       unique() %>% 
       sort()
