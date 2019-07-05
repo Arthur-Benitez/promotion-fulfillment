@@ -63,6 +63,7 @@ lang <- list(
   compute_promotions_impact_parameters_title = 'Parámetros que afectan el cálculo de impacto.',
   date_format = 'Formato de fechas',
   grafica_ventas = 'Old_nbr - Formato',
+  no_info = 'SIN INFORMACIÓN',
   input_grafica_ventas_title = 'Mostrar gráfica informativa de ventas y forecast.',
   agg_grafica_ventas = 'Sumarización',
   agg_grafica_ventas_names = c('avg' = 'Promedio por tienda', 'sum' = 'Total'),
