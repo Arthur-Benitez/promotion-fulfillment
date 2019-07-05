@@ -855,8 +855,9 @@ computePromotionsServer <- function(input, output, session, credentials) {
         shiny::need(!is.null(r$items_file), lang$need_items_file) %then%
         shiny::need(!is.null(r$items), lang$need_valid_input)
     )
-    datatable(
-      data = r$items,
+    r$items %>% 
+      mutate_at(intersect(gl$output_character_cols, names(.)), as.character) %>%
+      datatable(
         filter = 'top',
         options = list(
           scrollX = TRUE,
@@ -1174,7 +1175,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
       percent_columns <- c('feature_perc_pos_or_fcst')
       decimal_columns <- c('avg_dly_pos_or_fcst', 'feature_qty_req_min',	'feature_qty_req', 'feature_ddv_req', 'feature_qty_pre', 'feature_ddv_pre', 'feature_qty_pre_tot', 'feature_ddv_fin', 'feature_qty_fin', 'display_key', 'store_cost', 'vnpk_fin', 'cost')
       final_result() %>%
-        mutate(store_nbr = as.character(store_nbr)) %>% 
+        mutate_at(intersect(gl$output_character_cols, names(.)), as.character) %>% 
         mutate_at(vars(percent_columns), list(~100 * .)) %>%
         datatable(
           filter = 'top',
@@ -1202,19 +1203,16 @@ computePromotionsServer <- function(input, output, session, credentials) {
         need_query_ready()
     )
     tryCatch({
-      datatable(
-        if ('store_nbr' %in% input$summary_groups) {
-          summary_table() %>% mutate(store_nbr = as.character(store_nbr))
-        } else {
-          summary_table()
-        },
-        filter = 'top',
-        options = list(
-          scrollX = TRUE,
-          scrollY = '500px',
-          pageLength = 100
-        )
-      ) %>%
+      summary_table() %>% 
+        mutate_at(intersect(gl$output_character_cols, names(.)), as.character) %>% 
+        datatable(
+          filter = 'top',
+          options = list(
+            scrollX = TRUE,
+            scrollY = '500px',
+            pageLength = 100
+          )
+        ) %>%
         formatCurrency(columns = str_subset(names(summary_table()), '^(total|avg)_'), digits = 1, currency = '')
     }, error = function(e){
       NULL
@@ -1288,6 +1286,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
       decimal_columns <- str_subset(names(histogram_data()), '^(n|total|avg)_')
       histogram_data() %>%
         mutate_at(vars(percent_columns), list(~100 * .)) %>%
+        mutate_at(intersect(gl$output_character_cols, names(.)), as.character) %>% 
         datatable(
           filter = 'none',
           options = list(
