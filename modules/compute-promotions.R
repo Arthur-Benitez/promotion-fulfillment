@@ -857,13 +857,13 @@ computePromotionsServer <- function(input, output, session, credentials) {
     )
     datatable(
       data = r$items,
-      options = list(
         filter = 'top',
-        scrollX = TRUE,
-        scrollY = ifelse(input$graph_toggle, '150px', '600px'),
-        pageLength = 100
+        options = list(
+          scrollX = TRUE,
+          scrollY = ifelse(input$graph_toggle, '150px', '600px'),
+          pageLength = 100
+        )
       )
-    )
   })
   
   output$hr <- renderUI({
