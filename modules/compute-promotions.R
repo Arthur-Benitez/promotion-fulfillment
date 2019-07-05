@@ -421,7 +421,7 @@ perform_computations <- function(data, data_ss = NULL, min_feature_qty_toggle = 
       )
   } else {
     data <- data %>% 
-      left_join(data_ss, by = c("old_nbr", "store_nbr"))
+      left_join(data_ss, by = c("store_nbr", "negocio", "old_nbr", "item_nbr"))
     
     if (sspres_benchmark_toggle == 'none') {
       data$comp_sspress <- 0
