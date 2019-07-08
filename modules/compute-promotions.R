@@ -1326,6 +1326,11 @@ computePromotionsServer <- function(input, output, session, credentials) {
       sprintf('estrategias_%s.csv', Sys.Date())
     },
     content = function(file) {
+      flog.info(toJSON(list(
+        session_info = msg_cred(credentials()),
+        message = 'DOWNLOADING COMPUTATIONS FILE',
+        details = list()
+      )))
       write_excel_csv(final_result(), path = file, na = '')
     },
     contentType = 'text/csv'
@@ -1342,6 +1347,11 @@ computePromotionsServer <- function(input, output, session, credentials) {
       sprintf('resumen_%s.csv', Sys.Date())
     },
     content = function(file) {
+      flog.info(toJSON(list(
+        session_info = msg_cred(credentials()),
+        message = 'DOWNLOADING SUMMARY FILE',
+        details = list()
+      )))
       write_excel_csv(summary_table(), path = file, na = '')
     },
     contentType = 'text/csv'
@@ -1382,6 +1392,11 @@ computePromotionsServer <- function(input, output, session, credentials) {
   output$download_header <- downloadHandler(
     filename = sprintf('HEADER_%s.csv', Sys.Date()),
     content = function(file) {
+      flog.info(toJSON(list(
+        session_info = msg_cred(credentials()),
+        message = 'DOWNLOADING HEADER FILE',
+        details = list()
+      )))
       r$items %>% 
         generate_header(date_format = input$date_format, impact_toggle = input$impact_toggle) %>% 
         write_excel_csv(path = file, na = '')
@@ -1398,6 +1413,11 @@ computePromotionsServer <- function(input, output, session, credentials) {
   output$download_detail <- downloadHandler(
     filename = sprintf('DETAIL_%s.csv', Sys.Date()),
     content = function(file) {
+      flog.info(toJSON(list(
+        session_info = msg_cred(credentials()),
+        message = 'DOWNLOADING DETAIL FILE',
+        details = list()
+      )))
       final_result() %>% 
         generate_detail(date_format = input$date_format) %>% 
         write_excel_csv(path = file, na = '')
