@@ -163,11 +163,11 @@ validate_input <- function(data, gl, calendar_day) {
 
 ## Función para guardar los archivos relevantes
 save_files <- function(data_files, gl, credentials) {
-  user_download_history <- sprintf('%s/download_history/%s/%s', gl$app_deployment_environment, credentials$user, Sys.Date())
+  user_download_history <- sprintf('%s/download_history/%s', gl$app_deployment_environment, credentials$user)
   if (!dir.exists(user_download_history)) {
     dir.create(user_download_history, recursive = TRUE)
   }
-  saveRDS(data_files, file = sprintf('%s/data_files_%s.rds', user_download_history, format(Sys.time(), "%H-%M-%S", tz = 'America/Mexico_City')))
+  saveRDS(data_files, file = sprintf('%s/data_files_%s.rds', user_download_history, format(Sys.time(), "%Y_%m_%d_%H-%M-%S", tz = 'America/Mexico_City')))
 }
 
 ## Correr query
@@ -1435,12 +1435,10 @@ computePromotionsServer <- function(input, output, session, credentials) {
         detail = final_result() %>% 
           generate_detail(date_format = input$date_format),
         items = r$items,
-        params = tribble(
-          ~param,                     ~value,
-          'date_format',              input$date_format,
-          'impact_toggle',            input$impact_toggle,
-          'min_feature_qty_toggle',   input$min_feature_qty_toggle,
-          'sspres_benchmark_toggle',  input$sspres_benchmark_toggle
+        params = list(
+          impact_toggle = input$impact_toggle,
+          min_feature_qty_toggle = input$min_feature_qty_toggle,
+          sspres_benchmark_toggle = input$sspres_benchmark_toggle
         )
       )
       #browser()
