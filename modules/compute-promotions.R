@@ -161,6 +161,14 @@ validate_input <- function(data, gl, calendar_day) {
   }
 }
 
+## Función para guardar los archivos relevantes
+save_files <- function(data_files, gl, credentials) {
+  user_download_history <- sprintf('%s/download_history/%s/%s', gl$app_deployment_environment, credentials$user, Sys.Date())
+  if (!dir.exists(user_download_history)) {
+    dir.create(user_download_history, recursive = TRUE)
+  }
+  saveRDS(data_files, file = sprintf('%s/data_files_%s.rds', user_download_history, format(Sys.time(), "%H-%M-%S", tz = 'America/Mexico_City')))
+}
 
 ## Correr query
 prepare_query <- function(query, keys, old_nbrs, wk_inicio, wk_final) {
@@ -1421,6 +1429,22 @@ computePromotionsServer <- function(input, output, session, credentials) {
         message = 'DOWNLOADING DETAIL FILE',
         details = list()
       )))
+      data_files <- list(
+        header = r$items %>% 
+          generate_header(date_format = input$date_format, impact_toggle = input$impact_toggle),
+        detail = final_result() %>% 
+          generate_detail(date_format = input$date_format),
+        items = r$items,
+        params = tribble(
+          ~param,                     ~value,
+          'date_format',              input$date_format,
+          'impact_toggle',            input$impact_toggle,
+          'min_feature_qty_toggle',   input$min_feature_qty_toggle,
+          'sspres_benchmark_toggle',  input$sspres_benchmark_toggle
+        )
+      )
+      #browser()
+      save_files(data_files = data_files, gl = gl, credentials = credentials())
       final_result() %>% 
         generate_detail(date_format = input$date_format) %>% 
         write_excel_csv(path = file, na = '')
