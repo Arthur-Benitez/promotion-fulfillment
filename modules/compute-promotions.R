@@ -1451,7 +1451,6 @@ computePromotionsServer <- function(input, output, session, credentials) {
           sspres_benchmark_toggle = input$sspres_benchmark_toggle
         )
       )
-      #browser()
       save_files(data_files = data_files, gl = gl, credentials = credentials())
       detail() %>% 
         write_excel_csv(path = file, na = '')
