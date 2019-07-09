@@ -39,7 +39,7 @@ alert_param <- function(good_features, empty_features, timestamp) {
 }
 
 ## Leer entrada
-parse_input <- function(input_file, gl, calendar_day, ch = NULL, date_format = '%Y-%m-%d') {
+parse_input <- function(input_file, gl, calendar_day, date_format = '%Y-%m-%d') {
   tryCatch({
     nms <- names(read_csv(input_file, n_max = 0))
     if (!all(gl$cols$name %in% nms)) {
@@ -56,7 +56,7 @@ parse_input <- function(input_file, gl, calendar_day, ch = NULL, date_format = '
         display_key = paste(dept_nbr, old_nbr, negocio, sep = '.'),
         split_var = paste(semana_ini, semana_fin, fcst_or_sales, sep = '-')
       )
-    val <- validate_input(x, gl = gl, calendar_day = calendar_day, ch = ch)
+    val <- validate_input(x, gl = gl, calendar_day = calendar_day)
     if (isTRUE(val)) {
       return(x)
     } else {
@@ -69,7 +69,7 @@ parse_input <- function(input_file, gl, calendar_day, ch = NULL, date_format = '
 
 
 ## Validar inputs
-validate_input <- function(data, gl, calendar_day, ch) {
+validate_input <- function(data, gl, calendar_day) {
   if (
     ## Condiciones básicas
     !is.data.frame(data) ||
@@ -161,6 +161,14 @@ validate_input <- function(data, gl, calendar_day, ch) {
   }
 }
 
+## Función para guardar los archivos relevantes
+save_files <- function(data_files, gl, credentials) {
+  user_download_history <- file.path(gl$app_deployment_environment, 'download_history', credentials$user)
+  if (!dir.exists(user_download_history)) {
+    dir.create(user_download_history, recursive = TRUE)
+  }
+  saveRDS(data_files, file = file.path(user_download_history, sprintf('data_files_%s.rds', format(Sys.time(), "%Y-%m-%d_%H-%M-%S", tz = 'America/Mexico_City'))))
+}
 
 ## Correr query
 prepare_query <- function(query, keys, old_nbrs, wk_inicio, wk_final) {
@@ -169,7 +177,8 @@ prepare_query <- function(query, keys, old_nbrs, wk_inicio, wk_final) {
     str_replace_all('\\?OLD_NBRS', paste(old_nbrs, collapse = ",")) %>%
     str_replace_all('\\?WK_INICIO', as.character(wk_inicio)) %>% 
     str_replace_all('\\?WK_FINAL', as.character(wk_final)) %>% 
-    str_replace_all('[^[:ascii:]]', '') %>% # quitar no ASCII porque truena en producción
+    str_subset('^\\s*--', negate = TRUE) %>%  #quitar lineas de comentarios
+    stringi::stri_trans_general('ASCII') %>% # quitar no ASCII porque truena en producción
     paste(collapse = '\n')
 }
 run_query_once <- function(ch, input_data, connector = 'production-connector') {
@@ -219,7 +228,7 @@ run_query <- function(ch, input_data, connector = 'production-connector') {
       run_query_once(ch, x, connector)
     })) %>% 
     map('result') %>% 
-    discard(is.null)
+    keep(is.data.frame)
   if (length(res) > 0) {
     res <- bind_rows(res)
   } else {
@@ -232,9 +241,13 @@ run_query <- function(ch, input_data, connector = 'production-connector') {
 ## Query para descargar las ventas y forecast para la grafica
 get_graph_data <- function(ch, input, calendar_day) {
   
+  old_nbrs <- unique(input$old_nbr)
+  negocios <- unique(input$negocio)
   query_graph <- readLines('sql/grafica.sql') %>% 
-    str_replace_all('\\?OLD_NBRS', paste(unique(input$old_nbr), collapse = ",")) %>%
-    str_replace_all('\\?NEGOCIO', paste(unique(input$negocio), collapse = "','")) %>%
+    str_replace_all('\\?OLD_NBRS', paste(old_nbrs, collapse = ",")) %>%
+    str_replace_all('\\?NEGOCIO', paste0("'", paste(negocios, collapse = "','"), "'")) %>%
+    str_subset('^\\s*--', negate = TRUE) %>%  #quitar lineas de comentarios
+    stringi::stri_trans_general('ASCII') %>% # quitar no ASCII porque truena en producción
     paste(collapse = '\n')
   
   tryCatch({
@@ -258,11 +271,17 @@ get_graph_data <- function(ch, input, calendar_day) {
 }
 
 search_ss_once <- function(ch, input_data_ss, connector = 'production-connector') {
+  old_nbrs <- paste(unique(input_data_ss$old_nbr), collapse = ",")
+  negocios <- paste(unique(input_data_ss$negocio), collapse = "','")
+  start_date <- as.character(unique(input_data_ss$StartDate))
+  end_date <- as.character(unique(input_data_ss$EndDate))
   query_ss <- readLines('sql/ss-item-str.sql') %>%
-    str_replace_all('\\?OLD_NBRS', paste(unique(input_data_ss$old_nbr), collapse = ",")) %>%
-    str_replace_all('\\?NEGOCIOS', paste(unique(input_data_ss$negocio), collapse = "','")) %>%
-    str_replace_all('\\?START_DATE', as.character(unique(input_data_ss$StartDate))) %>% 
-    str_replace_all('\\?END_DATE', as.character(unique(input_data_ss$EndDate))) %>% 
+    str_replace_all('\\?OLD_NBRS', old_nbrs) %>%
+    str_replace_all('\\?NEGOCIOS', negocios) %>%
+    str_replace_all('\\?START_DATE', start_date) %>% 
+    str_replace_all('\\?END_DATE', end_date) %>% 
+    str_subset('^\\s*--', negate = TRUE) %>%  #quitar lineas de comentarios
+    stringi::stri_trans_general('ASCII') %>% # quitar no ASCII porque truena en producción
     paste(collapse = '\n')
   
   tryCatch({
@@ -292,7 +311,7 @@ search_ss <- function(ch, input_data_ss, connector = 'production-connector') {
       search_ss_once(ch, x, connector)
     })) %>% 
     map('result') %>% 
-    discard(is.null)
+    keep(is.data.frame)
   if (length(res) > 0) {
     res <- bind_rows(res)
   } else {
@@ -339,7 +358,7 @@ get_empty_features <- function(result, input) {
 }
 
 ## Lógica en R
-perform_computations <- function(data, data_ss = NULL, min_feature_qty_toggle = 'none') {
+perform_computations <- function(data, data_ss = NULL, min_feature_qty_toggle = 'none', sspres_benchmark_toggle = 'none', impact_toggle = 'swap') {
   initial_columns <- names(data)
   ##Transformaciones de distribución
   data <- data %>% 
@@ -380,7 +399,8 @@ perform_computations <- function(data, data_ss = NULL, min_feature_qty_toggle = 
       dept_nbr,
       negocio,
       old_nbr,
-      dc,
+      dc_nbr,
+      dc_name,
       primary_desc,
       min_feature_qty,
       max_feature_qty,
@@ -398,7 +418,7 @@ perform_computations <- function(data, data_ss = NULL, min_feature_qty_toggle = 
   data <- data %>%
     mutate_at(new_columns, list(~replace_na(., 0)))
   
-  if(is.null(data_ss)){
+  if (is.null(data_ss)) {
     data <- data %>%
       mutate(
         sspress = 0,
@@ -414,16 +434,35 @@ perform_computations <- function(data, data_ss = NULL, min_feature_qty_toggle = 
       )
   } else {
     data <- data %>% 
-      left_join(data_ss, by = c("old_nbr", "store_nbr"))
+      left_join(data_ss, by = c("store_nbr", "negocio", "old_nbr", "item_nbr"))
+    
+    if (sspres_benchmark_toggle == 'none') {
+      data$comp_sspress <- 0
+    } else if (sspres_benchmark_toggle == 'current') {
+      data$comp_sspress <- data$sspress
+    } else if (sspres_benchmark_toggle == 'future') {
+      # Aún no existe la columna
+      # data$comp_sspress <- data$sspress_future
+      data$comp_sspress <- data$sspress
+    }
   }
   data <- data %>%
     replace_na(list(ganador = "Unknown", max_ss = 999999999)) %>%
     mutate_at(vars(contains("ss")), list(~round(replace_na(., 0), digits = 0))) %>%
     mutate(
-      new_sspress_tot = feature_qty_fin + base_press,
+      comp_sspress_tot = base_press + comp_sspress,
+      comp_ss_winner_qty = compare_ss_qty(comp_sspress_tot, sscov_tot, min_ss, max_ss),
+      comp_ss_winner_name = compare_ss_name(comp_sspress_tot, sscov_tot, min_ss, max_ss, comp_sspress, base_press, sscov, sstemp, comp_ss_winner_qty),
+      
+      new_sspress_tot = case_when(
+        impact_toggle == 'swap' ~ feature_qty_fin + base_press,
+        impact_toggle == 'add' ~ feature_qty_fin + comp_sspress_tot,
+        impact_toggle == 'max' ~ pmax(feature_qty_fin + base_press, comp_sspress_tot)
+      ),
       ss_winner_qty = compare_ss_qty(new_sspress_tot, sscov_tot, min_ss, max_ss),
       ss_winner_name = compare_ss_name(new_sspress_tot, sscov_tot, min_ss, max_ss, feature_qty_fin, base_press, sscov, sstemp, ss_winner_qty),
-      impact_qty = ss_winner_qty - ss_ganador,
+      
+      impact_qty = ss_winner_qty - comp_ss_winner_qty,
       impact_cost = impact_qty * cost,
       impact_ddv = impact_qty / avg_dly_pos_or_fcst,
       impact_vnpk = impact_qty / vnpk_qty
@@ -434,10 +473,13 @@ perform_computations <- function(data, data_ss = NULL, min_feature_qty_toggle = 
 ## Tabla de resumen
 summarise_data <- function(data, group = c('feature_name', 'cid')) {
   ## Checks
-  stopifnot(is.null(group) || all(group %in% c('feature_name', 'store_nbr', 'cid', 'dc')))
+  stopifnot(is.null(group) || all(group %in% c('feature_name', 'store_nbr', 'cid', 'dc_nbr')))
   ## Cambios a combinaciones específicas
   if ('cid' %in% group) {
     group <- c(group, 'old_nbr', 'primary_desc')
+  }
+  if ('dc_nbr' %in% group) {
+    group <- c(group, 'dc_name')
   }
   if (is.null(group)) {
     group <- 'feature_name'
@@ -445,7 +487,7 @@ summarise_data <- function(data, group = c('feature_name', 'cid')) {
       mutate(feature_name = 'Total')
   }
   ## Grupos de tabla de salida
-  group_order <- c('feature_name', 'store_nbr', 'cid', 'old_nbr', 'primary_desc', 'dc')
+  group_order <- c('feature_name', 'store_nbr', 'cid', 'old_nbr', 'primary_desc', 'dc_nbr', 'dc_name')
   grp <- group_order[group_order %in% group]
   ## Variables numéricas de tabla de salida
   vv <- c('avg_dly_sales', 'avg_dly_forecast', 'min_feature_qty', 'max_feature_qty', 'total_cost', 'total_impact_cost', 'total_qty', 'total_impact_qty', 'total_ddv', 'total_impact_ddv', 'total_vnpk', 'total_impact_vnpk')
@@ -539,15 +581,19 @@ generate_loc_id <- function(store_nbr) {
 }
 
 ## Generar el HEADER.csv para cargar al sistema
-generate_header <- function(input_data) {
+generate_header <- function(input_data, date_format = '%Y-%m-%d', impact_toggle = 'swap') {
   input_data %>% 
     transmute(
       `*Promotion` = generate_promo_name(dept_nbr, user, feature_name),
       Description = '',
-      StartDate,
-      EndDate,
+      StartDate = format(StartDate, date_format),
+      EndDate = format(EndDate, date_format),
       ApprovedSw = 'TRUE',
-      AdditiveSw = 'TRUE',
+      AdditiveSw = case_when(
+        impact_toggle == 'swap' ~ 'TRUE',
+        impact_toggle == 'add' ~ 'TRUE',
+        impact_toggle == 'max' ~ 'FALSE'
+      ),
       `CLEANSE HIST` = 'TRUE',
       `REPLACE PRES/DISPLAY` = 'FALSE',
       Priority,
@@ -560,11 +606,11 @@ generate_header <- function(input_data) {
 }
 
 ## Generar el DETAIL.csv para cargar al sistema
-generate_detail <- function(output_data) {
+generate_detail <- function(output_data, date_format = '%Y-%m-%d') {
   output_data %>% 
     transmute(
       `*Promotion` = generate_promo_name(dept_nbr, user, feature_name),
-      `*StartDate` = StartDate,
+      `*StartDate` = format(StartDate, date_format),
       `*CID DMDUNIT NBR` = cid,
       `*DMDGroup` = '-',
       `*Loc` = generate_loc_id(store_nbr),
@@ -575,6 +621,34 @@ generate_detail <- function(output_data) {
       `SPMTL ORDER QTY` = 0,
       `DISPLAY QTY` = 0,
     )
+}
+
+## Generar input de ejemplo que siempre funcione
+generate_sample_input <- function(calendar_day) {
+  fcst_wks <- calendar_day %>% 
+    filter(date >= Sys.Date() + 0 & date <= Sys.Date() + 28) %>% 
+    pull(wm_yr_wk) %>%
+    range()
+  sales_wks <- calendar_day %>% 
+    filter(date >= Sys.Date() - 90 & date <= Sys.Date() - 60) %>% 
+    pull(wm_yr_wk) %>%
+    range()
+  tibble(
+    feature_name = c('MARUCHAN', 'MARUCHAN', 'MARUCHAN', 'MARUCHAN', 'MARUCHAN_MINI', 'MARUCHAN_MINI'),
+    user = 'm1234xy',
+    dept_nbr = 95,
+    negocio = 'BAE',
+    old_nbr = c(9506783, 9506804, 9574857, 9506748, 9574857, 9506748),
+    min_feature_qty = c(600, 600, 600, 600, 300, 300),
+    max_feature_qty = c(3000, 3000, 3000, 3000, 2000, 2000),
+    max_ddv = 30,
+    fcst_or_sales = c('S', 'S', 'S', 'S', 'F', 'F'),
+    semana_ini = c(rep(sales_wks[1], 4), rep(fcst_wks[1], 2)),
+    semana_fin = c(rep(sales_wks[2], 4), rep(fcst_wks[2], 2)),
+    StartDate = c(rep(Sys.Date() + 7, 4), rep(Sys.Date() + 14, 2)),
+    EndDate = c(rep(Sys.Date() + 35, 4), rep(Sys.Date() + 49, 2)),
+    Priority = 12
+  )
 }
 
 # Server ------------------------------------------------------------------
@@ -660,7 +734,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
         )
         flog.warn(toJSON(list(
           session_info = msg_cred(credentials()),
-          message = 'USER LOGIN FAILED',
+          message = 'TERADATA LOGIN FAILED',
           details = list(
             user = input$user
           )
@@ -679,7 +753,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
       })
       flog.info(toJSON(list(
         session_info = msg_cred(credentials()),
-        message = 'USER LOGOUT SUCCESSFUL',
+        message = 'TERADATA LOGOUT SUCCESSFUL',
         details = list(
           user = input$user
         )
@@ -690,6 +764,13 @@ computePromotionsServer <- function(input, output, session, credentials) {
   
   ## Leer input
   observeEvent(input$items, {
+    ## Resetear primero
+    r$items_file <- NULL
+    r$items <- NULL
+    graph_table(NULL)
+    query_result(NULL)
+    r$query_was_tried <- NULL
+    ## Luego actualizar items
     r$items_file <- input$items$datapath
   })
   observe({
@@ -702,7 +783,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
         file = r$items_file
       )
     )))
-    val <- parse_input(r$items_file, gl = gl, calendar_day = calendar_day, ch = r$ch, date_format = input$date_format)
+    val <- parse_input(r$items_file, gl = gl, calendar_day = calendar_day, date_format = input$date_format)
     if (!is.data.frame(val)) {
       shinyalert(
         type = "error", 
@@ -735,16 +816,26 @@ computePromotionsServer <- function(input, output, session, credentials) {
   graph_table <- reactiveVal(NULL)
   sales_graph_flag <- reactiveVal(FALSE)
   sales_graph_trigger <- reactiveVal(0)
-  
+  items_changed_toggle <- reactiveVal(FALSE)
+  # graph_toggle <- debounce(reactive(input$graph_toggle), millis = 2000)
+  observeEvent(r$items, {
+    ## Esto sirve para detectar si lo que cambió fue r$items o el botón de
+    ## mostrar gráfica. Si sólo cambió el botón, no hace falta correr el query
+    ## de nuevo
+    items_changed_toggle(TRUE)
+  })
   observe({
-    req(r$items)
-    if (isolate(sales_graph_flag()) == FALSE) {
-      sales_graph_flag(TRUE)
-      invalidateLater(500)
-    } else {
-      sales_graph_flag(FALSE)
-      # Correr query para descargar info para gráfica y asignar a variable
-      isolate(sales_graph_trigger(sales_graph_trigger() + 1))
+    req(isTRUE(items_changed_toggle()))
+    if (input$graph_toggle) {
+      if (isolate(sales_graph_flag()) == FALSE) {
+        sales_graph_flag(TRUE)
+        invalidateLater(500)
+      } else {
+        sales_graph_flag(FALSE)
+        items_changed_toggle(FALSE)
+        # Correr query para descargar info para gráfica y asignar a variable
+        isolate(sales_graph_trigger(sales_graph_trigger() + 1))
+      }
     }
   })
   
@@ -752,7 +843,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
     req(sales_graph_trigger() > 0)
     flog.info(toJSON(list(
       session_info = msg_cred(credentials()),
-      message = 'DOWNLOADING SALES GRAPH DATA',
+      message = 'RUNNING SALES GRAPH QUERY',
       details = list()
     )))
     is_dev <- !is.null(r$ch)
@@ -760,6 +851,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
     usr <- input$user
     pwd <- input$password
     future({
+      # init_log(log_dir)
       if (is_dev) {
         future_ch <- RODBC::odbcDriverConnect(sprintf("Driver={Teradata};DBCName=WM3;AUTHENTICATION=ldap;AUTHENTICATIONPARAMETER=%s", paste0(usr, '@@', pwd)))
       } else {
@@ -776,36 +868,78 @@ computePromotionsServer <- function(input, output, session, credentials) {
         shiny::need(!is.null(r$items_file), lang$need_items_file) %then%
         shiny::need(!is.null(r$items), lang$need_valid_input)
     )
-    r$items
-  }, options = list(
-    filter = 'top',
-    scrollX = TRUE,
-    scrollY = '300px'
-  ))
+    r$items %>% 
+      mutate_at(intersect(gl$output_character_cols, names(.)), as.character) %>%
+      datatable(
+        filter = 'top',
+        options = list(
+          scrollX = TRUE,
+          scrollY = ifelse(input$graph_toggle, '150px', '600px'),
+          pageLength = 100
+        )
+      )
+  })
   
   output$hr <- renderUI({
     req(r$items)
+    req(isTRUE(input$graph_toggle))
     tags$hr()
   })
   
   output$input_grafica_ventas <- renderUI({
     req(r$items)
+    req(is.data.frame(graph_table()))
+    req(isTRUE(input$graph_toggle))
     ns <- session$ns
-    choices <- r$items %>%
-      mutate(combinacion = paste(old_nbr, '-', negocio)) %>%
-      pull(combinacion) %>%
-      unique()
-    selectInput(ns('input_grafica_ventas'), lang$grafica_ventas, choices = choices)
+    info <- graph_table() %>%
+      distinct_at(c('old_nbr', 'negocio', 'primary_desc'))
+    choices <- r$items %>% 
+      left_join(info, by = c('old_nbr', 'negocio')) %>% 
+      group_by(feature_name) %>% 
+      filter(sum(!is.na(primary_desc)) > 0) %>% 
+      ungroup() %>% 
+      transmute(
+        name = paste0(negocio, ' - ', ifelse(is.na(primary_desc), lang$no_info, primary_desc), ' (', old_nbr, ')'),
+        combinacion = paste(old_nbr, '-', negocio)
+      ) %>%
+      distinct() %>% 
+      deframe()
+    tags$div(
+      class = 'inline-inputs',
+      tags$div(
+        style = 'margin-right: 20px',
+        selectInput(ns('input_grafica_ventas'), lang$grafica_ventas, choices = choices, width = '400px')
+      ),
+      selectInput(
+        ns('agg_grafica_ventas'),
+        lang$agg_grafica_ventas,
+        choices = c('avg', 'sum') %>% set_names(lang$agg_grafica_ventas_names)
+      )
+    )
   })
   
   ## Grafica reactiva
   output$grafica_ventas <- renderPlotly({
+    if (identical(graph_table(), 1)) {
+      flog.warn(toJSON(list(
+        session_info = msg_cred(credentials()),
+        message = 'SALES GRAPH QUERY FAILED',
+        details = list()
+      )))
+    }
+    
     shiny::validate(
       shiny::need(r$is_open || gl$app_deployment_environment == 'prod', '') %then%
-        shiny::need(!is.null(r$items), '') %then%
+        shiny::need(!is.null(r$items) && isTRUE(input$graph_toggle), '') %then%
         shiny::need(!is.null(graph_table()), lang$plotting) %then%
-        shiny::need(graph_table() != 1, lang$need_query_result)
+        shiny::need(is.data.frame(graph_table()), lang$need_query_result) %then%
+        shiny::need(input$input_grafica_ventas, '')
     )
+    flog.info(toJSON(list(
+      session_info = msg_cred(credentials()),
+      message = 'GENERATING SALES GRAPH',
+      details = list()
+    )))
     
     df <- graph_table() %>% 
       filter(paste(old_nbr, '-', negocio) == input$input_grafica_ventas) %>% 
@@ -836,6 +970,14 @@ computePromotionsServer <- function(input, output, session, credentials) {
       df <- bind_rows(ventas,
                       forecast %>% head(1) %>% mutate(type = "Ventas"),
                       forecast) %>% 
+        mutate(
+          wkly_qty = case_when(
+            input$agg_grafica_ventas == 'avg' ~ wkly_qty / n_stores,
+            input$agg_grafica_ventas == 'sum' ~ wkly_qty,
+            TRUE ~ wkly_qty / n_stores
+          ),
+          dly_qty = wkly_qty / 7
+        ) %>% 
         arrange(wm_yr_wk)
       
       # Lineas verticales de la gráfica
@@ -869,14 +1011,24 @@ computePromotionsServer <- function(input, output, session, credentials) {
               x = ~date, 
               y = ~wkly_qty,
               hoverinfo = 'text',
-              text = ~sprintf("Fecha: %s<br>Semana WM: %s<br>%s: %s", date, wm_yr_wk, ifelse(type == 'Forecast', 'Forecast', 'Venta'), scales::comma(wkly_qty, accuracy = 1)),
+              text = ~sprintf(
+                "Fecha: %s<br>Semana WM: %s<br>%s %s: %s<br>%s %s: %s",
+                date,
+                wm_yr_wk,
+                type,
+                ifelse(type == 'Ventas', 'semanales', 'semanal'),
+                scales::comma(wkly_qty, accuracy = 1),
+                type,
+                ifelse(type == 'Ventas', 'diarias', 'diario'),
+                scales::comma(dly_qty, accuracy = 0.1)
+              ),
               color = ~type,
               colors = (c('blue', 'orange') %>% setNames(c('Ventas', 'Forecast')))
       ) %>%
         add_lines() %>% 
         layout(
           title = list(
-            text = "Ventas semanales (piezas)"
+            text = sprintf("Ventas semanales en piezas (%s)", lang$agg_grafica_ventas_names[input$agg_grafica_ventas])
             #x = 0.07
           ),
           xaxis = list(
@@ -940,6 +1092,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
     usr <- input$user
     pwd <- input$password
     future({
+      # init_log(log_dir)
       if (is_dev) {
         ## Las conexiones no se pueden exportar a otros procesos de R, así que se tiene que generar una nueva conexión
         ## Ver: https://cran.r-project.org/web/packages/future/vignettes/future-4-issues.html
@@ -961,11 +1114,6 @@ computePromotionsServer <- function(input, output, session, credentials) {
   good_features_rv <- reactiveVal()
   observeEvent(query_result(), {
     req(query_result()$data)
-    flog.info(toJSON(list(
-      session_info = msg_cred(isolate(credentials())),
-      message = 'PERFORMING COMPUTATIONS',
-      details = list()
-    )))
     feature_info <- get_empty_features(query_result()$data, isolate(r$items))
     good_features <- with(feature_info, feature_name[!is_empty])
     empty_features <- with(feature_info, feature_name[is_empty])
@@ -988,14 +1136,27 @@ computePromotionsServer <- function(input, output, session, credentials) {
   ### Ahora sí cálculos
   final_result <- eventReactive({
     input$min_feature_qty_toggle
+    input$sspres_benchmark_toggle
+    input$impact_toggle
     r$final_result_trigger
   }, {
     req(r$final_result_trigger > 0)
     req(query_result()$data)
     if (length(good_features_rv()) > 0) {
+      flog.info(toJSON(list(
+        session_info = msg_cred(isolate(credentials())),
+        message = 'PERFORMING COMPUTATIONS',
+        details = list()
+      )))
       good_data <- query_result()$data %>% 
         filter(feature_name %in% good_features_rv())
-      purrr::safely(perform_computations)(good_data, query_result()$data_ss, input$min_feature_qty_toggle)$result
+      purrr::safely(perform_computations)(
+        data = good_data,
+        data_ss = query_result()$data_ss,
+        min_feature_qty_toggle = input$min_feature_qty_toggle,
+        sspres_benchmark_toggle = input$sspres_benchmark_toggle,
+        impact_toggle = input$impact_toggle
+      )$result
     } else {
       NULL
     }
@@ -1009,8 +1170,8 @@ computePromotionsServer <- function(input, output, session, credentials) {
   })
   need_query_ready <- reactive({
     shiny::need(r$query_was_tried, lang$need_run) %then%
-      shiny::need(!is.null(query_result()$data), lang$need_query_result) %then%
-      shiny::need(!is.null(final_result()), lang$need_final_result)
+      shiny::need(is.data.frame(query_result()$data), lang$need_query_result) %then%
+      shiny::need(is.data.frame(final_result()), lang$need_final_result)
   })
   need_histogram_ready <- reactive({
     shiny::need(!is.null(histogram_data()), lang$need_final_result) %then%
@@ -1027,13 +1188,14 @@ computePromotionsServer <- function(input, output, session, credentials) {
       percent_columns <- c('feature_perc_pos_or_fcst')
       decimal_columns <- c('avg_dly_pos_or_fcst', 'feature_qty_req_min',	'feature_qty_req', 'feature_ddv_req', 'feature_qty_pre', 'feature_ddv_pre', 'feature_qty_pre_tot', 'feature_ddv_fin', 'feature_qty_fin', 'display_key', 'store_cost', 'vnpk_fin', 'cost')
       final_result() %>%
-        mutate(store_nbr = as.character(store_nbr)) %>% 
+        mutate_at(intersect(gl$output_character_cols, names(.)), as.character) %>% 
         mutate_at(vars(percent_columns), list(~100 * .)) %>%
         datatable(
           filter = 'top',
           options = list(
             scrollX = TRUE,
-            scrollY = '400px'
+            scrollY = '500px',
+            pageLength = 100
           )
         ) %>%
         formatCurrency(columns = decimal_columns, digits = 1, currency = '') %>%
@@ -1054,18 +1216,16 @@ computePromotionsServer <- function(input, output, session, credentials) {
         need_query_ready()
     )
     tryCatch({
-      datatable(
-        if ('store_nbr' %in% input$summary_groups) {
-          summary_table() %>% mutate(store_nbr = as.character(store_nbr))
-        } else {
-          summary_table()
-        },
-        filter = 'top',
-        options = list(
-          scrollX = TRUE,
-          scrollY = '400px'
-        )
-      ) %>%
+      summary_table() %>% 
+        mutate_at(intersect(gl$output_character_cols, names(.)), as.character) %>% 
+        datatable(
+          filter = 'top',
+          options = list(
+            scrollX = TRUE,
+            scrollY = '500px',
+            pageLength = 100
+          )
+        ) %>%
         formatCurrency(columns = str_subset(names(summary_table()), '^(total|avg)_'), digits = 1, currency = '')
     }, error = function(e){
       NULL
@@ -1073,9 +1233,9 @@ computePromotionsServer <- function(input, output, session, credentials) {
   })
   
   output$output_feature_select_ui <- renderUI({
-    req(query_result())
+    req(final_result())
     ns <- session$ns
-    choices <- query_result()$data %>% 
+    choices <- final_result() %>% 
       pull(feature_name) %>%
       unique() %>% 
       sort()
@@ -1139,11 +1299,13 @@ computePromotionsServer <- function(input, output, session, credentials) {
       decimal_columns <- str_subset(names(histogram_data()), '^(n|total|avg)_')
       histogram_data() %>%
         mutate_at(vars(percent_columns), list(~100 * .)) %>%
+        mutate_at(intersect(gl$output_character_cols, names(.)), as.character) %>% 
         datatable(
           filter = 'none',
           options = list(
             scrollX = TRUE,
-            scrollY = '200px'
+            scrollY = '200x',
+            pageLength = 20
           )
         ) %>%
         formatCurrency(columns = decimal_columns, digits = 1, currency = '') %>%
@@ -1153,7 +1315,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
     })
   })
   
-  ## Reset
+  ## Reset con botón
   observeEvent(input$reset, {
     r$reset_trigger <- r$reset_trigger + 1
   })
@@ -1177,6 +1339,11 @@ computePromotionsServer <- function(input, output, session, credentials) {
       sprintf('estrategias_%s.csv', Sys.Date())
     },
     content = function(file) {
+      flog.info(toJSON(list(
+        session_info = msg_cred(credentials()),
+        message = 'DOWNLOADING COMPUTATIONS FILE',
+        details = list()
+      )))
       write_excel_csv(final_result(), path = file, na = '')
     },
     contentType = 'text/csv'
@@ -1193,6 +1360,11 @@ computePromotionsServer <- function(input, output, session, credentials) {
       sprintf('resumen_%s.csv', Sys.Date())
     },
     content = function(file) {
+      flog.info(toJSON(list(
+        session_info = msg_cred(credentials()),
+        message = 'DOWNLOADING SUMMARY FILE',
+        details = list()
+      )))
       write_excel_csv(summary_table(), path = file, na = '')
     },
     contentType = 'text/csv'
@@ -1224,6 +1396,17 @@ computePromotionsServer <- function(input, output, session, credentials) {
     ))
   }, ignoreInit = TRUE)
   
+  ## Variables reactivas para poder reusar
+  header <- reactive({
+    req(r$items)
+    r$items %>% 
+      generate_header(date_format = input$date_format, impact_toggle = input$impact_toggle)
+  })
+  detail <- reactive({
+    req(final_result())
+    final_result() %>% 
+      generate_detail(date_format = input$date_format)
+  })
   ## Descargar HEADER
   output$download_header_ui <- renderUI({
     req(r$items)
@@ -1233,8 +1416,12 @@ computePromotionsServer <- function(input, output, session, credentials) {
   output$download_header <- downloadHandler(
     filename = sprintf('HEADER_%s.csv', Sys.Date()),
     content = function(file) {
-      r$items %>% 
-        generate_header() %>% 
+      flog.info(toJSON(list(
+        session_info = msg_cred(credentials()),
+        message = 'DOWNLOADING HEADER FILE',
+        details = list()
+      )))
+     header() %>% 
         write_excel_csv(path = file, na = '')
     },
     contentType = 'text/csv'
@@ -1249,8 +1436,23 @@ computePromotionsServer <- function(input, output, session, credentials) {
   output$download_detail <- downloadHandler(
     filename = sprintf('DETAIL_%s.csv', Sys.Date()),
     content = function(file) {
-      final_result() %>% 
-        generate_detail() %>% 
+      flog.info(toJSON(list(
+        session_info = msg_cred(credentials()),
+        message = 'DOWNLOADING DETAIL FILE',
+        details = list()
+      )))
+      data_files <- list(
+        header = header(),
+        detail = detail(),
+        items = r$items,
+        params = list(
+          impact_toggle = input$impact_toggle,
+          min_feature_qty_toggle = input$min_feature_qty_toggle,
+          sspres_benchmark_toggle = input$sspres_benchmark_toggle
+        )
+      )
+      save_files(data_files = data_files, gl = gl, credentials = credentials())
+      detail() %>% 
         write_excel_csv(path = file, na = '')
     },
     contentType = 'text/csv'
@@ -1266,10 +1468,10 @@ computePromotionsUI <- function(id) {
   
   if (gl$app_deployment_environment == 'dev') {
     login <- tagList(
+      h3(lang$login),
       textInput(ns('user'), lang$user),
       passwordInput(ns('password'), lang$password),
-      uiOutput(ns('auth_ui')),
-      tags$hr()
+      uiOutput(ns('auth_ui'))
     )
   } else {
     login <- NULL
@@ -1279,6 +1481,10 @@ computePromotionsUI <- function(id) {
     box(
       width = 2,
       login,
+      h3(
+        lang$compute_promotions_inputs,
+        title = lang$compute_promotions_inputs_title
+      ),
       selectInput(ns('date_format'), lang$date_format, c('yyyy-mm-dd' = '%Y-%m-%d',
                                                          'dd/mm/yyyy' = '%d/%m/%Y',
                                                          'mm/dd/yyyy' = '%m/%d/%Y')),
@@ -1291,13 +1497,46 @@ computePromotionsUI <- function(id) {
       tags$div(
         class = 'input-margin',
         actionButton(ns('run'), lang$run, icon = icon('play')),
-        actionButton(ns('reset'), lang$reset, icon = icon('redo-alt'))
+        actionButton(ns('reset'), lang$reset, icon = icon('redo-alt')),
+        tags$div(
+          title = lang$input_grafica_ventas_title,
+          checkboxInput(ns('graph_toggle'), lang$graph_toggle, value = FALSE)
+        )
       ),
-      radioButtons(
-        ns('min_feature_qty_toggle'),
-        label = lang$min_feature_qty_toggle,
-        choices = c('none', 'round_down', 'round_up') %>%
-          set_names(c(lang$toggle_none, lang$toggle_round_down, lang$toggle_round_up))
+      h3(
+        lang$compute_promotions_computation_parameters,
+        title = lang$compute_promotions_computation_parameters_title
+      ),
+      tags$div(
+        title = lang$min_feature_qty_toggle_title,
+        selectInput(
+          ns('min_feature_qty_toggle'),
+          label = lang$min_feature_qty_toggle,
+          choices = c('none', 'round_down', 'round_up') %>%
+            set_names(lang$min_feature_qty_toggle_names)
+        )
+      ),
+      h3(
+        lang$compute_promotions_impact_parameters,
+        title = lang$compute_promotions_impact_parameters_title
+      ),
+      tags$div(
+        title = lang$sspres_benchmark_toggle_title,
+        selectInput(
+          ns('sspres_benchmark_toggle'),
+          label = lang$sspres_benchmark_toggle,
+          choices = c('none', 'current', 'future') %>% 
+            set_names(lang$sspres_benchmark_toggle_names)
+        )
+      ),
+      tags$div(
+        title = lang$impact_toggle_title,
+        selectInput(
+          ns('impact_toggle'),
+          label = lang$impact_toggle,
+          choices = c('swap', 'add', 'max') %>% 
+            set_names(lang$impact_toggle_names)
+        )
       )
     ),
     tabBox(
@@ -1320,7 +1559,7 @@ computePromotionsUI <- function(id) {
           checkboxGroupInput(
             ns('summary_groups'),
             label = lang$summary_groups,
-            choices = c('feature_name', 'cid', 'store_nbr', 'dc') %>% 
+            choices = c('feature_name', 'cid', 'store_nbr', 'dc_nbr') %>% 
               set_names(c(lang$feature_name, lang$cid, lang$store_nbr, lang$dc)),
             selected = c('feature_name', 'cid'),
             inline = TRUE

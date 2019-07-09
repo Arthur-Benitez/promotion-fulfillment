@@ -6,15 +6,8 @@ require(shinydashboard)
 shinyServer(function(input, output, session){
   
   ## Logging
-  if (!dir.exists(paste0(gl$app_deployment_environment, '/log/'))) {
-    dir.create(paste0(gl$app_deployment_environment, '/log/'))
-  }
-  flog.logger(
-    name = 'ROOT',
-    threshold = INFO,
-    appender = appender.tee(paste0(gl$app_deployment_environment, '/log/', as.character(Sys.Date()), '.log'))
-  )
-  
+  log_dir <- paste0(gl$app_deployment_environment, '/log/')
+  init_log(log_dir)
   
   output$logout_button <- renderUI({
     logoutUI('logout')
@@ -94,6 +87,21 @@ shinyServer(function(input, output, session){
     } else {
       updateTabItems(session, 'menu', 'login')
     }
+  })
+  
+  ## Ayuda
+  observeEvent(input$help, {
+    shinyalert(
+      title = lang$help_title,
+      text = includeHTML('html/help.html'),
+      type = 'info',
+      html = TRUE,
+      closeOnEsc = TRUE,
+      closeOnClickOutside = TRUE,
+      showCancelButton = FALSE,
+      showConfirmButton = TRUE,
+      confirmButtonText = lang$ok
+    )
   })
   
   ## Login
