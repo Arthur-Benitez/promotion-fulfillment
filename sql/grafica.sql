@@ -26,19 +26,19 @@ STORE AS (
 -- Aqui *NO* se debe aplicar los filtros de validez
 XREF AS (
   SELECT
-    A.PRIME_XREF_ITEM_NBR,
+    PRIME_XREF_ITEM_NBR,
     ITEM_NBR
   FROM
     MX_CF_VM.ITEM A
-    INNER JOIN (
-      SELECT
+  WHERE
+    PRIME_XREF_ITEM_NBR IN (
+      SELECT DISTINCT
         PRIME_XREF_ITEM_NBR
       FROM
         MX_CF_VM.ITEM
       WHERE
         OLD_NBR IN (?OLD_NBRS)
-      ) AS B
-      ON A.PRIME_XREF_ITEM_NBR = B.PRIME_XREF_ITEM_NBR
+    )
 ),
 
 CURRWK AS (
