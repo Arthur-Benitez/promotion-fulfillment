@@ -7,6 +7,7 @@ lang <- list(
   recover_password = 'Recuperar contraseña',
   login = 'Iniciar sesión',
   logout = 'Cerrar sesión',
+  logout_timeout_info = 'Minutos hasta que se cierre la sesión automáticamente.',
   wrong_user_or_password = 'Usuario o contraseña incorrectos',
   old_password = 'Contraseña anterior',
   new_password_1 = 'Contraseña nueva',
@@ -36,6 +37,7 @@ lang <- list(
   promo = 'Calculadora de Promociones',
   login = 'Login',
   logout = 'Logout',
+  auto_logout_title = 'La sesión se cerró por inactividad',
   password_update = 'Actualizar contraseña',
   user_management = 'Administrar usuarios',
   button = 'Aplicar',
@@ -51,9 +53,21 @@ lang <- list(
   weeks = 'Semanas',
   months = 'Meses',
   years = 'Años',
+  help_title = 'Ayuda',
   ## Compute Promotions
+  compute_promotions_inputs = 'Inputs',
+  compute_promotions_inputs_title = 'Controles principales. Para más ayuda haz click en "(?) Instrucciones".',
+  compute_promotions_computation_parameters = 'Exhibiciones',
+  compute_promotions_computation_parameters_title = 'Parámetros que afectan el cálculo de las exhibiciones.',
+  compute_promotions_impact_parameters = 'Impacto',
+  compute_promotions_impact_parameters_title = 'Parámetros que afectan el cálculo de impacto.',
   date_format = 'Formato de fechas',
   grafica_ventas = 'Old_nbr - Formato',
+  no_info = 'SIN INFORMACIÓN',
+  input_grafica_ventas_title = 'Mostrar gráfica informativa de ventas y forecast.',
+  agg_grafica_ventas = 'Sumarización',
+  agg_grafica_ventas_names = c('avg' = 'Promedio por tienda', 'sum' = 'Total'),
+  graph_toggle = 'Gráfica de ventas/forecast',
   items = 'Items',
   browse = 'Archivo...',
   browse_empty = 'Seleccionar un archivo',
@@ -74,10 +88,23 @@ lang <- list(
   running_computations = 'Realizando cálculos...',
   plotting = 'Cargando gráfica de ventas...',
   item_error = 'Esta combinación no tiene información :(',
+  
   min_feature_qty_toggle = 'Lógica mínimo',
-  toggle_none = 'No hacer nada',
-  toggle_round_down = 'Conservadora (qty < min ==> qty := 0)',
-  toggle_round_up = 'Agresiva (qty < min ==> qty := min)',
+  min_feature_qty_toggle_title = '¿Qué hacer con las tiendas que no llegan a min_feature_qty con los días de venta?',
+  min_feature_qty_toggle_names = c('No hacer nada', 'Conservadora (qty < min ==> qty := 0)', 'Agresiva (qty < min ==> qty := min)'),
+  
+  sspres_benchmark_toggle = 'SSPres Comparativo',
+  sspres_benchmark_toggle_title = '¿Contra qué SSPres comparar las sugerencias?',
+  sspres_benchmark_toggle_names = c(
+    'No comparar (SSPres = 0)',
+    'Comparar vs SSPres actual',
+    'Comparar vs SSPres futuro (NO IMPLEMENTADO AÚN)'
+  ),
+  
+  impact_toggle = 'Acción SSPres',
+  impact_toggle_title = '¿Qué hacer con el SSPres cargado?',
+  impact_toggle_names = c('Sustituir (+ Additive = TRUE)', 'Sumar (+ Additive = TRUE)', 'Competir (+ Additive = FALSE)'),
+  
   ## Validation
   need_items_file = 'Cargar un archivo de items para comenzar.',
   need_auth = 'Iniciar sesión para continuar.',
@@ -101,3 +128,6 @@ lang <- list(
 )
 
 lang$need_valid_input <- paste0('El archivo de items no está en el formato correcto.\n', lang$need_input_format)
+
+## Necesario para que siempre se lean bien los encodings. Si no, de repente hay textos que no se interpretan bien...
+lang <- map(lang, enc2native)

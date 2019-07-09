@@ -14,7 +14,15 @@ header <- dashboardHeader(
       # tags$p(id = 'app-description', 'XXXXXXX')
     )
   ),
-  tags$li(class = 'dropdown', uiOutput('logout_button'))
+  tags$li(
+    id = 'header-icons',
+    class = 'dropdown',
+    tags$div(
+      title = lang$help_title,
+      actionButton('help', '', icon = icon('question-circle'), class = 'header-icon')
+    ),
+    uiOutput('logout_button')
+  )
 )
 
 sidebar <- dashboardSidebar(

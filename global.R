@@ -143,7 +143,21 @@ gl <- list(
     'OTRO'
   ),
   max_input_rows = 100,
-  max_input_queries = 10
+  max_input_queries = 10,
+  output_character_cols = c(
+    'dept_nbr',
+    'old_nbr',
+    'cid',
+    'item_nbr',
+    'fineline',
+    'semana_ini',
+    'semana_fin',
+    'store_nbr',
+    'dc_nbr',
+    'vendor9_nbr',
+    'open_status',
+    'sub_tipo'
+  )
 )
 gl$app_version_text <- sprintf('Versión %s (%s)', gl$app_version, gl$app_version_date)
 gl$feature_const_cols <- gl$cols$name[gl$cols$is_constant_by_feature]

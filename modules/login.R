@@ -475,19 +475,26 @@ logoutServer <- function(input, output, session, user_auth, active) {
   output$ui <- renderUI({
     ns <- session$ns
     if (user_auth()) {
-      button <- shiny::actionButton(ns("button"), lang$logout, class = "btn-danger")
+      button <- shiny::actionButton(ns("button"), '', icon = icon('power-off'), class = "header-icon")
     } else {
       button <- NULL
     }
     tags$div(
-      class = 'logout-info',
-      tags$div(textOutput(ns('counter')), class = 'logout-timeout-info'),
-      button
+      id = 'header-icons',
+      tags$div(
+        title = lang$logout_timeout_info,
+        class = 'header-text',
+        textOutput(ns('counter'))
+      ),
+      tags$div(
+        title = lang$logout,
+        button
+      )
     )
   })
   ## Contador de tiempo hasta logout automático
-  counter_millis <- 60000
-  counter_max <- 20
+  counter_sec <- 60
+  counter_max <- 60 * 20
   rv <- reactiveValues(
     counter = counter_max
   )
@@ -495,17 +502,21 @@ logoutServer <- function(input, output, session, user_auth, active) {
   observeEvent(user_auth() + active() + input$button, {
     rv$counter <- counter_max
   })
-  ## Se restan un contador cada counter_millis
-  timer <- reactiveTimer(counter_millis)
+  ## Se restan un contador cada counter_sec
+  timer <- reactiveTimer(1000)
   observeEvent(timer(), {
     rv$counter <- rv$counter - 1
     if (rv$counter <= 0) {
+      shinyalert(
+        title = lang$auto_logout_title,
+        type = 'info'
+      )
       session$close()
     }
   })
   output$counter <- renderText({
-    s <- if (rv$counter == 1) '' else 's'
-    sprintf('La sesión se cerrará automáticamente en %d minuto%s.', as.numeric(rv$counter), s)
+    s <- ifelse(rv$counter < counter_sec, '"', "'")
+    sprintf("%d%s", rv$counter %/% ifelse(rv$counter < counter_sec, 1, counter_sec), s)
   })
   shiny::reactive({input$button})
 }
