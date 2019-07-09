@@ -163,11 +163,11 @@ validate_input <- function(data, gl, calendar_day) {
 
 ## Función para guardar los archivos relevantes
 save_files <- function(data_files, gl, credentials) {
-  user_download_history <- sprintf('%s/download_history/%s', gl$app_deployment_environment, credentials$user)
+  user_download_history <- file.path(gl$app_deployment_environment, 'download_history', credentials$user)
   if (!dir.exists(user_download_history)) {
     dir.create(user_download_history, recursive = TRUE)
   }
-  saveRDS(data_files, file = sprintf('%s/data_files_%s.rds', user_download_history, format(Sys.time(), "%Y_%m_%d_%H-%M-%S", tz = 'America/Mexico_City')))
+  saveRDS(data_files, file = file.path(user_download_history, sprintf('data_files_%s.rds', format(Sys.time(), "%Y-%m-%d_%H-%M-%S", tz = 'America/Mexico_City'))))
 }
 
 ## Correr query
