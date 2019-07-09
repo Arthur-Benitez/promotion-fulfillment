@@ -178,7 +178,7 @@ prepare_query <- function(query, keys, old_nbrs, wk_inicio, wk_final) {
     str_replace_all('\\?WK_INICIO', as.character(wk_inicio)) %>% 
     str_replace_all('\\?WK_FINAL', as.character(wk_final)) %>% 
     str_subset('^\\s*--', negate = TRUE) %>%  #quitar lineas de comentarios
-    str_replace_all('[^[:ascii:]]', '') %>% # quitar no ASCII porque truena en producción
+    stringi::stri_trans_general('ASCII') %>% # quitar no ASCII porque truena en producción
     paste(collapse = '\n')
 }
 run_query_once <- function(ch, input_data, connector = 'production-connector') {
@@ -247,6 +247,7 @@ get_graph_data <- function(ch, input, calendar_day) {
     str_replace_all('\\?OLD_NBRS', paste(old_nbrs, collapse = ",")) %>%
     str_replace_all('\\?NEGOCIO', paste0("'", paste(negocios, collapse = "','"), "'")) %>%
     str_subset('^\\s*--', negate = TRUE) %>%  #quitar lineas de comentarios
+    stringi::stri_trans_general('ASCII') %>% # quitar no ASCII porque truena en producción
     paste(collapse = '\n')
   
   tryCatch({
@@ -280,6 +281,7 @@ search_ss_once <- function(ch, input_data_ss, connector = 'production-connector'
     str_replace_all('\\?START_DATE', start_date) %>% 
     str_replace_all('\\?END_DATE', end_date) %>% 
     str_subset('^\\s*--', negate = TRUE) %>%  #quitar lineas de comentarios
+    stringi::stri_trans_general('ASCII') %>% # quitar no ASCII porque truena en producción
     paste(collapse = '\n')
   
   tryCatch({
