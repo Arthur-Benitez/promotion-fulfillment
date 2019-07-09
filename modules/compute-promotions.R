@@ -1396,6 +1396,17 @@ computePromotionsServer <- function(input, output, session, credentials) {
     ))
   }, ignoreInit = TRUE)
   
+  ## Variables reactivas para poder reusar
+  header <- reactive({
+    req(r$items)
+    r$items %>% 
+      generate_header(date_format = input$date_format, impact_toggle = input$impact_toggle)
+  })
+  detail <- reactive({
+    req(final_result())
+    final_result() %>% 
+      generate_detail(date_format = input$date_format)
+  })
   ## Descargar HEADER
   output$download_header_ui <- renderUI({
     req(r$items)
@@ -1410,8 +1421,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
         message = 'DOWNLOADING HEADER FILE',
         details = list()
       )))
-      r$items %>% 
-        generate_header(date_format = input$date_format, impact_toggle = input$impact_toggle) %>% 
+     header() %>% 
         write_excel_csv(path = file, na = '')
     },
     contentType = 'text/csv'
@@ -1432,10 +1442,8 @@ computePromotionsServer <- function(input, output, session, credentials) {
         details = list()
       )))
       data_files <- list(
-        header = r$items %>% 
-          generate_header(date_format = input$date_format, impact_toggle = input$impact_toggle),
-        detail = final_result() %>% 
-          generate_detail(date_format = input$date_format),
+        header = header(),
+        detail = detail(),
         items = r$items,
         params = list(
           impact_toggle = input$impact_toggle,
@@ -1445,8 +1453,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
       )
       #browser()
       save_files(data_files = data_files, gl = gl, credentials = credentials())
-      final_result() %>% 
-        generate_detail(date_format = input$date_format) %>% 
+      detail() %>% 
         write_excel_csv(path = file, na = '')
     },
     contentType = 'text/csv'
