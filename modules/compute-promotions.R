@@ -1444,6 +1444,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
       data_files <- list(
         header = header(),
         detail = detail(),
+        calculus = final_result(),
         items = r$items,
         params = list(
           impact_toggle = input$impact_toggle,
