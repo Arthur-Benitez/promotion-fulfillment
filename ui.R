@@ -47,9 +47,11 @@ body <- dashboardBody(
   uiOutput('body')
 )
 
-dashboardPage(
-  title = lang$app_name,
-  header = header,
-  sidebar = sidebar,
-  body = body
-)
+function(req) {
+  dashboardPage(
+    title = lang$app_name,
+    header = header,
+    sidebar = sidebar,
+    body = body
+  )
+}
