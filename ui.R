@@ -41,17 +41,16 @@ body <- dashboardBody(
   useShinyjs(),
   useShinyalert(),
   tags$head(
-    tags$link(rel = 'stylesheet', type = 'text/css', href = 'theme.css'),
+    tags$link(rel = 'stylesheet', type = 'text/css', href = sprintf('theme.css?%s', Sys.time())),
+    # includeCSS('www/theme.css'), ## Alternativa que mete el CSS al HTML, por si se necesita
     tags$link(rel = 'stylesheet', href = 'https://fonts.googleapis.com/css?family=Bree+Serif|Coiny')
   ),
   uiOutput('body')
 )
 
-function(req) {
-  dashboardPage(
-    title = lang$app_name,
-    header = header,
-    sidebar = sidebar,
-    body = body
-  )
-}
+dashboardPage(
+  title = lang$app_name,
+  header = header,
+  sidebar = sidebar,
+  body = body
+)
