@@ -107,6 +107,22 @@ load_users <- function(user_data_path) {
     purrr::transpose()
 }
 
+## Verificar si existe un usuario
+user_exists <- function(username, user_data_path) {
+  users <- load_users(user_data_path)
+  user %in% map_chr(users, 'user')
+}
+
+## Regresar un usuario usando su nombre
+get_user <- function(username, user_data_path) {
+  usr <- load_users(user_data_path) %>% 
+    keep(~ .x$user == username)
+  if (length(usr) == 0) {
+    usr <- NULL
+  }
+  return(usr)
+}
+
 ## Guardar usuarios
 save_users <- function(users, user_data_path) {
   users %>% 
@@ -358,6 +374,23 @@ if (FALSE) {
     save_users(gl$user_data_path)
 }
 
+## Leer credenciales de HTTP_COOKIE (SSO login)
+sso_credentials <- function(session) {
+  cookies <- session$request$HTTP_COOKIE
+  if (is.null(cookies)) {
+    res <- NULL
+  } else {
+    res <- strsplit(cookies, " ")[[1]] %>% 
+      {keep(., ~ startsWith(.x, 'MLAuth'))[[1]]} %>% 
+      {strsplit(trimws(.), '=')[[1]][2]} %>% 
+      {strsplit(., '.', fixed = TRUE)[[1]][2]} %>% 
+      base64enc::base64decode() %>% 
+      rawToChar() %>% 
+      jsonlite::fromJSON()
+  }
+  return(res)
+}
+
 
 # Login -------------------------------------------------------------------
 
@@ -424,7 +457,25 @@ loginServer <- function(input, output, session, logout) {
   
   shiny::observeEvent(input$user_login, {
     ns <- session$ns
-    cred <- auth_user(input$user, input$password)
+    if (gl$app_deployment_environment == 'dev') {
+      cred <- list(
+        user_auth = TRUE,
+        user = input$user,
+        role = 'owner'
+      )
+    } else {
+      sso_cred <- sso_credentials(session)
+      if (is.null(sso_cred)) {
+        cred <- auth_user(input$user, input$password)
+      } else {
+        usr <- get_user(sso_cred$user, gl$user_data_path)
+        cred <- list(
+          user_auth = !is.null(usr),
+          user = usr$user,
+          role = usr$role
+        )
+      }
+    }
     futile.logger::flog.info(toJSON(list(
       session_info = msg_cred(shiny::reactiveValuesToList(credentials)),
       message = "ATTEMPTING USER LOGIN",
