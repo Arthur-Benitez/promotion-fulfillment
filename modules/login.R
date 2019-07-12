@@ -115,10 +115,13 @@ user_exists <- function(username, user_data_path) {
 
 ## Regresar un usuario usando su nombre
 get_user <- function(username, user_data_path) {
+  stopifnot(is.character(username) && length(username) == 1)
   usr <- load_users(user_data_path) %>% 
     keep(~ .x$user == username)
   if (length(usr) == 0) {
     usr <- NULL
+  } else {
+    usr <- usr[[1]]
   }
   return(usr)
 }
@@ -361,7 +364,7 @@ auth_user <- function(input_user, input_password) {
   }
   return(list(
     user_auth = FALSE,
-    user = NULL,
+    user = input_user,
     role = NULL
   ))
 }
@@ -388,6 +391,7 @@ sso_credentials <- function(session) {
       rawToChar() %>% 
       jsonlite::fromJSON()
   }
+  res$user <- str_replace(res$loginId, '.+\\\\', '')
   return(res)
 }
 
@@ -460,7 +464,7 @@ loginServer <- function(input, output, session, logout) {
     if (gl$app_deployment_environment == 'dev') {
       cred <- list(
         user_auth = TRUE,
-        user = input$user,
+        user = 'sam',
         role = 'owner'
       )
     } else {
@@ -471,20 +475,20 @@ loginServer <- function(input, output, session, logout) {
         usr <- get_user(sso_cred$user, gl$user_data_path)
         cred <- list(
           user_auth = !is.null(usr),
-          user = usr$user,
+          user = sso_cred$user,
           role = usr$role
         )
       }
     }
     futile.logger::flog.info(toJSON(list(
-      session_info = msg_cred(shiny::reactiveValuesToList(credentials)),
+      session_info = list(),
       message = "ATTEMPTING USER LOGIN",
       details = list(
-        credentials = cred
+        credentials = cred['user']
       )
     )))
     if (cred$user_auth) {
-      credentials$user_auth <- TRUE
+      credentials$user_auth <- cred$user_auth
       credentials$user <- cred$user
       credentials$role <- cred$role
       credentials$session <- uid()
@@ -497,9 +501,11 @@ loginServer <- function(input, output, session, logout) {
       )))
     } else {
       futile.logger::flog.warn(toJSON(list(
-        session_info = msg_cred(shiny::reactiveValuesToList(credentials)),
+        session_info = list(),
         message = "LOGIN FAILED",
-        details = list()
+        details = list(
+          credentials = cred['user']
+        )
       )))
       shinyjs::toggle(id = 'error', anim = TRUE, time = 1, animType = 'fade')
       shinyjs::delay(5000, shinyjs::toggle(id = "error", anim = TRUE, time = 1, animType = "fade"))
