@@ -37,6 +37,7 @@ lang <- list(
   promo = 'Calculadora de Promociones',
   login = 'Login',
   logout = 'Logout',
+  access_denied = 'Acceso denegado',
   auto_logout_title = 'La sesión se cerró por inactividad',
   password_update = 'Actualizar contraseña',
   user_management = 'Administrar usuarios',
@@ -128,6 +129,11 @@ lang <- list(
 )
 
 lang$need_valid_input <- paste0('El archivo de items no está en el formato correcto.\n', lang$need_input_format)
+lang$welcome <- sprintf('¡Bienvenid@ a %s!', lang$app_name)
+lang$welcome_text <- 'Para solicitar acceso a la herramienta o si tienes dudas, envía un correo con tu usuario a la liga '
+lang$email_name <- 'Replenishment Data Science MX'
+lang$email <- 'replen_ds_mx@email.wal-mart.com'
+lang$emailto <- paste0('mailto:', lang$email_name, '<', lang$email, '>')
 
 ## Necesario para que siempre se lean bien los encodings. Si no, de repente hay textos que no se interpretan bien...
 lang <- map(lang, enc2native)
