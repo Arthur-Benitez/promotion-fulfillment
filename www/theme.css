@@ -24,8 +24,12 @@
 
 /* Centrar login */
 .login-panel {
-  width: 30%;
+  width: 50%;
   margin: 200px auto;
+}
+
+.login-panel h1 {
+  font-size: 50px;
 }
 
 /* Display de botones */

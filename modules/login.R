@@ -405,28 +405,15 @@ loginUI <- function(id) {
     id = ns('panel'),
     class = 'login-panel',
     shiny::wellPanel(
-      shiny::h2(lang$login),
-      shiny::textInput(ns('user'), lang$user),
-      shiny::passwordInput(ns('password'), lang$password),
-      shiny::actionButton(ns('user_login'), lang$login),
+      shiny::h1(lang$welcome),
       shiny::tags$br(),
-      shiny::tags$br(),
-      actionLink(ns('recover_password'), lang$recover_password),
-      shinyjs::hidden(
-        shiny::div(
-          id = ns("error"),
-          shiny::tags$p(
-            lang$wrong_user_or_password,
-            style = "color: red; font-weight: bold; padding-top: 5px;", class = "text-center"
-          )
-        )
-      )
+      shiny::tags$h3(lang$welcome_text, shiny::tags$a(lang$email_name, href = lang$emailto))
     )
   )
 }
 
 ## Server
-loginServer <- function(input, output, session, logout) {
+loginServer <- function(input, output, session) {
   
   ## Ayuda: Recuperar contraseña
   observeEvent(input$recover_password, {
@@ -440,27 +427,7 @@ loginServer <- function(input, output, session, logout) {
   ## Login
   credentials <- shiny::reactiveValues(user_auth = FALSE)
   
-  shiny::observeEvent(logout(), {
-    futile.logger::flog.info(toJSON(list(
-      session_info = msg_cred(shiny::reactiveValuesToList(credentials)),
-      message = "LOGOUT SUCCESSFUL",
-      details = list(
-        session = credentials$session
-      )
-    )))
-    credentials$user_auth <- FALSE
-    credentials$user <- NULL
-    credentials$role <- NULL
-    credentials$session <- NULL
-  })
-  
-  ## Hide panel using JS
-  # shiny::observeEvent(credentials$user_auth, ignoreInit = TRUE, {
-  #   shinyjs::toggle(id = 'panel')
-  # })
-  
-  shiny::observeEvent(input$user_login, {
-    ns <- session$ns
+  observe({
     if (gl$app_deployment_environment == 'dev') {
       cred <- list(
         user_auth = TRUE,
@@ -470,7 +437,11 @@ loginServer <- function(input, output, session, logout) {
     } else {
       sso_cred <- sso_credentials(session)
       if (is.null(sso_cred)) {
-        cred <- auth_user(input$user, input$password)
+        cred <- list(
+          user_auth = FALSE,
+          user = NULL,
+          role = NULL
+        )
       } else {
         usr <- get_user(sso_cred$user, gl$user_data_path)
         cred <- list(
@@ -531,21 +502,12 @@ logoutUI <- function(id) {
 logoutServer <- function(input, output, session, user_auth, active) {
   output$ui <- renderUI({
     ns <- session$ns
-    if (user_auth()) {
-      button <- shiny::actionButton(ns("button"), '', icon = icon('power-off'), class = "header-icon")
-    } else {
-      button <- NULL
-    }
     tags$div(
       id = 'header-icons',
       tags$div(
         title = lang$logout_timeout_info,
         class = 'header-text',
         textOutput(ns('counter'))
-      ),
-      tags$div(
-        title = lang$logout,
-        button
       )
     )
   })
