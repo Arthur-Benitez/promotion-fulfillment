@@ -383,15 +383,22 @@ sso_credentials <- function(session) {
   if (is.null(cookies)) {
     res <- NULL
   } else {
-    res <- strsplit(cookies, " ")[[1]] %>% 
-      {keep(., ~ startsWith(.x, 'MLAuth'))[[1]]} %>% 
-      {strsplit(trimws(.), '=')[[1]][2]} %>% 
-      {strsplit(., '.', fixed = TRUE)[[1]][2]} %>% 
-      base64enc::base64decode() %>% 
-      rawToChar() %>% 
-      jsonlite::fromJSON()
+    res <- tryCatch({
+      strsplit(cookies, " ")[[1]] %>% 
+        {keep(., ~ startsWith(.x, 'MLAuth'))[[1]]} %>% 
+        {strsplit(trimws(.), '=')[[1]][2]} %>% 
+        {strsplit(., '.', fixed = TRUE)[[1]][2]} %>% 
+        base64enc::base64decode() %>% 
+        rawToChar() %>% 
+        jsonlite::fromJSON()
+    }, error = function(e){
+      NULL
+    })
+    if (!is.null(res)) {
+      res$user <- str_replace(res$loginId, '.+\\\\', '')
+    }
   }
-  res$user <- str_replace(res$loginId, '.+\\\\', '')
+  
   return(res)
 }
 
