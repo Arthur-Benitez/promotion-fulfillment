@@ -113,8 +113,8 @@ gl <- list(
       'dev'
     }
   },
-  app_version = '0.2.4',
-  app_version_date = '2019-06-27',
+  app_version = '1.0.0',
+  app_version_date = '2019-07-09',
   ## Compute promotions
   cols = tribble(
     ~name, ~type, ~is_constant_by_feature,
@@ -143,7 +143,21 @@ gl <- list(
     'OTRO'
   ),
   max_input_rows = 100,
-  max_input_queries = 10
+  max_input_queries = 10,
+  output_character_cols = c(
+    'dept_nbr',
+    'old_nbr',
+    'cid',
+    'item_nbr',
+    'fineline',
+    'semana_ini',
+    'semana_fin',
+    'store_nbr',
+    'dc_nbr',
+    'vendor9_nbr',
+    'open_status',
+    'sub_tipo'
+  )
 )
 gl$app_version_text <- sprintf('Versión %s (%s)', gl$app_version, gl$app_version_date)
 gl$feature_const_cols <- gl$cols$name[gl$cols$is_constant_by_feature]
