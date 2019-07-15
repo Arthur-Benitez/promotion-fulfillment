@@ -107,6 +107,25 @@ load_users <- function(user_data_path) {
     purrr::transpose()
 }
 
+## Verificar si existe un usuario
+user_exists <- function(username, user_data_path) {
+  users <- load_users(user_data_path)
+  user %in% map_chr(users, 'user')
+}
+
+## Regresar un usuario usando su nombre
+get_user <- function(username, user_data_path) {
+  stopifnot(is.character(username) && length(username) == 1)
+  usr <- load_users(user_data_path) %>% 
+    keep(~ .x$user == username)
+  if (length(usr) == 0) {
+    usr <- NULL
+  } else {
+    usr <- usr[[1]]
+  }
+  return(usr)
+}
+
 ## Guardar usuarios
 save_users <- function(users, user_data_path) {
   users %>% 
@@ -345,7 +364,7 @@ auth_user <- function(input_user, input_password) {
   }
   return(list(
     user_auth = FALSE,
-    user = NULL,
+    user = input_user,
     role = NULL
   ))
 }
@@ -358,6 +377,31 @@ if (FALSE) {
     save_users(gl$user_data_path)
 }
 
+## Leer credenciales de HTTP_COOKIE (SSO login)
+sso_credentials <- function(session) {
+  cookies <- session$request$HTTP_COOKIE
+  if (is.null(cookies)) {
+    res <- NULL
+  } else {
+    res <- tryCatch({
+      strsplit(cookies, " ")[[1]] %>% 
+        {keep(., ~ startsWith(.x, 'MLAuth'))[[1]]} %>% 
+        {strsplit(trimws(.), '=')[[1]][2]} %>% 
+        {strsplit(., '.', fixed = TRUE)[[1]][2]} %>% 
+        base64enc::base64decode() %>% 
+        rawToChar() %>% 
+        jsonlite::fromJSON()
+    }, error = function(e){
+      NULL
+    })
+    if (!is.null(res)) {
+      res$user <- str_replace(res$loginId, '.+\\\\', '')
+    }
+  }
+  
+  return(res)
+}
+
 
 # Login -------------------------------------------------------------------
 
@@ -368,28 +412,15 @@ loginUI <- function(id) {
     id = ns('panel'),
     class = 'login-panel',
     shiny::wellPanel(
-      shiny::h2(lang$login),
-      shiny::textInput(ns('user'), lang$user),
-      shiny::passwordInput(ns('password'), lang$password),
-      shiny::actionButton(ns('user_login'), lang$login),
+      shiny::h1(lang$welcome),
       shiny::tags$br(),
-      shiny::tags$br(),
-      actionLink(ns('recover_password'), lang$recover_password),
-      shinyjs::hidden(
-        shiny::div(
-          id = ns("error"),
-          shiny::tags$p(
-            lang$wrong_user_or_password,
-            style = "color: red; font-weight: bold; padding-top: 5px;", class = "text-center"
-          )
-        )
-      )
+      shiny::tags$h3(lang$welcome_text, shiny::tags$a(lang$email_name, href = lang$emailto))
     )
   )
 }
 
 ## Server
-loginServer <- function(input, output, session, logout) {
+loginServer <- function(input, output, session) {
   
   ## Ayuda: Recuperar contraseña
   observeEvent(input$recover_password, {
@@ -403,37 +434,39 @@ loginServer <- function(input, output, session, logout) {
   ## Login
   credentials <- shiny::reactiveValues(user_auth = FALSE)
   
-  shiny::observeEvent(logout(), {
-    futile.logger::flog.info(toJSON(list(
-      session_info = msg_cred(shiny::reactiveValuesToList(credentials)),
-      message = "LOGOUT SUCCESSFUL",
-      details = list(
-        session = credentials$session
+  observe({
+    if (gl$app_deployment_environment == 'dev') {
+      cred <- list(
+        user_auth = TRUE,
+        user = 'sam',
+        role = 'owner'
       )
-    )))
-    credentials$user_auth <- FALSE
-    credentials$user <- NULL
-    credentials$role <- NULL
-    credentials$session <- NULL
-  })
-  
-  ## Hide panel using JS
-  # shiny::observeEvent(credentials$user_auth, ignoreInit = TRUE, {
-  #   shinyjs::toggle(id = 'panel')
-  # })
-  
-  shiny::observeEvent(input$user_login, {
-    ns <- session$ns
-    cred <- auth_user(input$user, input$password)
+    } else {
+      sso_cred <- sso_credentials(session)
+      if (is.null(sso_cred)) {
+        cred <- list(
+          user_auth = FALSE,
+          user = NULL,
+          role = NULL
+        )
+      } else {
+        usr <- get_user(sso_cred$user, gl$user_data_path)
+        cred <- list(
+          user_auth = !is.null(usr),
+          user = sso_cred$user,
+          role = usr$role
+        )
+      }
+    }
     futile.logger::flog.info(toJSON(list(
-      session_info = msg_cred(shiny::reactiveValuesToList(credentials)),
+      session_info = list(),
       message = "ATTEMPTING USER LOGIN",
       details = list(
-        credentials = cred
+        credentials = cred['user']
       )
     )))
     if (cred$user_auth) {
-      credentials$user_auth <- TRUE
+      credentials$user_auth <- cred$user_auth
       credentials$user <- cred$user
       credentials$role <- cred$role
       credentials$session <- uid()
@@ -446,9 +479,11 @@ loginServer <- function(input, output, session, logout) {
       )))
     } else {
       futile.logger::flog.warn(toJSON(list(
-        session_info = msg_cred(shiny::reactiveValuesToList(credentials)),
+        session_info = list(),
         message = "LOGIN FAILED",
-        details = list()
+        details = list(
+          credentials = cred['user']
+        )
       )))
       shinyjs::toggle(id = 'error', anim = TRUE, time = 1, animType = 'fade')
       shinyjs::delay(5000, shinyjs::toggle(id = "error", anim = TRUE, time = 1, animType = "fade"))
@@ -474,21 +509,12 @@ logoutUI <- function(id) {
 logoutServer <- function(input, output, session, user_auth, active) {
   output$ui <- renderUI({
     ns <- session$ns
-    if (user_auth()) {
-      button <- shiny::actionButton(ns("button"), '', icon = icon('power-off'), class = "header-icon")
-    } else {
-      button <- NULL
-    }
     tags$div(
       id = 'header-icons',
       tags$div(
         title = lang$logout_timeout_info,
         class = 'header-text',
         textOutput(ns('counter'))
-      ),
-      tags$div(
-        title = lang$logout,
-        button
       )
     )
   })

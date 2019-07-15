@@ -9,7 +9,7 @@ shinyServer(function(input, output, session){
   log_dir <- paste0(gl$app_deployment_environment, '/log/')
   init_log(log_dir)
   
-  output$logout_button <- renderUI({
+  output$logout_counter <- renderUI({
     logoutUI('logout')
   })
   
@@ -107,8 +107,7 @@ shinyServer(function(input, output, session){
   ## Login
   credentials <- callModule(
     loginServer,
-    id = 'login',
-    logout = reactive(logout())
+    id = 'login'
   )
   
   ## Logout
