@@ -57,12 +57,33 @@
 /* Lado derecho del header */
 .logout-info {
   display: flex;
-  margin: 5px;
 }
 
-.logout-timeout-info {
-  margin: 10px;
+/* Botones del header */
+.header-icon {
   color: white;
+  background-color: #1A75CF;
+  border-color: #1A75CF;
+  margin: 0 5px;
+  font-size: 25px;
+}
+
+.header-icon:hover {
+  color: white;
+  background-color: #003896;
+  border-color: #003896;
+  margin: 0 5px;
+  font-size: 25px;
+}
+
+.header-text {
+  margin: 0 5px;
+  color: white;
+  font-size: 30px;
+}
+
+#header-icons {
+  display: flex;
 }
 
 /* Loading de gráfica de ventas */

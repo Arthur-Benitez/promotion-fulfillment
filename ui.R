@@ -14,7 +14,15 @@ header <- dashboardHeader(
       # tags$p(id = 'app-description', 'XXXXXXX')
     )
   ),
-  tags$li(class = 'dropdown', uiOutput('logout_button'))
+  tags$li(
+    id = 'header-icons',
+    class = 'dropdown',
+    tags$div(
+      title = lang$help_title,
+      actionButton('help', '', icon = icon('question-circle'), class = 'header-icon')
+    ),
+    uiOutput('logout_button')
+  )
 )
 
 sidebar <- dashboardSidebar(
@@ -33,7 +41,8 @@ body <- dashboardBody(
   useShinyjs(),
   useShinyalert(),
   tags$head(
-    tags$link(rel = 'stylesheet', type = 'text/css', href = 'theme.css'),
+    tags$link(rel = 'stylesheet', type = 'text/css', href = sprintf('theme.css?%s', Sys.time())),
+    # includeCSS('www/theme.css'), ## Alternativa que mete el CSS al HTML, por si se necesita
     tags$link(rel = 'stylesheet', href = 'https://fonts.googleapis.com/css?family=Bree+Serif|Coiny')
   ),
   uiOutput('body')
