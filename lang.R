@@ -129,8 +129,6 @@ lang <- list(
 )
 
 lang$need_valid_input <- paste0('El archivo de items no está en el formato correcto.\n', lang$need_input_format)
-lang$welcome <- sprintf('¡Bienvenid@ a %s!', lang$app_name)
-lang$welcome_text <- 'Para solicitar acceso a la herramienta o si tienes dudas, envía un correo con tu usuario a la liga '
 lang$email_name <- 'Replenishment Data Science MX'
 lang$email <- 'replen_ds_mx@email.wal-mart.com'
 lang$emailto <- paste0('mailto:', lang$email_name, '<', lang$email, '>')
