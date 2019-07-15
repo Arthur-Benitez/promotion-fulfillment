@@ -502,18 +502,18 @@ summarise_data <- function(data, group = c('feature_name', 'cid')) {
     summarise(
       n_stores = n_distinct(store_nbr),
       ## Las ventas ya son promedio, así que sumándolas dan las ventas promedio de una entidad más grande
-      avg_dly_sales = ifelse(any(fcst_or_sales == 'S'), sum(avg_dly_pos_or_fcst[fcst_or_sales=='S']), NA_real_),
-      avg_dly_forecast = ifelse(any(fcst_or_sales == 'F'), sum(avg_dly_pos_or_fcst[fcst_or_sales=='F']), NA_real_),
-      min_feature_qty = mean(min_feature_qty),
-      max_feature_qty = mean(max_feature_qty),
-      total_cost = sum(store_cost),
-      total_impact_cost = sum(impact_cost),
-      total_qty = sum(feature_qty_fin),
-      total_impact_qty = sum(impact_qty),
-      total_ddv = sum(feature_qty_fin) / sum(avg_dly_pos_or_fcst),
-      total_impact_ddv = sum(impact_qty) / sum(avg_dly_pos_or_fcst),
-      total_vnpk = sum(vnpk_fin),
-      total_impact_vnpk = sum(impact_vnpk)
+      avg_dly_sales = ifelse(any(fcst_or_sales == 'S'), sum(avg_dly_pos_or_fcst[fcst_or_sales=='S'], na.rm = TRUE), NA_real_),
+      avg_dly_forecast = ifelse(any(fcst_or_sales == 'F'), sum(avg_dly_pos_or_fcst[fcst_or_sales=='F'], na.rm = TRUE), NA_real_),
+      min_feature_qty = mean(min_feature_qty, na.rm = TRUE),
+      max_feature_qty = mean(max_feature_qty, na.rm = TRUE),
+      total_cost = sum(store_cost, na.rm = TRUE),
+      total_impact_cost = sum(impact_cost, na.rm = TRUE),
+      total_qty = sum(feature_qty_fin, na.rm = TRUE),
+      total_impact_qty = sum(impact_qty, na.rm = TRUE),
+      total_ddv = sum(feature_qty_fin, na.rm = TRUE) / sum(avg_dly_pos_or_fcst, na.rm = TRUE),
+      total_impact_ddv = sum(impact_qty, na.rm = TRUE) / sum(avg_dly_pos_or_fcst, na.rm = TRUE),
+      total_vnpk = sum(vnpk_fin, na.rm = TRUE),
+      total_impact_vnpk = sum(impact_vnpk, na.rm = TRUE)
     ) %>% 
     ungroup() %>% 
     arrange(!!!syms(grp)) %>% 
@@ -1444,6 +1444,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
       data_files <- list(
         header = header(),
         detail = detail(),
+        calculations = final_result(),
         items = r$items,
         params = list(
           impact_toggle = input$impact_toggle,
@@ -1525,7 +1526,11 @@ computePromotionsUI <- function(id) {
         selectInput(
           ns('sspres_benchmark_toggle'),
           label = lang$sspres_benchmark_toggle,
-          choices = c('none', 'current', 'future') %>% 
+          choices = c(
+            'none',
+            'current'
+            #'future'
+            ) %>% 
             set_names(lang$sspres_benchmark_toggle_names)
         )
       ),
