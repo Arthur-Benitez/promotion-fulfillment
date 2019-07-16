@@ -1010,23 +1010,23 @@ computePromotionsServer <- function(input, output, session, credentials) {
       plot_ly(
         data = df, 
         x = ~date,
-        hoverinfo = 'text',
-        text = ~sprintf(
-          "Fecha: %s<br>Semana WM: %s<br>%s %s: %s<br>%s %s: %s",
-          date,
-          wm_yr_wk,
-          type,
-          ifelse(type == 'Ventas', 'semanales', 'semanal'),
-          scales::comma(wkly_qty, accuracy = 1),
-          type,
-          ifelse(type == 'Ventas', 'diarias', 'diario'),
-          scales::comma(dly_qty, accuracy = 0.1)
-        )
+        hoverinfo = 'text'
       ) %>%
         add_lines(
           y = ~wkly_qty,
           color = ~type,
-          colors = (c('blue', 'orange') %>% setNames(c('Ventas', 'Forecast')))
+          colors = (c('blue', 'orange') %>% setNames(c('Ventas', 'Forecast'))),
+          text = ~sprintf(
+            "Fecha: %s<br>Semana WM: %s<br>%s %s: %s<br>%s %s: %s",
+            date,
+            wm_yr_wk,
+            type,
+            ifelse(type == 'Ventas', 'semanales', 'semanal'),
+            scales::comma(wkly_qty, accuracy = 1),
+            type,
+            ifelse(type == 'Ventas', 'diarias', 'diario'),
+            scales::comma(dly_qty, accuracy = 0.1)
+          )
         ) %>% 
         add_lines(
           y = ~sell_price,
@@ -1035,7 +1035,11 @@ computePromotionsServer <- function(input, output, session, credentials) {
             color = 'green',
             dash = 'dash'
           ),
-          yaxis = 'y2'
+          yaxis = 'y2',
+          text = ~sprintf(
+            "Precio: $%s",
+            scales::comma(sell_price, accuracy = 0.01)
+          )
         ) %>% 
         layout(
           title = list(
@@ -1063,6 +1067,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
             y = 1.05,
             orientation = 'h'
           ),
+          hovermode = 'compare',
           shapes = lines
         )
     }
