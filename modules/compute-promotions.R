@@ -1007,25 +1007,36 @@ computePromotionsServer <- function(input, output, session, credentials) {
           type = "line"
         )))
       # La gráfica
-      plot_ly(data = df, 
-              x = ~date, 
-              y = ~wkly_qty,
-              hoverinfo = 'text',
-              text = ~sprintf(
-                "Fecha: %s<br>Semana WM: %s<br>%s %s: %s<br>%s %s: %s",
-                date,
-                wm_yr_wk,
-                type,
-                ifelse(type == 'Ventas', 'semanales', 'semanal'),
-                scales::comma(wkly_qty, accuracy = 1),
-                type,
-                ifelse(type == 'Ventas', 'diarias', 'diario'),
-                scales::comma(dly_qty, accuracy = 0.1)
-              ),
-              color = ~type,
-              colors = (c('blue', 'orange') %>% setNames(c('Ventas', 'Forecast')))
+      plot_ly(
+        data = df, 
+        x = ~date,
+        hoverinfo = 'text',
+        text = ~sprintf(
+          "Fecha: %s<br>Semana WM: %s<br>%s %s: %s<br>%s %s: %s",
+          date,
+          wm_yr_wk,
+          type,
+          ifelse(type == 'Ventas', 'semanales', 'semanal'),
+          scales::comma(wkly_qty, accuracy = 1),
+          type,
+          ifelse(type == 'Ventas', 'diarias', 'diario'),
+          scales::comma(dly_qty, accuracy = 0.1)
+        )
       ) %>%
-        add_lines() %>% 
+        add_lines(
+          y = ~wkly_qty,
+          color = ~type,
+          colors = (c('blue', 'orange') %>% setNames(c('Ventas', 'Forecast')))
+        ) %>% 
+        add_lines(
+          y = ~sell_price,
+          name = 'Precio',
+          line = list(
+            color = 'green',
+            dash = 'dash'
+          ),
+          yaxis = 'y2'
+        ) %>% 
         layout(
           title = list(
             text = sprintf("Ventas semanales en piezas (%s)", lang$agg_grafica_ventas_names[input$agg_grafica_ventas])
@@ -1040,6 +1051,12 @@ computePromotionsServer <- function(input, output, session, credentials) {
           yaxis = list(
             title = '',
             exponentformat = "none"
+          ),
+          yaxis2 = list(
+            title = 'Pesos ($)',
+            #x = 2,
+            overlaying = 'y',
+            side = 'right'
           ),
           legend = list(
             x = 0,
