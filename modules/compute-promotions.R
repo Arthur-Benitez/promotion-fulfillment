@@ -1069,7 +1069,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
             y = 1.05,
             orientation = 'h'
           ),
-          margin = list(r = -1.5),
+          margin = list(r = -2),
           hovermode = 'compare',
           shapes = lines
         )
