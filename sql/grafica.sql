@@ -55,7 +55,8 @@ TG AS (
     XREF.PRIME_XREF_ITEM_NBR,
     I.OLD_NBR,
     I.PRIMARY_DESC,
-    ST.NEGOCIO
+    ST.NEGOCIO,
+    I.SELL_PRICE
   FROM
     MX_CF_VM.INFOREM_MANAGED_SKU AS A
     INNER JOIN MX_CF_VM.ITEM_DESC AS I
@@ -93,7 +94,8 @@ POS AS (
 		XREF.PRIME_XREF_ITEM_NBR,
 		VTAS.STORE_NBR,
     VTAS.WM_YR_WK,
-		SUM(CASE WHEN VTAS.WKLY_QTY < 0 THEN 0 ELSE VTAS.WKLY_QTY END) AS WKLY_QTY
+		SUM(CASE WHEN VTAS.WKLY_QTY < 0 THEN 0 ELSE VTAS.WKLY_QTY END) AS WKLY_QTY,
+		SUM(CASE WHEN VTAS.WKLY_SALES < 0 THEN 0 ELSE VTAS.WKLY_SALES END) AS WKLY_SALES
 	FROM
 		MX_CF_VM.SKU_DLY_POS AS VTAS
     	INNER JOIN XREF
@@ -128,6 +130,8 @@ SELECT DISTINCT
   'Forecast' AS "type",
   -- Como siempre hay fcst, podemos hacer esto aqui
   COUNT(DISTINCT FCST.STORE_NBR) AS N_STORES,
+	-- Por simplicidad, se usa el precio actual como precio promedio, lo correcto es ocupar el precio futuro y ponderarlo por cantidad de venta x combinacion
+  AVERAGE(TG.SELL_PRICE) AS SELL_PRICE,
   SUM(FCST.WK_FCST_QTY) AS WKLY_QTY
 FROM TG
   INNER JOIN FCST	
@@ -144,6 +148,7 @@ SELECT DISTINCT
   'Ventas' AS "type",
   -- Como la base de ventas no tiene registros para ventas cero, hay que contar las tiendas en OH
   SC.N_STORES,
+  SUM(POS.WKLY_SALES)/SUM(POS.WKLY_QTY) AS SELL_PRICE,
   SUM(POS.WKLY_QTY) AS WKLY_QTY
 FROM TG
   INNER JOIN POS
@@ -156,4 +161,4 @@ FROM TG
     )
 GROUP BY 1, 2, 3, 4, 5, 6
 
-ORDER BY 1, 2, 3
+ORDER BY 1, 2, 3, 4
