@@ -1053,13 +1053,15 @@ computePromotionsServer <- function(input, output, session, credentials) {
             ticks = 'outside'
           ),
           yaxis = list(
-            title = '',
+            title = 'Piezas',
             exponentformat = "none"
           ),
           yaxis2 = list(
-            title = 'Pesos ($)',
-            #x = 2,
+            title = 'Pesos',
+            tickformat = '$,.2f',
+            showgrid = FALSE,
             overlaying = 'y',
+            #nticks = 6,
             side = 'right'
           ),
           legend = list(
@@ -1067,6 +1069,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
             y = 1.05,
             orientation = 'h'
           ),
+          margin = list(r = -1.5),
           hovermode = 'compare',
           shapes = lines
         )
