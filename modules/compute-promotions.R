@@ -1216,11 +1216,12 @@ computePromotionsServer <- function(input, output, session, credentials) {
         mutate_at(intersect(gl$output_character_cols, names(.)), as.character) %>% 
         mutate_at(vars(percent_columns), list(~100 * .)) %>%
         datatable(
-          extensions = 'FixedColumns',
+          extensions = c('FixedColumns', 'KeyTable'),
           filter = 'top',
           options = list(
             dom = 't',
             fixedColumns = list(leftColumns = 9),
+            keys = TRUE,
             scrollX = TRUE,
             scrollY = '500px',
             pageLength = 100
@@ -1247,11 +1248,12 @@ computePromotionsServer <- function(input, output, session, credentials) {
       summary_table() %>% 
         mutate_at(intersect(gl$output_character_cols, names(.)), as.character) %>% 
         datatable(
-          extensions = 'FixedColumns',
+          extensions = c('FixedColumns', 'KeyTable'),
           filter = 'top',
           options = list(
             dom = 't',
             fixedColumns = list(leftColumns = 5),
+            keys = TRUE,
             scrollX = TRUE,
             scrollY = '500px',
             pageLength = 100
@@ -1332,12 +1334,13 @@ computePromotionsServer <- function(input, output, session, credentials) {
         mutate_at(vars(percent_columns), list(~100 * .)) %>%
         mutate_at(intersect(gl$output_character_cols, names(.)), as.character) %>% 
         datatable(
-          extensions = c('Buttons', 'FixedColumns'),
+          extensions = c('Buttons', 'FixedColumns', 'KeyTable'),
           filter = 'none',
           options = list(
             dom = 'Bfrtip',
             buttons = c('copy', 'csv', 'excel'),
             fixedColumns = list(leftColumns = 2),
+            keys = TRUE,
             scrollX = TRUE,
             scrollY = '200x',
             pageLength = 20
