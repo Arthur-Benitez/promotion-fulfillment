@@ -1216,8 +1216,11 @@ computePromotionsServer <- function(input, output, session, credentials) {
         mutate_at(intersect(gl$output_character_cols, names(.)), as.character) %>% 
         mutate_at(vars(percent_columns), list(~100 * .)) %>%
         datatable(
+          extensions = 'FixedColumns',
           filter = 'top',
           options = list(
+            dom = 't',
+            fixedColumns = list(leftColumns = 9),
             scrollX = TRUE,
             scrollY = '500px',
             pageLength = 100
@@ -1244,8 +1247,11 @@ computePromotionsServer <- function(input, output, session, credentials) {
       summary_table() %>% 
         mutate_at(intersect(gl$output_character_cols, names(.)), as.character) %>% 
         datatable(
+          extensions = 'FixedColumns',
           filter = 'top',
           options = list(
+            dom = 't',
+            fixedColumns = list(leftColumns = 5),
             scrollX = TRUE,
             scrollY = '500px',
             pageLength = 100
@@ -1312,7 +1318,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
   })
   
   ## Tabla de alcance (output)
-  output$feature_histogram_table <- renderDT({
+  output$feature_histogram_table <- renderDT(server = FALSE, {
     needs <- need_input_ready() %then%
       need_query_ready() %then%
       need_histogram_ready()
@@ -1326,8 +1332,12 @@ computePromotionsServer <- function(input, output, session, credentials) {
         mutate_at(vars(percent_columns), list(~100 * .)) %>%
         mutate_at(intersect(gl$output_character_cols, names(.)), as.character) %>% 
         datatable(
+          extensions = c('Buttons', 'FixedColumns'),
           filter = 'none',
           options = list(
+            dom = 'Bfrtip',
+            buttons = c('copy', 'csv', 'excel'),
+            fixedColumns = list(leftColumns = 2),
             scrollX = TRUE,
             scrollY = '200x',
             pageLength = 20
