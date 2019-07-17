@@ -70,8 +70,8 @@ assert_clearance <- function(requester, affected, affected_new) {
   requester_level <- user_clearance(requester, gl$clearance_levels)
   affected_level <- user_clearance(affected, gl$clearance_levels)
   affected_new_level <- user_clearance(affected_new, gl$clearance_levels)
-  if (is.null(requester$user)) {
-    ## NULL has the highest clearance by default to override any settings
+  if (is.null(requester$user) | requester_level == min(gl$clearance_levels)) {
+    ## NULL and the highest level have the absolute clearance by default to override any settings
     verdict <- TRUE
   } else if (
     requester_level < affected_level &&
