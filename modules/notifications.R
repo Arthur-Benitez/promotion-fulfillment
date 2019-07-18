@@ -11,7 +11,7 @@ make_modal <- function(message, ns){
     size = 'l',
     title = 'Anuncios',
     includeHTML(sprintf('dev/notifications/messages/%s', message)),
-    footer = list(actionButton(ns('continue'), label = 'Siguiente'), modalButton(lang$ok))
+    footer = list(actionButton(ns('continue'), label = 'Siguiente'))
   )
 }
 
