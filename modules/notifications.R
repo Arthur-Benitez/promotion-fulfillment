@@ -6,12 +6,12 @@ save_title <- function(message_data, user_file, user_notifications_path) {
   write_csv(message_data, path = user_file, na = '', append = ifelse(file.exists(user_file), TRUE, FALSE))
 }
 
-makeModal <- function(message){
+make_modal <- function(message, ns){
   modalDialog(
     size = 'l',
     title = 'Anuncios',
     includeHTML(sprintf('dev/notifications/messages/%s', message)),
-    footer = list(actionButton('continue', label = 'Next'), modalButton(lang$ok))
+    footer = list(actionButton(ns('continue'), label = 'Next'), modalButton(lang$ok))
   )
 }
 
@@ -19,41 +19,51 @@ makeModal <- function(message){
 notificationsServer <- function(input, output, session, credentials) {
   deploy_file <- file.path(gl$app_deployment_environment, 'notifications', 'messages', 'deploy.csv')
   user_notifications_path <- file.path(gl$app_deployment_environment, 'notifications', 'users')
-  user_file <- sprintf('%s/%s.csv', user_notifications_path, 'sam')
-  displayed <- 0
-  all_messages <- read_csv(deploy_file) %>% 
-    select(message)
-    # credentials()$user
-
-  if (file.exists(user_file)) {
-    user_messages <- read_csv(user_file)
-    message <- all_messages %>% 
-      filter(!(message %in% user_messages$message))
-  } else {
-    message <- all_messages
-  }
-
-  if (nrow(message) > 0 && is.data.frame(message)) {
-    showModal(makeModal(message[1,]))
-    displayed <- 1
-    
-    message_data <- message %>% 
-      mutate(
-        view_time = format(Sys.time(), "%x %X", tz = 'America/Mexico_City'),
-        date = format(Sys.time(), "%x")
-      )
-    save_title(message_data, user_file, user_notifications_path) 
-  }
+  user_file <- reactive(
+    sprintf('%s/%s.csv', user_notifications_path, credentials()$user)
+  )
   
-  observeEvent(input$continue, {
-    browser()
-    if (displayed < nrow(message)) {
-      displayed <- displayed + 1
-      showModal(makeModal(message[displayed,]))
+  r <- reactiveValues(
+    unread_messages = NULL,
+    trigger = FALSE
+  )
+  observeEvent(credentials(), {
+    all_messages <- read_csv(deploy_file)
+    if (file.exists(user_file())) {
+      user_messages <- read_csv(user_file())
+      r$unread_messages <- all_messages %>% 
+        filter(!(message %in% user_messages$message))
     } else {
-      removeModal()
+      r$unread_messages <- all_messages
+    }
+    r$trigger <- TRUE
+  })
+  
+  observeEvent({
+    input$continue
+    r$trigger
+  }, {
+    if (nrow(r$unread_messages) > 0) {
+      showModal(make_modal(r$unread_messages$message[1], session$ns))
+      r$unread_messages <- r$unread_messages[-1, ]
+    } else {
+      # removeModal()
     }
   })
+
+  # if (nrow(message) > 0 && is.data.frame(message)) {
+  #   showModal(makeModal(message[1,], session$ns))
+  #   displayed <- 1
+  #   
+  #   message_data <- message %>% 
+  #     mutate(
+  #       view_time = format(Sys.time(), "%x %X", tz = 'America/Mexico_City'),
+  #       date = format(Sys.time(), "%x")
+  #     )
+  #   save_title(message_data, user_file(), user_notifications_path) 
+  # }
+  
+
 }
 
 # UI ----------------------------------------------------------------------
