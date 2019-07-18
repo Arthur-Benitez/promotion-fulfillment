@@ -6,14 +6,25 @@ save_title <- function(message_data, user_file, user_notifications_path) {
   write_csv(message_data, path = user_file, na = '', append = ifelse(file.exists(user_file), TRUE, FALSE))
 }
 
+makeModal <- function(message){
+  modalDialog(
+    size = 'l',
+    title = 'Anuncios',
+    includeHTML(sprintf('dev/notifications/messages/%s', message)),
+    footer = list(actionButton('continue', label = 'Next'), modalButton(lang$ok))
+  )
+}
+
 # Server ------------------------------------------------------------------
 notificationsServer <- function(input, output, session, credentials) {
   deploy_file <- file.path(gl$app_deployment_environment, 'notifications', 'messages', 'deploy.csv')
   user_notifications_path <- file.path(gl$app_deployment_environment, 'notifications', 'users')
   user_file <- sprintf('%s/%s.csv', user_notifications_path, 'sam')
-  # credentials()$user
+  displayed <- 0
   all_messages <- read_csv(deploy_file) %>% 
     select(message)
+    # credentials()$user
+
   if (file.exists(user_file)) {
     user_messages <- read_csv(user_file)
     message <- all_messages %>% 
@@ -22,15 +33,9 @@ notificationsServer <- function(input, output, session, credentials) {
     message <- all_messages
   }
 
-  
   if (nrow(message) > 0 && is.data.frame(message)) {
-    showModal(modalDialog(
-      size = 'l',
-      easyClose = TRUE,
-      title = 'Anuncios',
-      includeHTML(sprintf('dev/notifications/messages/%s', message[1,1])),
-      footer = modalButton(lang$ok)
-    ))
+    showModal(makeModal(message[1,]))
+    displayed <- 1
     
     message_data <- message %>% 
       mutate(
@@ -39,6 +44,16 @@ notificationsServer <- function(input, output, session, credentials) {
       )
     save_title(message_data, user_file, user_notifications_path) 
   }
+  
+  observeEvent(input$continue, {
+    browser()
+    if (displayed < nrow(message)) {
+      displayed <- displayed + 1
+      showModal(makeModal(message[displayed,]))
+    } else {
+      removeModal()
+    }
+  })
 }
 
 # UI ----------------------------------------------------------------------
