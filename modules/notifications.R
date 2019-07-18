@@ -11,7 +11,7 @@ make_modal <- function(message, ns){
     size = 'l',
     title = 'Anuncios',
     includeHTML(sprintf('dev/notifications/messages/%s', message)),
-    footer = list(actionButton(ns('continue'), label = 'Next'), modalButton(lang$ok))
+    footer = list(actionButton(ns('continue'), label = 'Siguiente'), modalButton(lang$ok))
   )
 }
 
@@ -25,7 +25,7 @@ notificationsServer <- function(input, output, session, credentials) {
   
   r <- reactiveValues(
     unread_messages = NULL,
-    trigger = FALSE
+    trigger = 0 # Corregir - la inicialización actúa como gatillo
   )
   observeEvent(credentials(), {
     all_messages <- read_csv(deploy_file)
@@ -36,18 +36,19 @@ notificationsServer <- function(input, output, session, credentials) {
     } else {
       r$unread_messages <- all_messages
     }
-    r$trigger <- TRUE
+    r$trigger <- r$trigger + 1
   })
   
-  observeEvent({
-    input$continue
-    r$trigger
-  }, {
+  observeEvent(input$continue, {
+    r$trigger <- r$trigger + 1
+  })
+  
+  observeEvent(r$trigger, {
     if (nrow(r$unread_messages) > 0) {
       showModal(make_modal(r$unread_messages$message[1], session$ns))
       r$unread_messages <- r$unread_messages[-1, ]
     } else {
-      # removeModal()
+      removeModal()
     }
   })
 
