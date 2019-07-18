@@ -37,6 +37,12 @@ notificationsServer <- function(input, output, session, credentials) {
       r$unread_messages <- all_messages
     }
     r$trigger <- r$trigger + 1
+    message_data <- r$unread_messages %>%
+      select(message) %>% 
+      mutate(
+        view_time = format(Sys.time(), "%x %H:%M:%S", tz = 'America/Mexico_City')
+      )
+    save_title(message_data, user_file(), user_notifications_path)
   })
   
   observeEvent(input$continue, {
@@ -51,20 +57,6 @@ notificationsServer <- function(input, output, session, credentials) {
       removeModal()
     }
   })
-
-  # if (nrow(message) > 0 && is.data.frame(message)) {
-  #   showModal(makeModal(message[1,], session$ns))
-  #   displayed <- 1
-  #   
-  #   message_data <- message %>% 
-  #     mutate(
-  #       view_time = format(Sys.time(), "%x %X", tz = 'America/Mexico_City'),
-  #       date = format(Sys.time(), "%x")
-  #     )
-  #   save_title(message_data, user_file(), user_notifications_path) 
-  # }
-  
-
 }
 
 # UI ----------------------------------------------------------------------
