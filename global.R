@@ -99,6 +99,7 @@ eval(parse('lang.R', encoding = 'UTF-8'))
 eval(parse('modules/compute-promotions.R', encoding = 'UTF-8'))
 eval(parse('modules/login.R', encoding = 'UTF-8'))
 eval(parse('modules/usage-stats.R', encoding = 'UTF-8'))
+eval(parse('modules/notifications.R', encoding = 'UTF-8'))
 
 # Parámetros globales -----------------------------------------------------
 

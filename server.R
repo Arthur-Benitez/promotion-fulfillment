@@ -156,5 +156,11 @@ shinyServer(function(input, output, session){
     credentials = reactive(credentials())
   )
   
+  ## Notificaciones
+  callModule(
+    notificationsServer,
+    id = 'notifications',
+    credentials = reactive(credentials())
+  )
 })
 
