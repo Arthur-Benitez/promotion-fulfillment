@@ -12,7 +12,7 @@ make_modal <- function(message, ns){
     title = 'Anuncios',
     includeHTML(sprintf('dev/notifications/messages/%s', message)),
     footer = tags$div(
-      checkboxInput(ns('repeat'), label = 'No volver a mostrar', value = FALSE),
+      checkboxInput(ns('save'), label = 'No volver a mostrar', value = FALSE),
       actionButton(ns('continue'), label = 'Siguiente')        
     )
   )
@@ -28,7 +28,9 @@ notificationsServer <- function(input, output, session, credentials) {
   
   r <- reactiveValues(
     unread_messages = NULL,
-    trigger = 0
+    message_data = NULL,
+    trigger = 0,
+    save = FALSE
   )
   observeEvent(credentials(), {
     all_messages <- read_csv(deploy_file)
@@ -39,24 +41,41 @@ notificationsServer <- function(input, output, session, credentials) {
     } else {
       r$unread_messages <- all_messages
     }
-    r$trigger <- r$trigger + 1
-    message_data <- r$unread_messages %>%
+    r$message_data <- r$unread_messages %>%
       select(message) %>% 
       mutate(
         view_time = format(Sys.time(), "%x %H:%M:%S", tz = 'America/Mexico_City')
       )
-    save_title(message_data, user_file(), user_notifications_path)
-  })
-  
-  observeEvent(input$continue, {
     r$trigger <- r$trigger + 1
   })
   
+  observeEvent(input$continue, {
+    print(input$continue)
+    r$trigger <- r$trigger + 1
+    # browser()
+    if (input$save) {
+      # browser()
+      save_title(r$message_data[1, ], user_file(), user_notifications_path)
+      
+      # r$save <- FALSE
+    }
+    r$message_data <- r$message_data[-1, ]
+  }, ignoreInit = TRUE)
+  
+  # observeEvent(input$save, {
+  #   print("Flag")
+  #   if (input$save == TRUE) {
+  #     r$save <- TRUE 
+  #   }
+  # })
+  
   observeEvent(r$trigger, {
     req(r$trigger > 0)
-    if (nrow(r$unread_messages) > 0) {
-      showModal(make_modal(r$unread_messages$message[1], session$ns))
-      r$unread_messages <- r$unread_messages[-1, ]
+    print(r$message_data)
+    print(input$save)
+    print(r$trigger)
+    if (nrow(r$message_data) > 0) {
+      showModal(make_modal(r$message_data$message[1], session$ns))
     } else {
       removeModal()
     }
