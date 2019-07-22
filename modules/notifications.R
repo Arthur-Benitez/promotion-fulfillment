@@ -11,9 +11,15 @@ make_modal <- function(message, ns){
     size = 'l',
     title = 'Anuncios',
     includeHTML(sprintf('dev/notifications/messages/%s', message)),
-    footer = tags$div(
-      checkboxInput(ns('save'), label = 'No volver a mostrar', value = FALSE),
-      actionButton(ns('continue'), label = 'Siguiente')        
+    footer = tags$table(
+      align = 'right',
+      tags$tr(
+        tags$td(
+          id = 'notification-buttons',
+          checkboxInput(ns('save'), label = 'No volver a mostrar', value = FALSE)
+        ),
+        tags$td(actionButton(ns('continue'), label = 'Siguiente'))
+      )
     )
   )
 }
