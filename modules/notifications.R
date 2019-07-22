@@ -50,30 +50,15 @@ notificationsServer <- function(input, output, session, credentials) {
   })
   
   observeEvent(input$continue, {
-    print(input$continue)
     r$trigger <- r$trigger + 1
-    # browser()
     if (input$save) {
-      # browser()
       save_title(r$message_data[1, ], user_file(), user_notifications_path)
-      
-      # r$save <- FALSE
     }
     r$message_data <- r$message_data[-1, ]
   }, ignoreInit = TRUE)
   
-  # observeEvent(input$save, {
-  #   print("Flag")
-  #   if (input$save == TRUE) {
-  #     r$save <- TRUE 
-  #   }
-  # })
-  
   observeEvent(r$trigger, {
     req(r$trigger > 0)
-    print(r$message_data)
-    print(input$save)
-    print(r$trigger)
     if (nrow(r$message_data) > 0) {
       showModal(make_modal(r$message_data$message[1], session$ns))
     } else {
