@@ -899,8 +899,8 @@ computePromotionsServer <- function(input, output, session, credentials) {
       filter(sum(!is.na(primary_desc)) > 0) %>% 
       ungroup() %>% 
       transmute(
-        name = paste0(negocio, ' - ', ifelse(is.na(primary_desc), lang$no_info, primary_desc), ' (', old_nbr, ')'),
-        combinacion = paste(old_nbr, '-', negocio)
+        name = paste0(feature_name, ' - ',negocio, ' - ', ifelse(is.na(primary_desc), lang$no_info, primary_desc), ' (', old_nbr, ')'),
+        combinacion = paste(feature_name, '::', old_nbr, '-', negocio)
       ) %>%
       distinct() %>% 
       deframe()
@@ -908,7 +908,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
       class = 'inline-inputs',
       tags$div(
         style = 'margin-right: 20px',
-        selectInput(ns('input_grafica_ventas'), lang$grafica_ventas, choices = choices, width = '400px')
+        selectInput(ns('input_grafica_ventas'), lang$grafica_ventas, choices = choices, width = '500px')
       ),
       selectInput(
         ns('agg_grafica_ventas'),
@@ -942,7 +942,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
     )))
     
     df <- graph_table() %>% 
-      filter(paste(old_nbr, '-', negocio) == input$input_grafica_ventas) %>% 
+      filter(paste(old_nbr, '-', negocio) == str_replace(input$input_grafica_ventas, ".+ :: ", '')) %>% 
       na.omit()
     if (nrow(df) == 0) {
       plot_ly() %>%
