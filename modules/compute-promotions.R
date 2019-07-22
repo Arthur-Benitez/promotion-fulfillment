@@ -895,9 +895,6 @@ computePromotionsServer <- function(input, output, session, credentials) {
       distinct_at(c('old_nbr', 'negocio', 'primary_desc'))
     choices <- r$items %>% 
       left_join(info, by = c('old_nbr', 'negocio')) %>% 
-      group_by(feature_name) %>% 
-      filter(sum(!is.na(primary_desc)) > 0) %>% 
-      ungroup() %>% 
       transmute(
         name = paste0(feature_name, ' - ',negocio, ' - ', ifelse(is.na(primary_desc), lang$no_info, primary_desc), ' (', old_nbr, ')'),
         combinacion = paste(feature_name, '::', old_nbr, '-', negocio)
