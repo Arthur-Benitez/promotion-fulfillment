@@ -412,9 +412,11 @@ loginUI <- function(id) {
     id = ns('panel'),
     class = 'login-panel',
     shiny::wellPanel(
-      shiny::h1(lang$welcome),
-      shiny::tags$br(),
-      shiny::tags$h3(lang$welcome_text, shiny::tags$a(lang$email_name, href = lang$emailto))
+      includeHTML('html/welcome.html') %>% 
+        str_replace_all('__email__', lang$email) %>% 
+        str_replace_all('__email_name__', lang$email_name) %>% 
+        str_replace_all('__app_name__', lang$app_name) %>% 
+        HTML()
     )
   )
 }
