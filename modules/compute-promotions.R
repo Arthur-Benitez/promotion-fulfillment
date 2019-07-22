@@ -296,7 +296,11 @@ search_ss_once <- function(ch, input_data_ss, connector = 'production-connector'
     query_ss_res <- query_ss_res %>% 
       as_tibble() %>% 
       set_names(tolower(names(.))) %>% 
-      mutate_if(is.factor, as.character)
+      mutate_if(is.factor, as.character) %>% 
+      left_join(
+        input_data_ss %>% select(feature_name, old_nbr),
+        by = 'old_nbr'
+      )
   }, error = function(e){
     NULL
   })
@@ -434,7 +438,7 @@ perform_computations <- function(data, data_ss = NULL, min_feature_qty_toggle = 
       )
   } else {
     data <- data %>% 
-      left_join(data_ss, by = c("store_nbr", "negocio", "old_nbr", "item_nbr"))
+      left_join(data_ss, by = c("feature_name", "store_nbr", "negocio", "old_nbr", "item_nbr"))
     
     if (sspres_benchmark_toggle == 'none') {
       data$comp_sspress <- 0
