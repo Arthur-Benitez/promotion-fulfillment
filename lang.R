@@ -133,7 +133,9 @@ lang$welcome <- sprintf('¡Bienvenid@ a %s!', lang$app_name)
 lang$welcome_text <- 'Para solicitar acceso a la herramienta o si tienes dudas, envía un correo con tu usuario a la liga '
 lang$email_name <- 'Replenishment Data Science MX'
 lang$email <- 'replen_ds_mx@email.wal-mart.com'
-lang$emailto <- paste0('mailto:', lang$email_name, '<', lang$email, '>')
+lang$email_subject <- 'Solicitud de activación de Promo Fulfillment'
+lang$email_body <- 'Hola, %0A%0AMe gustaría mi cuenta en la aplicación Promo Fulfillment, mi usuario es:%0A%0A[Escribe aquí tu usuario de Windows.]'
+lang$emailto <- paste0('mailto:', lang$email_name, '<', lang$email, '>', '?subject=', lang$email_subject, '&body=', lang$email_body)
 
 ## Necesario para que siempre se lean bien los encodings. Si no, de repente hay textos que no se interpretan bien...
 lang <- map(lang, enc2native)
