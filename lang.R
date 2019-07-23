@@ -63,7 +63,7 @@ lang <- list(
   compute_promotions_impact_parameters = 'Impacto',
   compute_promotions_impact_parameters_title = 'Parámetros que afectan el cálculo de impacto.',
   date_format = 'Formato de fechas',
-  grafica_ventas = 'Old_nbr - Formato',
+  grafica_ventas = 'Promoción - Formato - Old_nbr',
   no_info = 'SIN INFORMACIÓN',
   input_grafica_ventas_title = 'Mostrar gráfica informativa de ventas y forecast.',
   agg_grafica_ventas = 'Sumarización',
@@ -131,7 +131,9 @@ lang <- list(
 lang$need_valid_input <- paste0('El archivo de items no está en el formato correcto.\n', lang$need_input_format)
 lang$email_name <- 'Replenishment Data Science MX'
 lang$email <- 'replen_ds_mx@email.wal-mart.com'
-lang$emailto <- paste0('mailto:', lang$email_name, '<', lang$email, '>')
+lang$email_subject <- 'Solicitud de activación de Promo Fulfillment'
+lang$email_body <- 'Hola, %0A%0AMe gustaría mi cuenta en la aplicación Promo Fulfillment, mi usuario es:%0A%0A[Escribe aquí tu usuario de Windows.]'
+lang$emailto <- paste0('mailto:', lang$email_name, '<', lang$email, '>', '?subject=', lang$email_subject, '&body=', lang$email_body)
 
 ## Necesario para que siempre se lean bien los encodings. Si no, de repente hay textos que no se interpretan bien...
 lang <- map(lang, enc2native)

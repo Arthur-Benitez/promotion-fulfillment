@@ -899,12 +899,9 @@ computePromotionsServer <- function(input, output, session, credentials) {
       distinct_at(c('old_nbr', 'negocio', 'primary_desc'))
     choices <- r$items %>% 
       left_join(info, by = c('old_nbr', 'negocio')) %>% 
-      group_by(feature_name) %>% 
-      filter(sum(!is.na(primary_desc)) > 0) %>% 
-      ungroup() %>% 
       transmute(
-        name = paste0(negocio, ' - ', ifelse(is.na(primary_desc), lang$no_info, primary_desc), ' (', old_nbr, ')'),
-        combinacion = paste(old_nbr, '-', negocio)
+        name = paste0(feature_name, ' - ',negocio, ' - ', ifelse(is.na(primary_desc), lang$no_info, primary_desc), ' (', old_nbr, ')'),
+        combinacion = paste(feature_name, '::', old_nbr, '-', negocio)
       ) %>%
       distinct() %>% 
       deframe()
@@ -912,7 +909,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
       class = 'inline-inputs',
       tags$div(
         style = 'margin-right: 20px',
-        selectInput(ns('input_grafica_ventas'), lang$grafica_ventas, choices = choices, width = '400px')
+        selectInput(ns('input_grafica_ventas'), lang$grafica_ventas, choices = choices, width = '500px')
       ),
       selectInput(
         ns('agg_grafica_ventas'),
@@ -946,7 +943,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
     )))
     
     df <- graph_table() %>% 
-      filter(paste(old_nbr, '-', negocio) == input$input_grafica_ventas) %>% 
+      filter(paste(old_nbr, '-', negocio) == str_replace(input$input_grafica_ventas, ".+ :: ", '')) %>% 
       na.omit()
     if (nrow(df) == 0) {
       plot_ly() %>%
@@ -1220,8 +1217,12 @@ computePromotionsServer <- function(input, output, session, credentials) {
         mutate_at(intersect(gl$output_character_cols, names(.)), as.character) %>% 
         mutate_at(vars(percent_columns), list(~100 * .)) %>%
         datatable(
+          extensions = c('FixedColumns', 'KeyTable'),
           filter = 'top',
           options = list(
+            dom = 't',
+            fixedColumns = list(leftColumns = 9),
+            keys = TRUE,
             scrollX = TRUE,
             scrollY = '500px',
             pageLength = 100
@@ -1248,8 +1249,12 @@ computePromotionsServer <- function(input, output, session, credentials) {
       summary_table() %>% 
         mutate_at(intersect(gl$output_character_cols, names(.)), as.character) %>% 
         datatable(
+          extensions = c('FixedColumns', 'KeyTable'),
           filter = 'top',
           options = list(
+            dom = 't',
+            fixedColumns = list(leftColumns = 5),
+            keys = TRUE,
             scrollX = TRUE,
             scrollY = '500px',
             pageLength = 100
@@ -1316,7 +1321,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
   })
   
   ## Tabla de alcance (output)
-  output$feature_histogram_table <- renderDT({
+  output$feature_histogram_table <- renderDT(server = FALSE, {
     needs <- need_input_ready() %then%
       need_query_ready() %then%
       need_histogram_ready()
@@ -1330,8 +1335,13 @@ computePromotionsServer <- function(input, output, session, credentials) {
         mutate_at(vars(percent_columns), list(~100 * .)) %>%
         mutate_at(intersect(gl$output_character_cols, names(.)), as.character) %>% 
         datatable(
+          extensions = c('Buttons', 'FixedColumns', 'KeyTable'),
           filter = 'none',
           options = list(
+            dom = 'Bfrtip',
+            buttons = c('copy', 'csv', 'excel'),
+            fixedColumns = list(leftColumns = 2),
+            keys = TRUE,
             scrollX = TRUE,
             scrollY = '200x',
             pageLength = 20
