@@ -39,6 +39,7 @@ notificationsServer <- function(input, output, session, credentials) {
     save = FALSE
   )
   observeEvent(credentials(), {
+    req(credentials()$user_auth == TRUE)
     if (file.exists(deploy_file)) {
       all_messages <- read_csv(deploy_file)
       if (is.data.frame(all_messages) && nrow(all_messages) > 0) {
