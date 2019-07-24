@@ -3,6 +3,7 @@ require(tidyverse)
 require(lubridate)
 require(jsonlite)
 require(plotly)
+require(viridis)
 
 remap_text <- c(
   'user' = 'unique_users',
@@ -57,14 +58,6 @@ load_log <- function(log_files) {
   )
 }
 
-# 
-# ll <- list.files('dev/log/', full.names = TRUE) %>% 
-#   str_subset('\\.log$')
-# 
-# microbenchmark::microbenchmark(
-#   current = load_log1(ll),
-#   
-# )
 
 usageStatsServer <- function(input, output, session, credentials) {
   
@@ -89,10 +82,10 @@ usageStatsServer <- function(input, output, session, credentials) {
     res
   }, ignoreNULL = FALSE)
   
-  output$date_range_ui <- renderUI({
+  output$date_range_ui_daily <- renderUI({
     ns <- session$ns
     dateRangeInput(
-      inputId = ns('date_range'),
+      inputId = ns('date_range_daily'),
       label = 'Rango de fechas',
       min = min(logs()$date),
       max = max(logs()$date),
@@ -101,17 +94,29 @@ usageStatsServer <- function(input, output, session, credentials) {
     )
   })
   
-  logs_filt <- reactive({
-    req(input$date_range)
+  output$date_range_ui_top <- renderUI({
+    ns <- session$ns
+    dateRangeInput(
+      inputId = ns('date_range_top'),
+      label = 'Rango de fechas',
+      min = min(logs()$date),
+      max = max(logs()$date),
+      start = min(logs()$date),
+      end = max(logs()$date)
+    )
+  })
+  
+  logs_filt_daily <- reactive({
+    req(input$date_range_daily)
     logs() %>% 
-      filter(date >= min(input$date_range[[1]]) & date <= max(input$date_range[[2]]))
+      filter(date >= min(input$date_range_daily[[1]]) & date <= max(input$date_range_daily[[2]]))
   })
   
   output$graph_daily <- renderPlotly({
-    if (is.null(logs_filt()) || nrow(logs_filt()) == 0) {
+    if (is.null(logs_filt_daily()) || nrow(logs_filt_daily()) == 0) {
       p <- generate_empty_plot(title = lang$title_error, text = ':(')
     } else {
-      df <- logs_filt() %>% 
+      df <- logs_filt_daily() %>% 
         filter(!is.na(!!rlang::sym(input$variable)))
       if (input$split_by_clearance) {
         x <- df %>% 
@@ -153,8 +158,65 @@ usageStatsServer <- function(input, output, session, credentials) {
     return(p)
   })
   
+  
+  logs_filt_top <- reactive({
+    req(input$date_range_top)
+    logs() %>% 
+      filter(date >= min(input$date_range_top[[1]]) & date <= max(input$date_range_top[[2]]))
+  })
+  
+  output$graph_top <- renderPlotly({
+    if (is.null(logs_filt_top()) || nrow(logs_filt_top()) == 0) {
+      p <- generate_empty_plot(title = lang$title_error, text = ':(')
+    } else {
+      df <- logs_filt_top() %>% 
+        filter_at(vars(user, message), all_vars(!is.na(.))) %>% 
+        filter(input$graph_clearance == 'all' | top_role == input$graph_clearance)
+      if (input$split_by_message) {
+        x <- df %>% 
+          mutate(
+            color = factor(message) %>% fct_infreq()
+          )
+        msgs <- levels(x$color)
+        pal <- viridis::viridis_pal()(length(msgs)) %>% set_names(msgs)
+      } else {
+        x <- df %>% 
+          mutate(
+            color = top_role
+          )
+        pal <- gl$clearance_pal
+      }
+     
+      p <- x %>%
+        mutate(
+          x = user %>% fct_infreq()
+        ) %>% 
+        group_by(x, color) %>% 
+        summarise(
+          n = n(),
+          n_sessions = n_distinct(session)
+        ) %>% 
+        mutate(
+          text = 'aaa'
+        ) %>% 
+        plot_ly(x = ~x, y = ~n) %>% 
+        add_bars(color = ~color, text = ~text, colors = pal) %>%
+        layout(
+          barmode = 'stack',
+          title = get_pretty_names(remap_text[input$variable]),
+          xaxis = list(
+            title = ''
+          ),
+          yaxis = list(
+            title = ''
+          )
+        )
+    }
+    return(p)
+  })
+  
   output$logs_table <- DT::renderDataTable({
-    logs_filt() %>% 
+    logs_filt_daily() %>% 
       mutate_all(function(x){
         if (is.atomic(x)) {
           x
@@ -186,7 +248,7 @@ usageStatsUI <- function(id) {
           fluidRow(
             column(
               width = 3,
-              uiOutput(ns('date_range_ui')),
+              uiOutput(ns('date_range_ui_daily')),
               selectInput(ns('variable'), lang$kpi, c('user', 'session') %>%
                             set_names(get_pretty_names(remap_text[.]))),
               selectInput(ns('unit'), lang$unit, c('days', 'weeks', 'months', 'years') %>%
@@ -196,6 +258,21 @@ usageStatsUI <- function(id) {
             column(
               width = 9,
               plotlyOutput(ns('graph_daily')) %>% withSpinner(type = 8)
+            )
+          )
+        ),
+        tabPanel(
+          title = 'Top',
+          fluidRow(
+            column(
+              width = 3,
+              uiOutput(ns('date_range_ui_top')),
+              selectInput(ns('graph_clearance'), lang$graph_clearance, c('all', names(gl$clearance_levels))),
+              checkboxInput(ns('split_by_message'), lang$split_by_message, FALSE)
+            ),
+            column(
+              width = 9,
+              plotlyOutput(ns('graph_top')) %>% withSpinner(type = 8)
             )
           )
         ),
