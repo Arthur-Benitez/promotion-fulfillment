@@ -104,7 +104,6 @@ usageStatsServer <- function(input, output, session, credentials) {
   logs_filt <- reactive({
     req(input$date_range)
     logs() %>% 
-      filter(!is.na(!!rlang::sym(input$variable))) %>% 
       filter(date >= min(input$date_range[[1]]) & date <= max(input$date_range[[2]]))
   })
   
@@ -112,23 +111,20 @@ usageStatsServer <- function(input, output, session, credentials) {
     if (is.null(logs_filt()) || nrow(logs_filt()) == 0) {
       p <- generate_empty_plot(title = lang$title_error, text = ':(')
     } else {
+      df <- logs_filt() %>% 
+        filter(!is.na(!!rlang::sym(input$variable)))
       if (input$split_by_clearance) {
-        x <- logs_filt() %>% 
+        x <- df %>% 
           mutate(
             color = top_role
           )
       } else {
-        x <- logs_filt() %>% 
+        x <- df %>% 
           mutate(
             color = 'all'
           )
       }
-      pal <- c(
-        all = rgb(0, 56, 150, maxColorValue = 255),
-        owner = rgb(26, 117, 207, maxColorValue = 255),
-        admin = rgb(253, 187, 48, maxColorValue = 255),
-        basic = rgb(51, 115, 33, maxColorValue = 255)
-      )
+      
       p <- x %>%
         mutate(
           x = floor_date(date, unit = input$unit, week_start = 1),
@@ -142,7 +138,7 @@ usageStatsServer <- function(input, output, session, credentials) {
           text = sprintf('%s: %s', get_pretty_names(remap_text[input$variable]), scales::comma(n_unique))
         ) %>% 
         plot_ly(x = ~x, y = ~n_unique) %>% 
-        add_bars(color = ~color, text = ~text, colors = pal) %>%
+        add_bars(color = ~color, text = ~text, colors = gl$clearance_pal) %>%
         layout(
           barmode = 'stack',
           title = get_pretty_names(remap_text[input$variable]),
