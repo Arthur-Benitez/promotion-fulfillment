@@ -126,7 +126,9 @@ lang <- list(
   refresh = 'Refrescar',
   split_by_clearance = 'Separar por nivel de permisos',
   unique_users = 'Usuarios únicos',
-  unique_sessions = 'Sesiones únicas'
+  unique_sessions = 'Sesiones únicas',
+  title_error = 'Error',
+  graph_clearance = 'Nivel de permisos'
 )
 
 lang$need_valid_input <- paste0('El archivo de items no está en el formato correcto.\n', lang$need_input_format)
