@@ -244,10 +244,13 @@ usageStatsServer <- function(input, output, session, credentials) {
       arrange(desc(timestamp))
     graph_data$detail%>% 
       datatable(
+        extensions = c('KeyTable'),
         filter = 'top',
         options = list(
           scrollX = TRUE,
-          scrollY = '500px'
+          scrollY = '500px',
+          pageLength = 100,
+          keys = TRUE
         )
       )
   })
@@ -255,10 +258,13 @@ usageStatsServer <- function(input, output, session, credentials) {
   output$daily_table <- DT::renderDataTable({
     graph_data$daily %>% 
       datatable(
+        extensions = c('KeyTable'),
         filter = 'top',
         options = list(
           scrollX = FALSE,
-          scrollY = '200px'
+          scrollY = '200px',
+          pageLength = 100,
+          keys = TRUE
         )
       )
   })
@@ -266,10 +272,13 @@ usageStatsServer <- function(input, output, session, credentials) {
   output$top_table <- DT::renderDataTable({
     graph_data$top %>% 
       datatable(
+        extensions = c('KeyTable'),
         filter = 'top',
         options = list(
           scrollX = FALSE,
-          scrollY = '200px'
+          scrollY = '200px',
+          pageLength = 100,
+          keys = TRUE
         )
       )
   })
@@ -341,6 +350,7 @@ usageStatsUI <- function(id) {
             column(
               width = 9,
               plotlyOutput(ns('graph_daily')) %>% withSpinner(type = 8),
+              tags$hr(),
               DT::DTOutput(ns('daily_table')) %>% withSpinner(type = 8)
             )
           )
@@ -357,6 +367,7 @@ usageStatsUI <- function(id) {
             column(
               width = 9,
               plotlyOutput(ns('graph_top')) %>% withSpinner(type = 8),
+              tags$hr(),
               DT::DTOutput(ns('top_table')) %>% withSpinner(type = 8)
             )
           )
