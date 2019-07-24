@@ -124,6 +124,8 @@ lang <- list(
   ## Usage Stats
   usage_stats = 'Utilización',
   refresh = 'Refrescar',
+  kpi = 'KPI',
+  unit = 'Eje temporal',
   split_by_clearance = 'Separar por nivel de permisos',
   split_by_message = 'Separar por actividad',
   unique_users = 'Usuarios únicos',
