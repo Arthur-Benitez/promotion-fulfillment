@@ -1,8 +1,47 @@
 
+require(tidyverse)
+require(lubridate)
+require(jsonlite)
+
 remap_text <- c(
   'user' = 'unique_users',
   'session' = 'unique_sessions'
 )
+
+load_log <- function(log_files) {
+  logs_ls <- log_files %>% 
+    map(read_lines) %>% 
+    do.call(c, .) %>%
+    str_replace('^([A-Z]+) \\[([0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2})\\] \\{(.*)\\}', '{"level":["\\1"], "timestamp":["\\2"], \\3}') %>% 
+    map(function(x){
+      tryCatch({
+        fromJSON(x)
+      }, error = function(e){
+        NULL
+      })
+    }) %>% 
+    discard(is.null)
+  
+  tibble(
+    level = map_chr(logs_ls, 'level'),
+    timestamp = ymd_hms(format(ymd_hms(map_chr(logs_ls, 'timestamp')), tz = 'America/Mexico_City')),
+    date = as_date(timestamp),
+    user = map(logs_ls, c('session_info', 'user')) %>% as.character() %>% ifelse(. == 'NULL', NA, .),
+    role = map(logs_ls, c('session_info', 'role')),
+    session = map(logs_ls, c('session_info', 'session')) %>% as.character() %>% ifelse(. == 'NULL', NA, .),
+    message = map_chr(logs_ls, 'message'),
+    details = map(logs_ls, 'details')
+  )
+}
+
+# 
+# ll <- list.files('dev/log/', full.names = TRUE) %>% 
+#   str_subset('\\.log$')
+# 
+# microbenchmark::microbenchmark(
+#   current = load_log1(ll),
+#   
+# )
 
 usageStatsServer <- function(input, output, session, credentials) {
   
@@ -14,26 +53,9 @@ usageStatsServer <- function(input, output, session, credentials) {
       message = 'START REFRESHING LOGS',
       details = list()
     )))
-    logs_ls <- list.files(log_path, full.names = TRUE) %>% 
+    res <- list.files(log_path, full.names = TRUE) %>% 
       str_subset('\\.log$') %>% 
-      map(read_lines) %>% 
-      do.call(c, .) %>%
-      str_replace('^([A-Z]+) \\[([0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2})\\] \\{(.*)\\}', '{"level":["\\1"], "timestamp":["\\2"], \\3}') %>% 
-      map(function(x){
-        tryCatch({
-          fromJSON(x)
-        }, error = function(e){
-          flog.info(toJSON(list(
-            session_info = list(),
-            message = "ERROR READING LOG",
-            details = list(
-              broken_json = x
-            )
-          )))
-          NULL
-        })
-      }) %>% 
-      discard(is.null)
+      load_log()
     flog.info(toJSON(list(
       session_info = msg_cred(credentials()),
       message = 'DONE REFRESHING LOGS',
@@ -41,16 +63,7 @@ usageStatsServer <- function(input, output, session, credentials) {
         lines_read = length(logs_ls)
       )
     )))
-    tibble(
-      level = map_chr(logs_ls, 'level'),
-      timestamp = ymd_hms(format(ymd_hms(map_chr(logs_ls, 'timestamp')), tz = 'America/Mexico_City')),
-      date = as_date(timestamp),
-      user = map(logs_ls, c('session_info', 'user')) %>% as.character() %>% ifelse(. == 'NULL', NA, .),
-      role = map(logs_ls, c('session_info', 'role')),
-      session = map(logs_ls, c('session_info', 'session')) %>% as.character() %>% ifelse(. == 'NULL', NA, .),
-      message = map_chr(logs_ls, 'message'),
-      details = map(logs_ls, 'details')
-    )
+    res
   }, ignoreNULL = FALSE)
   
   output$date_range_ui <- renderUI({
