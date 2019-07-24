@@ -48,10 +48,13 @@ hash <- function(x) {
 
 ## Nivel de permisos de un rol
 role_clearance <- function(role, clearance_levels) {
+  if (length(role) == 0 || is.na(role)) {
+    return(Inf)
+  }
   lvls <- rep(Inf, length(role))
   idx <- role %in% names(clearance_levels)
   lvls[idx] <- clearance_levels[role[idx]]
-  min(lvls)
+  return(min(lvls))
 }
 
 ## Nivel de permisos de un usuario

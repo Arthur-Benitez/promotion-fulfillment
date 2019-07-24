@@ -1,3 +1,4 @@
+require(purrr)
 
 lang <- list(
   ## login
