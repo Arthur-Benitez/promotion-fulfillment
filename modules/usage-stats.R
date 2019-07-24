@@ -2,6 +2,7 @@
 require(tidyverse)
 require(lubridate)
 require(jsonlite)
+require(plotly)
 
 remap_text <- c(
   'user' = 'unique_users',
@@ -28,6 +29,8 @@ load_log <- function(log_files) {
     date = as_date(timestamp),
     user = map(logs_ls, c('session_info', 'user')) %>% as.character() %>% ifelse(. == 'NULL', NA, .),
     role = map(logs_ls, c('session_info', 'role')),
+    clearance = map_dbl(role, ~role_clearance(.x, gl$clearance_levels)),
+    top_role =  names(gl$clearance_levels)[match(clearance, gl$clearance_levels)],
     session = map(logs_ls, c('session_info', 'session')) %>% as.character() %>% ifelse(. == 'NULL', NA, .),
     message = map_chr(logs_ls, 'message'),
     details = map(logs_ls, 'details')
@@ -60,7 +63,7 @@ usageStatsServer <- function(input, output, session, credentials) {
       session_info = msg_cred(credentials()),
       message = 'DONE REFRESHING LOGS',
       details = list(
-        lines_read = length(logs_ls)
+        lines_read = nrow(logs)
       )
     )))
     res
@@ -188,7 +191,7 @@ usageStatsUI <- function(id) {
                             set_names(get_pretty_names(remap_text[.]))),
               selectInput(ns('unit'), lang$unit, c('days', 'weeks', 'months', 'years') %>%
                             set_names(get_pretty_names(.))),
-              checkboxInput(ns('split_by_clearance'), lang$split_by_clearance, FALSE)
+              checkboxInput(ns('split_by_clearance'), lang$split_by_clearance, TRUE)
             ),
             column(
               width = 9,
