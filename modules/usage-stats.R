@@ -102,9 +102,15 @@ usageStatsServer <- function(input, output, session, credentials) {
       filter_at(vars(user, message), all_vars(!is.na(.)))
   })
   
+  graph_data <- reactiveValues(
+    daily = NULL,
+    top = NULL
+  )
+  
   output$graph_daily <- renderPlotly({
     if (is.null(logs_filt()) || nrow(logs_filt()) == 0) {
       p <- generate_empty_plot(title = lang$title_error, text = ':(')
+      graph_data$daily <- NULL
     } else {
       df <- logs_filt()
       if (input$split_by_clearance) {
@@ -119,7 +125,7 @@ usageStatsServer <- function(input, output, session, credentials) {
           )
       }
       
-      p <- x %>%
+      x <- x %>%
         mutate(
           x = floor_date(date, unit = input$unit, week_start = 1),
           color = factor(color, levels = c('all', 'owner', 'admin', 'basic'))
@@ -128,9 +134,22 @@ usageStatsServer <- function(input, output, session, credentials) {
         summarise(
           n_unique = n_distinct(!!rlang::sym(input$variable))
         ) %>% 
+        ungroup() %>% 
         mutate(
           text = sprintf('%s: %s', get_pretty_names(remap_text[input$variable]), scales::comma(n_unique))
+        )
+      
+      ## Datos para descargar
+      graph_data$daily <- x %>% 
+        transmute(
+          date = x,
+          role = color,
+          !!sym(paste0('n_unique_', input$variable, 's')) := n_unique
         ) %>% 
+        arrange(desc(date), role)
+      
+      ## Gráfica
+      p <- x %>% 
         plot_ly(x = ~x, y = ~n_unique) %>% 
         add_bars(color = ~color, text = ~text, colors = gl$clearance_pal) %>%
         layout(
@@ -151,37 +170,52 @@ usageStatsServer <- function(input, output, session, credentials) {
   output$graph_top <- renderPlotly({
     if (is.null(logs_filt()) || nrow(logs_filt()) == 0) {
       p <- generate_empty_plot(title = lang$title_error, text = ':(')
+      graph_data$top <- NULL
     } else {
       df <- logs_filt() %>% 
         filter(input$graph_clearance == 'all' | top_role == input$graph_clearance)
       if (input$split_by_message) {
         x <- df %>% 
           mutate(
-            color = factor(message) %>% fct_infreq()
+            color = factor(message) %>% fct_infreq(),
+            text = message
           )
+        grp <- c('message')
         msgs <- levels(x$color)
         pal <- viridis::viridis_pal()(length(msgs)) %>% set_names(msgs)
       } else {
         x <- df %>% 
           mutate(
-            color = top_role
+            color = top_role,
+            text = 'ALL ACTIONS'
           )
+        grp <- NULL
         pal <- gl$clearance_pal
       }
-     
-      p <- x %>%
+      
+      x <- x %>%
         mutate(
-          x = user %>% fct_infreq()
+          x = user %>% fct_infreq(),
+          role = top_role
         ) %>% 
-        group_by(x, color) %>% 
+        group_by(x, role, !!!syms(grp), color, text) %>% 
         summarise(
-          n = n(),
+          n_actions = n(),
           n_sessions = n_distinct(session)
         ) %>% 
+        ungroup() %>% 
         mutate(
-          text = 'aaa'
-        ) %>% 
-        plot_ly(x = ~x, y = ~n) %>% 
+          text = sprintf('%s\nAcciones: %s\nSesiones: %s', text, n_actions, n_sessions)
+        )
+     
+      ## Datos para descargar
+      graph_data$top <- x %>% 
+        select(user = x, role, !!!syms(grp), n_actions, n_sessions) %>% 
+        arrange(user, desc(n_actions))
+      
+      ## Gráfica
+      p <- x %>% 
+        plot_ly(x = ~x, y = ~n_actions, hoverinfo = 'text') %>% 
         add_bars(color = ~color, text = ~text, colors = pal) %>%
         layout(
           barmode = 'stack',
@@ -197,7 +231,7 @@ usageStatsServer <- function(input, output, session, credentials) {
     return(p)
   })
   
-  output$logs_table <- DT::renderDataTable({
+  output$detail_table <- DT::renderDataTable({
     logs_filt() %>% 
       mutate_all(function(x){
         if (is.atomic(x)) {
@@ -205,13 +239,38 @@ usageStatsServer <- function(input, output, session, credentials) {
         } else {
           map_chr(x, toJSON)
         }
-      })
-  },
-  options = list(
-    filter = 'top',
-    scrollX = TRUE,
-    scrollY = '400px'
-  ))
+      }) %>%
+      arrange(desc(timestamp)) %>% 
+      datatable(
+        filter = 'top',
+        options = list(
+          scrollX = TRUE,
+          scrollY = '500px'
+        )
+      )
+  })
+  
+  output$daily_table <- DT::renderDataTable({
+    graph_data$daily %>% 
+      datatable(
+        filter = 'top',
+        options = list(
+          scrollX = FALSE,
+          scrollY = '200px'
+        )
+      )
+  })
+  
+  output$top_table <- DT::renderDataTable({
+    graph_data$top %>% 
+      datatable(
+        filter = 'top',
+        options = list(
+          scrollX = FALSE,
+          scrollY = '200px'
+        )
+      )
+  })
 }
 
 usageStatsUI <- function(id) {
@@ -245,7 +304,8 @@ usageStatsUI <- function(id) {
             ),
             column(
               width = 9,
-              plotlyOutput(ns('graph_daily')) %>% withSpinner(type = 8)
+              plotlyOutput(ns('graph_daily')) %>% withSpinner(type = 8),
+              DT::DTOutput(ns('daily_table')) %>% withSpinner(type = 8)
             )
           )
         ),
@@ -259,13 +319,14 @@ usageStatsUI <- function(id) {
             ),
             column(
               width = 9,
-              plotlyOutput(ns('graph_top')) %>% withSpinner(type = 8)
+              plotlyOutput(ns('graph_top')) %>% withSpinner(type = 8),
+              DT::DTOutput(ns('top_table')) %>% withSpinner(type = 8)
             )
           )
         ),
         tabPanel(
-          title = 'Tabla',
-          DTOutput(ns('logs_table')) %>% withSpinner(type = 8)
+          title = 'Detalle',
+          DTOutput(ns('detail_table')) %>% withSpinner(type = 8)
         )
       )
     )
