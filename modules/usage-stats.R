@@ -82,10 +82,10 @@ usageStatsServer <- function(input, output, session, credentials) {
     res
   }, ignoreNULL = FALSE)
   
-  output$date_range_ui_daily <- renderUI({
+  output$date_range_ui <- renderUI({
     ns <- session$ns
     dateRangeInput(
-      inputId = ns('date_range_daily'),
+      inputId = ns('date_range'),
       label = 'Rango de fechas',
       min = min(logs()$date),
       max = max(logs()$date),
@@ -94,30 +94,19 @@ usageStatsServer <- function(input, output, session, credentials) {
     )
   })
   
-  output$date_range_ui_top <- renderUI({
-    ns <- session$ns
-    dateRangeInput(
-      inputId = ns('date_range_top'),
-      label = 'Rango de fechas',
-      min = min(logs()$date),
-      max = max(logs()$date),
-      start = min(logs()$date),
-      end = max(logs()$date)
-    )
-  })
   
-  logs_filt_daily <- reactive({
-    req(input$date_range_daily)
+  logs_filt <- reactive({
+    req(input$date_range)
     logs() %>% 
-      filter(date >= min(input$date_range_daily[[1]]) & date <= max(input$date_range_daily[[2]]))
+      filter(date >= min(input$date_range[[1]]) & date <= max(input$date_range[[2]])) %>% 
+      filter_at(vars(user, message), all_vars(!is.na(.)))
   })
   
   output$graph_daily <- renderPlotly({
-    if (is.null(logs_filt_daily()) || nrow(logs_filt_daily()) == 0) {
+    if (is.null(logs_filt()) || nrow(logs_filt()) == 0) {
       p <- generate_empty_plot(title = lang$title_error, text = ':(')
     } else {
-      df <- logs_filt_daily() %>% 
-        filter(!is.na(!!rlang::sym(input$variable)))
+      df <- logs_filt()
       if (input$split_by_clearance) {
         x <- df %>% 
           mutate(
@@ -159,18 +148,11 @@ usageStatsServer <- function(input, output, session, credentials) {
   })
   
   
-  logs_filt_top <- reactive({
-    req(input$date_range_top)
-    logs() %>% 
-      filter(date >= min(input$date_range_top[[1]]) & date <= max(input$date_range_top[[2]]))
-  })
-  
   output$graph_top <- renderPlotly({
-    if (is.null(logs_filt_top()) || nrow(logs_filt_top()) == 0) {
+    if (is.null(logs_filt()) || nrow(logs_filt()) == 0) {
       p <- generate_empty_plot(title = lang$title_error, text = ':(')
     } else {
-      df <- logs_filt_top() %>% 
-        filter_at(vars(user, message), all_vars(!is.na(.))) %>% 
+      df <- logs_filt() %>% 
         filter(input$graph_clearance == 'all' | top_role == input$graph_clearance)
       if (input$split_by_message) {
         x <- df %>% 
@@ -216,7 +198,7 @@ usageStatsServer <- function(input, output, session, credentials) {
   })
   
   output$logs_table <- DT::renderDataTable({
-    logs_filt_daily() %>% 
+    logs_filt() %>% 
       mutate_all(function(x){
         if (is.atomic(x)) {
           x
@@ -237,7 +219,14 @@ usageStatsUI <- function(id) {
   fluidPage(
     box(
       width = 12,
-      actionButton(ns('refresh'), lang$refresh, icon = icon('redo-alt'))
+      tags$div(
+        style = 'display: flex;',
+        tags$div(
+          style = 'margin: auto 25px 15px 15px;',
+          actionButton(ns('refresh'), lang$refresh, icon = icon('redo-alt'))
+        ),
+        uiOutput(ns('date_range_ui'))
+      )
     ),
     box(
       width = 12,
@@ -248,7 +237,6 @@ usageStatsUI <- function(id) {
           fluidRow(
             column(
               width = 3,
-              uiOutput(ns('date_range_ui_daily')),
               selectInput(ns('variable'), lang$kpi, c('user', 'session') %>%
                             set_names(get_pretty_names(remap_text[.]))),
               selectInput(ns('unit'), lang$unit, c('days', 'weeks', 'months', 'years') %>%
@@ -266,7 +254,6 @@ usageStatsUI <- function(id) {
           fluidRow(
             column(
               width = 3,
-              uiOutput(ns('date_range_ui_top')),
               selectInput(ns('graph_clearance'), lang$graph_clearance, c('all', names(gl$clearance_levels))),
               checkboxInput(ns('split_by_message'), lang$split_by_message, FALSE)
             ),
