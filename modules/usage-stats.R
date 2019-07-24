@@ -9,6 +9,26 @@ remap_text <- c(
   'session' = 'unique_sessions'
 )
 
+generate_empty_plot <- function(title = 'Error', text = ':(') {
+  plot_ly() %>% 
+    add_text(x = 0, y = 0, text = text, textfont = list(size = 80)) %>% 
+    layout(
+      title = title,
+      titlefont = list(size = 30),
+      xaxis = list(
+        showgrid = FALSE,
+        zeroline = FALSE,
+        showticklabels = FALSE
+      ),
+      yaxis = list(
+        showgrid = FALSE,
+        zeroline = FALSE,
+        showticklabels = FALSE
+      ),
+      margin = list(t = 60)
+    )
+}
+
 load_log <- function(log_files) {
   logs_ls <- log_files %>% 
     map(read_lines) %>% 
@@ -90,28 +110,12 @@ usageStatsServer <- function(input, output, session, credentials) {
   
   output$graph_daily <- renderPlotly({
     if (is.null(logs_filt()) || nrow(logs_filt()) == 0) {
-      p <- plot_ly() %>% 
-        add_text(x = 0, y = 0, text = ':(', textfont = list(size = 80)) %>% 
-        layout(
-          title = lang$title_error,
-          titlefont = list(size = 30),
-          xaxis = list(
-            showgrid = FALSE,
-            zeroline = FALSE,
-            showticklabels = FALSE
-          ),
-          yaxis = list(
-            showgrid = FALSE,
-            zeroline = FALSE,
-            showticklabels = FALSE
-          ),
-          margin = list(t = 60)
-        )
+      p <- generate_empty_plot(title = lang$title_error, text = ':(')
     } else {
       if (input$split_by_clearance) {
         x <- logs_filt() %>% 
           mutate(
-            color = names(gl$clearance_levels)[match(map_dbl(role, ~role_clearance(.x, gl$clearance_levels)), gl$clearance_levels)]
+            color = top_role
           )
       } else {
         x <- logs_filt() %>% 
