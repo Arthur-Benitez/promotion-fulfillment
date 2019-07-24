@@ -176,3 +176,10 @@ gl$clearance_levels <- c(
   'basic' = 2
 )
 
+gl$clearance_pal <- c(
+  all = rgb(0, 56, 150, maxColorValue = 255),
+  owner = rgb(26, 117, 207, maxColorValue = 255),
+  admin = rgb(253, 187, 48, maxColorValue = 255),
+  basic = rgb(51, 115, 33, maxColorValue = 255)
+)
+
