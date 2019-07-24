@@ -104,7 +104,8 @@ usageStatsServer <- function(input, output, session, credentials) {
   
   graph_data <- reactiveValues(
     daily = NULL,
-    top = NULL
+    top = NULL,
+    detail = NULL
   )
   
   output$graph_daily <- renderPlotly({
@@ -232,7 +233,7 @@ usageStatsServer <- function(input, output, session, credentials) {
   })
   
   output$detail_table <- DT::renderDataTable({
-    logs_filt() %>% 
+    graph_data$detail <- logs_filt() %>% 
       mutate_all(function(x){
         if (is.atomic(x)) {
           x
@@ -240,7 +241,8 @@ usageStatsServer <- function(input, output, session, credentials) {
           map_chr(x, toJSON)
         }
       }) %>%
-      arrange(desc(timestamp)) %>% 
+      arrange(desc(timestamp))
+    graph_data$detail%>% 
       datatable(
         filter = 'top',
         options = list(
@@ -271,6 +273,39 @@ usageStatsServer <- function(input, output, session, credentials) {
         )
       )
   })
+  
+  output$download_detail <- downloadHandler(
+    filename = function(){
+      sprintf('%s-detalle.csv', format(Sys.time(), '%F_%H-%M-%S'))
+    },
+    content = function(file){
+      graph_data$detail %>% 
+        write_excel_csv(file, na = '')
+    },
+    contentType = 'text/csv'
+  )
+  
+  output$download_daily <- downloadHandler(
+    filename = function(){
+      sprintf('%s-tendencias.csv', format(Sys.time(), '%F_%H-%M-%S'))
+    },
+    content = function(file){
+      graph_data$daily %>% 
+        write_excel_csv(file, na = '')
+    },
+    contentType = 'text/csv'
+  )
+  
+  output$download_top <- downloadHandler(
+    filename = function(){
+      sprintf('%s-usuarios-top.csv', format(Sys.time(), '%F_%H-%M-%S'))
+    },
+    content = function(file){
+      graph_data$top %>% 
+        write_excel_csv(file, na = '')
+    },
+    contentType = 'text/csv'
+  )
 }
 
 usageStatsUI <- function(id) {
@@ -300,7 +335,8 @@ usageStatsUI <- function(id) {
                             set_names(get_pretty_names(remap_text[.]))),
               selectInput(ns('unit'), lang$unit, c('days', 'weeks', 'months', 'years') %>%
                             set_names(get_pretty_names(.))),
-              checkboxInput(ns('split_by_clearance'), lang$split_by_clearance, TRUE)
+              checkboxInput(ns('split_by_clearance'), lang$split_by_clearance, TRUE),
+              downloadButton(ns('download_daily'), lang$download)
             ),
             column(
               width = 9,
@@ -315,7 +351,8 @@ usageStatsUI <- function(id) {
             column(
               width = 3,
               selectInput(ns('graph_clearance'), lang$graph_clearance, c('all', names(gl$clearance_levels))),
-              checkboxInput(ns('split_by_message'), lang$split_by_message, FALSE)
+              checkboxInput(ns('split_by_message'), lang$split_by_message, FALSE),
+              downloadButton(ns('download_top'), lang$download)
             ),
             column(
               width = 9,
@@ -326,7 +363,11 @@ usageStatsUI <- function(id) {
         ),
         tabPanel(
           title = 'Detalle',
-          DTOutput(ns('detail_table')) %>% withSpinner(type = 8)
+          tags$div(
+            style = 'margin-bottom: 15px;',
+            downloadButton(ns('download_detail'), lang$download)
+          ),
+          DT::DTOutput(ns('detail_table')) %>% withSpinner(type = 8)
         )
       )
     )
