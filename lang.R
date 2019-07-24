@@ -125,6 +125,7 @@ lang <- list(
   usage_stats = 'Utilización',
   refresh = 'Refrescar',
   split_by_clearance = 'Separar por nivel de permisos',
+  split_by_message = 'Separar por actividad',
   unique_users = 'Usuarios únicos',
   unique_sessions = 'Sesiones únicas',
   title_error = 'Error',
