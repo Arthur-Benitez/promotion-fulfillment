@@ -10,7 +10,7 @@ make_modal <- function(message, ns){
   modalDialog(
     size = 'l',
     title = 'Anuncios',
-    includeHTML(sprintf('dev/notifications/messages/%s', message)),
+    includeHTML(sprintf('%s/notifications/messages/%s', gl$app_deployment_environment, message)),
     footer = tags$table(
       align = 'right',
       tags$tr(
@@ -39,20 +39,29 @@ notificationsServer <- function(input, output, session, credentials) {
     save = FALSE
   )
   observeEvent(credentials(), {
-    all_messages <- read_csv(deploy_file)
-    if (file.exists(user_file())) {
-      user_messages <- read_csv(user_file())
-      r$unread_messages <- all_messages %>% 
-        filter(!(message %in% user_messages$message))
+    req(isTRUE(credentials()$user_auth))
+    if (file.exists(deploy_file)) {
+      all_messages <- read_csv(deploy_file)
+      if (is.data.frame(all_messages) && nrow(all_messages) > 0) {
+        if (file.exists(user_file())) {
+          user_messages <- read_csv(user_file())
+          r$unread_messages <- all_messages %>% 
+            filter(!(message %in% user_messages$message))
+        } else {
+          r$unread_messages <- all_messages
+        }
+        r$message_data <- r$unread_messages %>%
+          select(message) %>% 
+          mutate(
+            view_time = format(Sys.time(), "%x %H:%M:%S", tz = 'America/Mexico_City')
+          )
+        r$trigger <- r$trigger + 1
+      }
     } else {
-      r$unread_messages <- all_messages
+      dir.create(dirname(deploy_file), recursive = TRUE, showWarnings = FALSE)
+      tribble(~message, ~start_date) %>% 
+      write_csv(path = deploy_file)
     }
-    r$message_data <- r$unread_messages %>%
-      select(message) %>% 
-      mutate(
-        view_time = format(Sys.time(), "%x %H:%M:%S", tz = 'America/Mexico_City')
-      )
-    r$trigger <- r$trigger + 1
   })
   
   observeEvent(input$continue, {

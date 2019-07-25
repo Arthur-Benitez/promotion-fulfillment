@@ -460,8 +460,7 @@ perform_computations <- function(data, data_ss = NULL, min_feature_qty_toggle = 
       
       new_sspress_tot = case_when(
         impact_toggle == 'swap' ~ feature_qty_fin + base_press,
-        impact_toggle == 'add' ~ feature_qty_fin + comp_sspress_tot,
-        impact_toggle == 'max' ~ pmax(feature_qty_fin + base_press, comp_sspress_tot)
+        impact_toggle == 'add' ~ feature_qty_fin + comp_sspress_tot
       ),
       ss_winner_qty = compare_ss_qty(new_sspress_tot, sscov_tot, min_ss, max_ss),
       ss_winner_name = compare_ss_name(new_sspress_tot, sscov_tot, min_ss, max_ss, feature_qty_fin, base_press, sscov, sstemp, ss_winner_qty),
@@ -595,8 +594,7 @@ generate_header <- function(input_data, date_format = '%Y-%m-%d', impact_toggle 
       ApprovedSw = 'TRUE',
       AdditiveSw = case_when(
         impact_toggle == 'swap' ~ 'TRUE',
-        impact_toggle == 'add' ~ 'TRUE',
-        impact_toggle == 'max' ~ 'FALSE'
+        impact_toggle == 'add' ~ 'TRUE'
       ),
       `CLEANSE HIST` = 'TRUE',
       `REPLACE PRES/DISPLAY` = 'FALSE',
@@ -1216,12 +1214,19 @@ computePromotionsServer <- function(input, output, session, credentials) {
       final_result() %>%
         mutate_at(intersect(gl$output_character_cols, names(.)), as.character) %>% 
         mutate_at(vars(percent_columns), list(~100 * .)) %>%
+        select(
+          feature_name,
+          old_nbr,
+          primary_desc,
+          store_nbr,
+          negocio,
+          everything()
+        ) %>% 
         datatable(
           extensions = c('FixedColumns', 'KeyTable'),
           filter = 'top',
           options = list(
-            dom = 't',
-            fixedColumns = list(leftColumns = 9),
+            fixedColumns = list(leftColumns = 5),
             keys = TRUE,
             scrollX = TRUE,
             scrollY = '500px',
@@ -1252,7 +1257,6 @@ computePromotionsServer <- function(input, output, session, credentials) {
           extensions = c('FixedColumns', 'KeyTable'),
           filter = 'top',
           options = list(
-            dom = 't',
             fixedColumns = list(leftColumns = 5),
             keys = TRUE,
             scrollX = TRUE,
@@ -1578,7 +1582,7 @@ computePromotionsUI <- function(id) {
         selectInput(
           ns('impact_toggle'),
           label = lang$impact_toggle,
-          choices = c('swap', 'add', 'max') %>% 
+          choices = c('swap', 'add') %>% 
             set_names(lang$impact_toggle_names)
         )
       )
