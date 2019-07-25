@@ -105,6 +105,7 @@ usageStatsServer <- function(input, output, session, credentials) {
   graph_data <- reactiveValues(
     daily = NULL,
     top = NULL,
+    time = NULL,
     detail = NULL
   )
   
@@ -232,6 +233,89 @@ usageStatsServer <- function(input, output, session, credentials) {
     return(p)
   })
   
+  output$graph_time_event <- renderUI({
+    ns <- session$ns
+    selectInput(
+      ns('graph_time_event'),
+      label = lang$graph_time_event,
+      choices = c('query', 'sales_graph') %>%
+        set_names(lang$graph_time_event_names)
+    )
+  })
+  
+  output$graph_time <- renderPlotly({
+    req(input$graph_time_event)
+    if (is.null(logs_filt()) || nrow(logs_filt()) == 0) {
+      p <- generate_empty_plot(title = lang$title_error, text = ':(')
+      graph_data$top <- NULL
+    } else {
+      df <- logs_filt()
+      
+      # browser()
+      msg1 <- switch(
+        input$graph_time_event,
+        query = 'RUNNING QUERY',
+        sales_graph = 'RUNNING SALES GRAPH QUERY'
+      )
+      msg2 <- switch(
+        input$graph_time_event,
+        query = 'DOWNLOAD SUCCESSFUL',
+        sales_graph = 'GENERATING SALES GRAPH'
+      )
+      x <- df %>%
+        filter(message %in% c(msg1, msg2)) %>% 
+        transmute(
+          x = date, #floor_date(date, unit = input$unit, week_start = 1),
+          timestamp,
+          session,
+          message = factor(message, levels = c(msg1, msg2))
+        ) %>% 
+        arrange(x, timestamp) %>% 
+        group_by(x, session) %>% 
+        mutate(
+          event_flag = as.numeric(message == msg1),
+          event_group = cumsum(event_flag)
+        ) %>% 
+        group_by(x, session, event_group) %>% 
+        filter(row_number() <= 2) %>% # por si se repite el segundo mensaje
+        ungroup() %>% 
+        select(x, timestamp, session, event_group, message) %>% 
+        spread(message, timestamp) %>% 
+        mutate(
+          duration_secs = as.numeric(difftime(!!sym(msg2), !!sym(msg1), units = 'secs'))
+        ) %>% 
+        na.omit()
+      
+      graph_data$time <- x %>% 
+        rename(date = x)
+      
+      lns <- list(
+        list(
+          x0 = min(x$x),
+          x1 = max(x$x),
+          y0 = 120,
+          y1 = 120,
+          line = list(color = "black", dash = "dash"),
+          type = "line"
+        )
+      )
+      p <- x %>% 
+        plot_ly(x = ~x, y = ~duration_secs) %>% #, hoverinfo = 'text') %>% 
+        add_boxplot() %>%
+        layout(
+          title = lang$graph_time_title,
+          xaxis = list(
+            title = ''
+          ),
+          yaxis = list(
+            title = ''
+          ),
+          shapes = lns
+        )
+    }
+    return(p)
+  })
+  
   output$detail_table <- DT::renderDataTable({
     graph_data$detail <- logs_filt() %>% 
       mutate_all(function(x){
@@ -242,7 +326,7 @@ usageStatsServer <- function(input, output, session, credentials) {
         }
       }) %>%
       arrange(desc(timestamp))
-    graph_data$detail%>% 
+    graph_data$detail %>% 
       datatable(
         extensions = c('KeyTable'),
         filter = 'top',
@@ -283,6 +367,20 @@ usageStatsServer <- function(input, output, session, credentials) {
       )
   })
   
+  output$time_table <- DT::renderDataTable({
+    graph_data$time %>% 
+      datatable(
+        extensions = c('KeyTable'),
+        filter = 'top',
+        options = list(
+          scrollX = FALSE,
+          scrollY = '200px',
+          pageLength = 100,
+          keys = TRUE
+        )
+      )
+  })
+  
   output$download_detail <- downloadHandler(
     filename = function(){
       sprintf('%s-detalle.csv', format(Sys.time(), '%F_%H-%M-%S'))
@@ -311,6 +409,17 @@ usageStatsServer <- function(input, output, session, credentials) {
     },
     content = function(file){
       graph_data$top %>% 
+        write_excel_csv(file, na = '')
+    },
+    contentType = 'text/csv'
+  )
+  
+  output$download_time <- downloadHandler(
+    filename = function(){
+      sprintf('%s-tiempo-de-ejecucion.csv', format(Sys.time(), '%F_%H-%M-%S'))
+    },
+    content = function(file){
+      graph_data$time %>% 
         write_excel_csv(file, na = '')
     },
     contentType = 'text/csv'
@@ -369,6 +478,22 @@ usageStatsUI <- function(id) {
               plotlyOutput(ns('graph_top')) %>% withSpinner(type = 8),
               tags$hr(),
               DT::DTOutput(ns('top_table')) %>% withSpinner(type = 8)
+            )
+          )
+        ),
+        tabPanel(
+          title = 'Time',
+          fluidRow(
+            column(
+              width = 3,
+              uiOutput(ns('graph_time_event')),
+              downloadButton(ns('download_time'), lang$download)
+            ),
+            column(
+              width = 9,
+              plotlyOutput(ns('graph_time')) %>% withSpinner(type = 8),
+              tags$hr(),
+              DT::DTOutput(ns('time_table')) %>% withSpinner(type = 8)
             )
           )
         ),

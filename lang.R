@@ -131,7 +131,10 @@ lang <- list(
   unique_users = 'Usuarios únicos',
   unique_sessions = 'Sesiones únicas',
   title_error = 'Error',
-  graph_clearance = 'Nivel de permisos'
+  graph_clearance = 'Nivel de permisos',
+  graph_time_title = 'Tiempo de ejecución en segundos',
+  graph_time_event = 'Evento',
+  graph_time_event_names = c('Query', 'Gráfica de ventas')
 )
 
 lang$need_valid_input <- paste0('El archivo de items no está en el formato correcto.\n', lang$need_input_format)
