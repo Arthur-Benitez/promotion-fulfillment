@@ -128,6 +128,7 @@ lang <- list(
   unit = 'Eje temporal',
   split_by_clearance = 'Separar por nivel de permisos',
   split_by_message = 'Separar por actividad',
+  graph_top_nbar = 'Top N',
   unique_users = 'Usuarios únicos',
   unique_sessions = 'Sesiones únicas',
   title_error = 'Error',

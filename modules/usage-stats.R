@@ -217,6 +217,7 @@ usageStatsServer <- function(input, output, session, credentials) {
       
       ## Gráfica
       p <- x %>% 
+        filter(dense_rank(x) <= input$graph_top_nbar) %>% 
         plot_ly(x = ~x, y = ~n_actions, hoverinfo = 'text') %>% 
         add_bars(color = ~color, text = ~text, colors = pal) %>%
         layout(
@@ -470,6 +471,14 @@ usageStatsUI <- function(id) {
             column(
               width = 3,
               selectInput(ns('graph_clearance'), lang$graph_clearance, c('all', names(gl$clearance_levels))),
+              sliderInput(
+                ns('graph_top_nbar'),
+                label = lang$graph_top_nbar,
+                min = 5,
+                max = 30,
+                step = 1,
+                value = 20
+              ),
               checkboxInput(ns('split_by_message'), lang$split_by_message, FALSE),
               downloadButton(ns('download_top'), lang$download)
             ),
