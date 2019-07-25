@@ -1214,11 +1214,19 @@ computePromotionsServer <- function(input, output, session, credentials) {
       final_result() %>%
         mutate_at(intersect(gl$output_character_cols, names(.)), as.character) %>% 
         mutate_at(vars(percent_columns), list(~100 * .)) %>%
+        select(
+          feature_name,
+          old_nbr,
+          primary_desc,
+          store_nbr,
+          negocio,
+          everything()
+        ) %>% 
         datatable(
           extensions = c('FixedColumns', 'KeyTable'),
           filter = 'top',
           options = list(
-            fixedColumns = list(leftColumns = 9),
+            fixedColumns = list(leftColumns = 5),
             keys = TRUE,
             scrollX = TRUE,
             scrollY = '500px',
