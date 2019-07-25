@@ -1218,7 +1218,6 @@ computePromotionsServer <- function(input, output, session, credentials) {
           extensions = c('FixedColumns', 'KeyTable'),
           filter = 'top',
           options = list(
-            dom = 't',
             fixedColumns = list(leftColumns = 9),
             keys = TRUE,
             scrollX = TRUE,
@@ -1250,7 +1249,6 @@ computePromotionsServer <- function(input, output, session, credentials) {
           extensions = c('FixedColumns', 'KeyTable'),
           filter = 'top',
           options = list(
-            dom = 't',
             fixedColumns = list(leftColumns = 5),
             keys = TRUE,
             scrollX = TRUE,
