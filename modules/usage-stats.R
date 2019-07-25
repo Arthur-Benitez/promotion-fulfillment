@@ -491,7 +491,7 @@ usageStatsUI <- function(id) {
           )
         ),
         tabPanel(
-          title = 'Time',
+          title = 'Desempeño',
           fluidRow(
             column(
               width = 3,
