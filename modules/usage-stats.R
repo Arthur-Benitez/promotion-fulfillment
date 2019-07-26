@@ -7,7 +7,9 @@ require(viridis)
 
 remap_text <- c(
   'user' = 'unique_users',
-  'session' = 'unique_sessions'
+  'session' = 'unique_sessions',
+  'n_actions' = 'unique_actions',
+  'n_sessions' = 'unique_sessions'
 )
 
 generate_empty_plot <- function(title = 'Error', text = ':(') {
@@ -196,33 +198,31 @@ usageStatsServer <- function(input, output, session, credentials) {
       }
       
       x <- x %>%
-        mutate(
-          x = user %>% fct_infreq(),
-          role = top_role
-        ) %>% 
-        group_by(x, role, !!!syms(grp), color, text) %>% 
+        group_by(user, role = top_role, !!!syms(grp), color, text) %>% 
         summarise(
           n_actions = n(),
           n_sessions = n_distinct(session)
         ) %>% 
         ungroup() %>% 
         mutate(
+          x = fct_reorder(user, !!sym(input$graph_top_kpi), .desc = TRUE),
+          y = !!sym(input$graph_top_kpi),
           text = sprintf('%s\nAcciones: %s\nSesiones: %s', text, n_actions, n_sessions)
         )
      
       ## Datos para descargar
       graph_data$top <- x %>% 
         select(user = x, role, !!!syms(grp), n_actions, n_sessions) %>% 
-        arrange(user, desc(n_actions))
+        arrange(user, desc(!!sym(input$graph_top_kpi)))
       
       ## Gráfica
       p <- x %>% 
         filter(dense_rank(x) <= input$graph_top_nbar) %>% 
-        plot_ly(x = ~x, y = ~n_actions, hoverinfo = 'text') %>% 
+        plot_ly(x = ~x, y = ~y, hoverinfo = 'text') %>% 
         add_bars(color = ~color, text = ~text, colors = pal) %>%
         layout(
           barmode = 'stack',
-          title = get_pretty_names(remap_text[input$variable]),
+          title = get_pretty_names(remap_text[input$graph_top_kpi]),
           xaxis = list(
             title = ''
           ),
@@ -471,6 +471,12 @@ usageStatsUI <- function(id) {
             column(
               width = 3,
               selectInput(ns('graph_clearance'), lang$graph_clearance, c('all', names(gl$clearance_levels))),
+              selectInput(
+                ns('graph_top_kpi'),
+                label = lang$kpi,
+                choices = c('n_sessions', 'n_actions') %>% 
+                  set_names(c(lang$unique_sessions, lang$unique_actions))
+              ),
               sliderInput(
                 ns('graph_top_nbar'),
                 label = lang$graph_top_nbar,
