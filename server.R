@@ -13,6 +13,20 @@ shinyServer(function(input, output, session){
     logoutUI('logout')
   })
   
+  output$user_level_icon <- renderUI({
+    req(credentials()$user_auth)
+    icn_name <- switch(
+      as.character(role_clearance(credentials()$role, gl$clearance_levels)),
+      '0' = 'crown',
+      '1' = 'star',
+      '2' = 'user'
+    )
+    tags$div(
+      title = sprintf(lang$user_level_icon, credentials()$user),
+      actionButton('user_level_icon', '', icon = icon(icn_name), class = 'header-icon')
+    )
+  })
+  
   output$sidebar <- renderUI({
     if (credentials()$user_auth) {
       if (user_clearance(credentials(), gl$clearance_levels) <= 1) {
