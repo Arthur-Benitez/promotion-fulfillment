@@ -1,3 +1,4 @@
+require(purrr)
 
 lang <- list(
   ## login
@@ -123,9 +124,18 @@ lang <- list(
   ## Usage Stats
   usage_stats = 'Utilización',
   refresh = 'Refrescar',
+  kpi = 'KPI',
+  unit = 'Eje temporal',
   split_by_clearance = 'Separar por nivel de permisos',
+  split_by_message = 'Separar por actividad',
+  graph_top_nbar = 'Top N',
   unique_users = 'Usuarios únicos',
-  unique_sessions = 'Sesiones únicas'
+  unique_sessions = 'Sesiones únicas',
+  title_error = 'Error',
+  graph_clearance = 'Nivel de permisos',
+  graph_time_title = 'Tiempo de ejecución en segundos',
+  graph_time_event = 'Evento',
+  graph_time_event_names = c('Query', 'Gráfica de ventas')
 )
 
 lang$need_valid_input <- paste0('El archivo de items no está en el formato correcto.\n', lang$need_input_format)
