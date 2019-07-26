@@ -48,7 +48,7 @@ load_log <- function(log_files) {
     level = map_chr(logs_ls, 'level'),
     timestamp = ymd_hms(format(ymd_hms(map_chr(logs_ls, 'timestamp')), tz = 'America/Mexico_City')),
     date = as_date(timestamp),
-    user = map(logs_ls, c('session_info', 'user')) %>% as.character() %>% ifelse(. == 'NULL', NA, .),
+    user = map(logs_ls, c('session_info', 'user')) %>% as.character() %>% ifelse(. == 'NULL', NA, .) %>% tolower(),
     role = map(logs_ls, c('session_info', 'role')),
     clearance = map_dbl(role, ~role_clearance(.x, gl$clearance_levels)),
     top_role =  names(gl$clearance_levels)[match(clearance, gl$clearance_levels)],
