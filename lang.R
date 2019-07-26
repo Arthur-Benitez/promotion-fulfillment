@@ -132,6 +132,7 @@ lang <- list(
   graph_top_nbar = 'Top N',
   unique_users = 'Usuarios únicos',
   unique_sessions = 'Sesiones únicas',
+  unique_actions = 'Acciones únicas',
   title_error = 'Error',
   graph_clearance = 'Nivel de permisos',
   graph_time_title = 'Tiempo de ejecución en segundos',
