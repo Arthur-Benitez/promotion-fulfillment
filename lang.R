@@ -4,6 +4,7 @@ lang <- list(
   ## login
   user = 'Usuario',
   vp = 'Vicepresidencia',
+  all = 'Todos',
   password = 'Contraseña',
   role = 'Permisos',
   recover_password = 'Recuperar contraseña',
@@ -129,8 +130,8 @@ lang <- list(
   update_user_info = 'Refrescar info de usuarios',
   kpi = 'KPI',
   message = 'Evento',
-  unit = 'Eje temporal',
-  split_by_clearance = 'Separar por nivel de permisos',
+  unit = 'Eje temporal (eje x)',
+  graph_daily_split = 'Separar (color)',
   graph_top_split = 'Separar (color)',
   graph_top_x = 'Entidad (eje x)',
   graph_top_nbar = 'Top N',

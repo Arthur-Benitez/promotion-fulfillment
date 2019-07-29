@@ -188,23 +188,38 @@ usageStatsServer <- function(input, output, session, credentials, dev_connection
       p <- generate_empty_plot(title = lang$title_error, text = ':(')
       graph_data$daily <- NULL
     } else {
-      df <- logs_filt()
-      if (input$split_by_clearance) {
+      df <- logs_filt() %>% 
+        select(-role) %>% 
+        rename(role = top_role)
+      if (input$graph_daily_split == 'all') {
         x <- df %>% 
           mutate(
-            color = top_role
+            color = lang$all
           )
       } else {
         x <- df %>% 
           mutate(
-            color = 'all'
+            color = !!sym(input$graph_daily_split)
           )
       }
       
+      pal <- switch(
+        input$graph_daily_split,
+        all = '#000000',
+        role = gl$clearance_pal,
+        vp = colorblind_pal()(n_distinct(x$vp)) %>%
+          set_names(sort(unique(x$vp), na.last = TRUE))
+      )
+      lvls <- switch(
+        input$graph_daily_split,
+        all = lang$all,
+        role = c('all', 'owner', 'admin', 'basic'),
+        vp = sort(unique(x$vp))
+      )
       x <- x %>%
         mutate(
           x = floor_date(date, unit = input$unit, week_start = 1),
-          color = factor(color, levels = c('all', 'owner', 'admin', 'basic'))
+          color = factor(color, levels = lvls)
         ) %>% 
         group_by(x, color) %>% 
         summarise(
@@ -219,15 +234,15 @@ usageStatsServer <- function(input, output, session, credentials, dev_connection
       graph_data$daily <- x %>% 
         transmute(
           date = x,
-          role = color,
+          !!sym(input$graph_daily_split) := color,
           !!sym(paste0('n_unique_', input$variable, 's')) := n_unique
         ) %>% 
-        arrange(desc(date), role)
-      
+        arrange(desc(date), !!sym(input$graph_daily_split))
+
       ## Gráfica
       p <- x %>% 
         plot_ly(x = ~x, y = ~n_unique) %>% 
-        add_bars(color = ~color, text = ~text, colors = gl$clearance_pal) %>%
+        add_bars(color = ~color, text = ~text, colors = pal) %>%
         layout(
           barmode = 'stack',
           title = get_pretty_names(remap_text[input$variable]),
@@ -542,11 +557,16 @@ usageStatsUI <- function(id) {
           fluidRow(
             column(
               width = 3,
-              selectInput(ns('variable'), lang$kpi, c('user', 'session') %>%
-                            set_names(get_pretty_names(remap_text[.]))),
               selectInput(ns('unit'), lang$unit, c('days', 'weeks', 'months', 'years') %>%
                             set_names(get_pretty_names(.))),
-              checkboxInput(ns('split_by_clearance'), lang$split_by_clearance, TRUE),
+              selectInput(
+                ns('graph_daily_split'),
+                label = lang$graph_daily_split,
+                choices = c('all', 'role', 'vp') %>% 
+                  set_names(lang$all, lang$role, lang$vp)
+              ),
+              selectInput(ns('variable'), lang$kpi, c('user', 'session') %>%
+                            set_names(get_pretty_names(remap_text[.]))),
               downloadButton(ns('download_daily'), lang$download)
             ),
             column(
