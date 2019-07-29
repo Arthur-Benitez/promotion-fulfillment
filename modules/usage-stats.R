@@ -286,8 +286,20 @@ usageStatsServer <- function(input, output, session, credentials, dev_connection
       ## Datos para descargar
       graph_data$top <- x %>% 
         select(!!xvar, !!colorvar, n_actions, n_sessions) %>% 
-        arrange(!!xvar, desc(!!kpi))
-      
+        {
+          y <- .
+          if (nrow(distinct(y, !!xvar, !!colorvar)) == nrow(distinct(y, !!xvar))) {
+            arrange(y, desc(!!kpi))
+          } else {
+            y %>% 
+              group_by(!!xvar) %>% 
+              mutate(x_kpi = sum(!!kpi)) %>% 
+              arrange(desc(x_kpi), !!xvar, desc(!!kpi)) %>% 
+              select(-x_kpi) %>% 
+              ungroup()
+          }
+        }
+        
       ## Gráfica
       p <- x %>% 
         filter(dense_rank(x) <= input$graph_top_nbar) %>% 
