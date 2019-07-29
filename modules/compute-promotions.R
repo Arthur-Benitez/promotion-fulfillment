@@ -202,11 +202,12 @@ run_query_once <- function(ch, input_data, connector = 'production-connector') {
     wk_final = wk_final
   )
   tryCatch({
-    if (is.null(ch)) {
-      res <- mlutils::dataset.load(name = connector, query = query)
-    } else {
-      res <- sqlQuery(ch, query)
-    }
+    res <- sql_query(
+      ch = ch,
+      connector = connector,
+      query = query,
+      stringsAsFactors = FALSE
+    )
     if (!is.data.frame(res)) {
       stop('Query failed.')
     }
@@ -251,11 +252,12 @@ get_graph_data <- function(ch, input, calendar_day) {
     paste(collapse = '\n')
   
   tryCatch({
-    if (is.null(ch)) {
-      graph_table <- mlutils::dataset.load(name = 'production-connector', query = query_graph)
-    } else {
-      graph_table <- sqlQuery(ch, query_graph, stringsAsFactors = FALSE)
-    }
+    graph_table <- sql_query(
+      ch = ch,
+      connector = 'production-connector',
+      query = query_graph,
+      stringsAsFactors = FALSE
+    )
     if (!is.data.frame(graph_table)) {
       stop("Graph query failed.")
     }
@@ -285,11 +287,12 @@ search_ss_once <- function(ch, input_data_ss, connector = 'production-connector'
     paste(collapse = '\n')
   
   tryCatch({
-    if (is.null(ch)) {
-      query_ss_res <- mlutils::dataset.load(name = connector, query = query_ss)
-    } else {
-      query_ss_res <- sqlQuery(ch, query_ss, stringsAsFactors = FALSE)
-    }
+    query_ss_res <- sql_query(
+      ch = ch,
+      connector = connector,
+      query = query_ss,
+      stringsAsFactors = FALSE
+    )
     if (!is.data.frame(query_ss_res)) {
       stop("SS Query failed.")
     }
