@@ -583,7 +583,7 @@ usageStatsUI <- function(id) {
       tabBox(
         width = 12,
         tabPanel(
-          title = 'Tendencia',
+          title = lang$graph_daily_tab,
           fluidRow(
             column(
               width = 3,
@@ -608,7 +608,7 @@ usageStatsUI <- function(id) {
           )
         ),
         tabPanel(
-          title = 'Top',
+          title = lang$graph_top_tab,
           fluidRow(
             column(
               width = 3,
@@ -656,7 +656,7 @@ usageStatsUI <- function(id) {
           )
         ),
         tabPanel(
-          title = 'Desempeño',
+          title = lang$graph_time_tab,
           fluidRow(
             column(
               width = 3,
@@ -672,7 +672,7 @@ usageStatsUI <- function(id) {
           )
         ),
         tabPanel(
-          title = 'Detalle',
+          title = lang$detail_table_tab,
           tags$div(
             style = 'margin-bottom: 15px;',
             downloadButton(ns('download_detail'), lang$download)

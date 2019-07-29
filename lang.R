@@ -130,8 +130,10 @@ lang <- list(
   update_user_info = 'Refrescar info de usuarios',
   kpi = 'KPI',
   message = 'Evento',
+  graph_daily_tab = 'Tendencia',
   graph_daily_x = 'Eje temporal (eje x)',
   graph_daily_split = 'Separar (color)',
+  graph_top_tab = 'Top',
   graph_top_split = 'Separar (color)',
   graph_top_x = 'Entidad (eje x)',
   graph_top_nbar = 'Top N',
@@ -141,9 +143,11 @@ lang <- list(
   n_actions = 'Acciones totales',
   title_error = 'Error',
   graph_top_clearance = 'Nivel de permisos',
+  graph_time_tab = 'Desempeño',
   graph_time_title = 'Tiempo de ejecución en segundos',
   graph_time_event = 'Evento',
-  graph_time_event_names = c('Query', 'Gráfica de ventas')
+  graph_time_event_names = c('Query', 'Gráfica de ventas'),
+  detail_table_tab = 'Detalle'
 )
 
 lang$need_valid_input <- paste0('El archivo de items no está en el formato correcto.\n', lang$need_input_format)
