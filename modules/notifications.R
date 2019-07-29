@@ -88,6 +88,7 @@ notificationsServer <- function(input, output, session, credentials) {
             notification = message_path
           )
         )))
+        r$trigger <- r$trigger + 1
       }
     } else {
       removeModal()
