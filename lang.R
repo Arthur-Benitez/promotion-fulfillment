@@ -3,6 +3,7 @@ require(purrr)
 lang <- list(
   ## login
   user = 'Usuario',
+  vp = 'Vicepresidencia',
   password = 'Contraseña',
   role = 'Permisos',
   recover_password = 'Recuperar contraseña',
@@ -124,11 +125,14 @@ lang <- list(
   feature_name = 'Promoción',
   ## Usage Stats
   usage_stats = 'Utilización',
-  refresh = 'Refrescar',
+  refresh = 'Refrescar logs',
+  update_user_info = 'Refrescar info de usuarios',
   kpi = 'KPI',
+  message = 'Evento',
   unit = 'Eje temporal',
   split_by_clearance = 'Separar por nivel de permisos',
-  split_by_message = 'Separar por actividad',
+  graph_top_split = 'Separar (color)',
+  graph_top_x = 'Entidad (eje x)',
   graph_top_nbar = 'Top N',
   unique_users = 'Usuarios únicos',
   unique_sessions = 'Sesiones únicas',

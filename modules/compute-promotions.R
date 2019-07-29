@@ -1505,6 +1505,8 @@ computePromotionsServer <- function(input, output, session, credentials) {
     contentType = 'text/csv'
   )
   
+  ## Regresar conexión dev para que se use en otros módulos
+  reactive(reactiveValuesToList(r))
 }
 
 
