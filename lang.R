@@ -130,7 +130,7 @@ lang <- list(
   update_user_info = 'Refrescar info de usuarios',
   kpi = 'KPI',
   message = 'Evento',
-  unit = 'Eje temporal (eje x)',
+  graph_daily_x = 'Eje temporal (eje x)',
   graph_daily_split = 'Separar (color)',
   graph_top_split = 'Separar (color)',
   graph_top_x = 'Entidad (eje x)',
@@ -140,7 +140,7 @@ lang <- list(
   unique_sessions = 'Sesiones únicas',
   n_actions = 'Acciones totales',
   title_error = 'Error',
-  graph_clearance = 'Nivel de permisos',
+  graph_top_clearance = 'Nivel de permisos',
   graph_time_title = 'Tiempo de ejecución en segundos',
   graph_time_event = 'Evento',
   graph_time_event_names = c('Query', 'Gráfica de ventas')
