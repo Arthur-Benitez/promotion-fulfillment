@@ -291,19 +291,20 @@ usageStatsServer <- function(input, output, session, credentials, dev_connection
         group_by(!!xvar, !!colorvar) %>% 
         summarise(
           n_actions = n(),
-          n_sessions = n_distinct(session)
+          n_sessions = n_distinct(session),
+          n_users = n_distinct(user)
         ) %>% 
         ungroup() %>% 
         mutate(
           x = fct_reorder(!!xvar, !!kpi, .fun = sum, .desc = TRUE),
           y = !!kpi,
           color = !!colorvar,
-          text = sprintf('%s\nAcciones: %s\nSesiones: %s', !!colorvar, n_actions, n_sessions)
+          text = sprintf('%s\nUsuarios: %s\nSesiones: %s\nAcciones: %s', !!colorvar, n_users, n_sessions, n_actions)
         )
      
       ## Datos para descargar
       graph_data$top <- x %>% 
-        select(!!xvar, !!colorvar, n_actions, n_sessions) %>% 
+        select(!!xvar, !!colorvar, starts_with('n_')) %>% 
         {
           y <- .
           if (nrow(distinct(y, !!xvar, !!colorvar)) == nrow(distinct(y, !!xvar))) {
@@ -597,8 +598,8 @@ usageStatsUI <- function(id) {
               selectInput(
                 ns('graph_top_kpi'),
                 label = lang$kpi,
-                choices = c('n_sessions', 'n_actions') %>% 
-                  set_names(c(lang$unique_sessions, lang$unique_actions))
+                choices = c('n_sessions', 'n_actions', 'n_users') %>% 
+                  set_names(c(lang$unique_sessions, lang$unique_actions, lang$unique_users))
               ),
               selectInput(
                 ns('graph_clearance'),
