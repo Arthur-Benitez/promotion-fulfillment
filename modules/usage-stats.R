@@ -227,16 +227,16 @@ usageStatsServer <- function(input, output, session, credentials, dev_connection
       )
       x <- x %>%
         mutate(
-          x = floor_date(date, unit = input$unit, week_start = 1),
+          x = floor_date(date, unit = input$graph_daily_x, week_start = 1),
           color = factor(color, levels = lvls)
         ) %>% 
         group_by(x, color) %>% 
         summarise(
-          n_unique = n_distinct(!!rlang::sym(input$variable))
+          n_unique = n_distinct(!!rlang::sym(input$graph_daily_kpi))
         ) %>% 
         ungroup() %>% 
         mutate(
-          text = sprintf('%s: %s', get_pretty_names(remap_text[input$variable]), scales::comma(n_unique))
+          text = sprintf('%s: %s', get_pretty_names(remap_text[input$graph_daily_kpi]), scales::comma(n_unique))
         )
       
       ## Datos para descargar
@@ -244,7 +244,7 @@ usageStatsServer <- function(input, output, session, credentials, dev_connection
         transmute(
           date = x,
           !!sym(input$graph_daily_split) := color,
-          !!sym(paste0('n_unique_', input$variable, 's')) := n_unique
+          !!sym(paste0('n_unique_', input$graph_daily_kpi, 's')) := n_unique
         ) %>% 
         arrange(desc(date), !!sym(input$graph_daily_split))
 
@@ -254,7 +254,7 @@ usageStatsServer <- function(input, output, session, credentials, dev_connection
         add_bars(color = ~color, text = ~text, colors = pal) %>%
         layout(
           barmode = 'stack',
-          title = get_pretty_names(remap_text[input$variable]),
+          title = get_pretty_names(remap_text[input$graph_daily_kpi]),
           xaxis = list(
             title = ''
           ),
@@ -273,7 +273,7 @@ usageStatsServer <- function(input, output, session, credentials, dev_connection
       graph_data$top <- NULL
     } else {
       df <- logs_filt() %>% 
-        filter(top_role %in% input$graph_clearance)
+        filter(top_role %in% input$graph_top_clearance)
       if (input$graph_top_split == 'message') {
         msgs <- df$message %>% as.factor() %>% fct_infreq() %>% levels()
         colorvar <- sym('message')
@@ -392,7 +392,7 @@ usageStatsServer <- function(input, output, session, credentials, dev_connection
       x <- df %>%
         filter(message %in% c(msg1, msg2)) %>% 
         transmute(
-          x = date, #floor_date(date, unit = input$unit, week_start = 1),
+          x = date, #floor_date(date, unit = input$graph_daily_x, week_start = 1),
           timestamp,
           session,
           message = factor(message, levels = c(msg1, msg2))
@@ -587,7 +587,7 @@ usageStatsUI <- function(id) {
           fluidRow(
             column(
               width = 3,
-              selectInput(ns('unit'), lang$unit, c('days', 'weeks', 'months', 'years') %>%
+              selectInput(ns('graph_daily_x'), lang$graph_daily_x, c('days', 'weeks', 'months', 'years') %>%
                             set_names(get_pretty_names(.))),
               selectInput(
                 ns('graph_daily_split'),
@@ -595,7 +595,7 @@ usageStatsUI <- function(id) {
                 choices = c('all', 'role', 'vp') %>% 
                   set_names(lang$all, lang$role, lang$vp)
               ),
-              selectInput(ns('variable'), lang$kpi, c('user', 'session') %>%
+              selectInput(ns('graph_daily_kpi'), lang$kpi, c('user', 'session') %>%
                             set_names(get_pretty_names(remap_text[.]))),
               downloadButton(ns('download_daily'), lang$download)
             ),
@@ -631,8 +631,8 @@ usageStatsUI <- function(id) {
                   set_names(c(lang$unique_sessions, lang$n_actions, lang$active_users, lang$p_active_users))
               ),
               selectInput(
-                ns('graph_clearance'),
-                label = lang$graph_clearance,
+                ns('graph_top_clearance'),
+                label = lang$graph_top_clearance,
                 choices = names(gl$clearance_levels),
                 selected = names(gl$clearance_levels),
                 multiple = TRUE
