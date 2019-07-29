@@ -167,7 +167,8 @@ shinyServer(function(input, output, session){
   callModule(
     usageStatsServer,
     id = 'usage_stats',
-    credentials = reactive(credentials())
+    credentials = reactive(credentials()),
+    dev_connection = reactive(promotions()[c('ch', 'is_open')])
   )
   
   ## Notificaciones
