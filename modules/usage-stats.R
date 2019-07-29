@@ -6,9 +6,9 @@ require(plotly)
 require(viridis)
 
 remap_text <- c(
-  'user' = 'unique_users',
+  'user' = 'active_users',
   'session' = 'unique_sessions',
-  'n_actions' = 'unique_actions',
+  'n_actions' = 'n_actions',
   'n_sessions' = 'unique_sessions'
 )
 
@@ -315,10 +315,10 @@ usageStatsServer <- function(input, output, session, credentials, dev_connection
           text = sprintf(
             '%s\n%s: %s\n%s: %s\n%s: %s\n%s: %s', 
             !!colorvar,
-            lang$unique_users, scales::comma(n_users),
+            lang$active_users, scales::comma(n_users),
             lang$p_active_users, scales::percent(p_active_users),
             lang$unique_sessions, scales::comma(n_sessions),
-            lang$unique_actions, scales::comma(n_actions)
+            lang$n_actions, scales::comma(n_actions)
           )
         )
      
@@ -628,7 +628,7 @@ usageStatsUI <- function(id) {
                 ns('graph_top_kpi'),
                 label = lang$kpi,
                 choices = c('n_sessions', 'n_actions', 'n_users', 'p_active_users') %>% 
-                  set_names(c(lang$unique_sessions, lang$unique_actions, lang$unique_users, lang$p_active_users))
+                  set_names(c(lang$unique_sessions, lang$n_actions, lang$active_users, lang$p_active_users))
               ),
               selectInput(
                 ns('graph_clearance'),
