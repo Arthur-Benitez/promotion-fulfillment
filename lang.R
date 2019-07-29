@@ -138,6 +138,8 @@ lang <- list(
   unique_users = 'Usuarios únicos',
   unique_sessions = 'Sesiones únicas',
   unique_actions = 'Acciones únicas',
+  active_users = 'Usuarios activos',
+  p_active_users = 'Usuarios activos (% de VP)',
   title_error = 'Error',
   graph_clearance = 'Nivel de permisos',
   graph_time_title = 'Tiempo de ejecución en segundos',
