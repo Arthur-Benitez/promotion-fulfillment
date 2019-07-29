@@ -163,7 +163,10 @@ usageStatsServer <- function(input, output, session, credentials, dev_connection
         )
     }
     res %>% 
-      replace_na(list(vp = 'Otros', name = 'N/A'))
+      replace_na(list(vp = 'Otros', name = 'N/A')) %>% 
+      mutate(
+        user_name = paste0(name, ' (', user, ')')
+      )
   })
   
   logs_filt <- reactive({
@@ -562,7 +565,7 @@ usageStatsUI <- function(id) {
               selectInput(
                 ns('graph_top_x'),
                 label = lang$graph_top_x,
-                choices = c('user', 'vp') %>% 
+                choices = c('user_name', 'vp') %>% 
                   set_names(c(lang$user, lang$vp))
               ),
               selectInput(
