@@ -6,11 +6,11 @@ save_title <- function(message_data, user_file, user_notifications_path) {
   write_csv(message_data, path = user_file, na = '', append = ifelse(file.exists(user_file), TRUE, FALSE))
 }
 
-make_modal <- function(message, ns){
+make_modal <- function(message_path, ns){
   modalDialog(
     size = 'l',
     title = 'Anuncios',
-    includeHTML(sprintf('%s/notifications/messages/%s', gl$app_deployment_environment, message)),
+    includeHTML(message_path),
     footer = tags$table(
       align = 'right',
       tags$tr(
@@ -75,7 +75,21 @@ notificationsServer <- function(input, output, session, credentials) {
   observeEvent(r$trigger, {
     req(r$trigger > 0)
     if (nrow(r$message_data) > 0) {
-      showModal(make_modal(r$message_data$message[1], session$ns))
+      message_path <- sprintf('%s/notifications/messages/%s', gl$app_deployment_environment, r$message_data$message[1])
+      if (file.exists(message_path)) {
+        showModal(make_modal(message_path, session$ns))  
+      } else {
+        # Quitar el mensaje manualmente pero no guardar como visto
+        r$message_data <- r$message_data[-1, ]
+        flog.warn(toJSON(list(
+          session_info = msg_cred(credentials()),
+          message = 'NOTIFICATION NOT FOUND',
+          details = list(
+            notification = message_path
+          )
+        )))
+        r$trigger <- r$trigger + 1
+      }
     } else {
       removeModal()
     }
