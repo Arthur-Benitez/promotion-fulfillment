@@ -151,6 +151,15 @@ usageStatsServer <- function(input, output, session, credentials, dev_connection
     })
   })
   
+  user_info_vp_totals <- reactive({
+    req(user_info())
+    user_info() %>% 
+      group_by(vp) %>% 
+      summarise(
+        total_users = n_distinct(user)
+      )
+  })
+  
   logs_vp <- reactive({
     if (is.data.frame(user_info())) {
       res <- logs() %>% 
@@ -285,6 +294,7 @@ usageStatsServer <- function(input, output, session, credentials, dev_connection
       x <- df %>%
         select(-role) %>% 
         rename(role = top_role) %>% 
+        left_join(user_info_vp_totals(), by = 'vp') %>% 
         mutate(
           !!colorvar := factor(!!colorvar) %>% sort_fun()
         ) %>% 
@@ -292,19 +302,29 @@ usageStatsServer <- function(input, output, session, credentials, dev_connection
         summarise(
           n_actions = n(),
           n_sessions = n_distinct(session),
-          n_users = n_distinct(user)
+          n_users = n_distinct(user),
+          total_users = mean(total_users)
         ) %>% 
         ungroup() %>% 
         mutate(
+          vp_flag = input$graph_top_split == 'vp' & input$graph_top_x == 'vp',
+          p_active_users = ifelse(vp_flag, n_users / total_users, 0),
           x = fct_reorder(!!xvar, !!kpi, .fun = sum, .desc = TRUE),
           y = !!kpi,
           color = !!colorvar,
-          text = sprintf('%s\nUsuarios: %s\nSesiones: %s\nAcciones: %s', !!colorvar, n_users, n_sessions, n_actions)
+          text = sprintf(
+            '%s\n%s: %s\n%s: %s\n%s: %s\n%s: %s', 
+            !!colorvar,
+            lang$unique_users, scales::comma(n_users),
+            lang$p_active_users, scales::percent(p_active_users),
+            lang$unique_sessions, scales::comma(n_sessions),
+            lang$unique_actions, scales::comma(n_actions)
+          )
         )
      
       ## Datos para descargar
       graph_data$top <- x %>% 
-        select(!!xvar, !!colorvar, starts_with('n_')) %>% 
+        select(!!xvar, !!colorvar, starts_with('n_'), starts_with('p_')) %>% 
         {
           y <- .
           if (nrow(distinct(y, !!xvar, !!colorvar)) == nrow(distinct(y, !!xvar))) {
@@ -320,6 +340,7 @@ usageStatsServer <- function(input, output, session, credentials, dev_connection
         }
         
       ## Gráfica
+      
       p <- x %>% 
         filter(dense_rank(x) <= input$graph_top_nbar) %>% 
         plot_ly(x = ~x, y = ~y, hoverinfo = 'text') %>% 
@@ -331,7 +352,8 @@ usageStatsServer <- function(input, output, session, credentials, dev_connection
             title = ''
           ),
           yaxis = list(
-            title = ''
+            title = '',
+            tickformat = ifelse(substr(input$graph_top_kpi, 1, 2) == 'p_', '%', ',d')
           )
         )
     }
@@ -459,7 +481,11 @@ usageStatsServer <- function(input, output, session, credentials, dev_connection
   })
   
   output$top_table <- DT::renderDataTable({
+    req(graph_data$top)
+    decimal_columns <- str_subset(names(graph_data$top), '^n_')
+    percent_columns <- str_subset(names(graph_data$top), '^p_')
     graph_data$top %>% 
+      mutate_at(percent_columns, ~ 100 * .x) %>% 
       datatable(
         extensions = c('KeyTable'),
         filter = 'top',
@@ -469,7 +495,10 @@ usageStatsServer <- function(input, output, session, credentials, dev_connection
           pageLength = 100,
           keys = TRUE
         )
-      )
+      ) %>%
+      formatCurrency(columns = decimal_columns, digits = 0, currency = '') %>%
+      formatCurrency(columns = percent_columns, digits = 1, currency = '%', before = FALSE) %>% 
+      return()
   })
   
   output$time_table <- DT::renderDataTable({
@@ -598,8 +627,8 @@ usageStatsUI <- function(id) {
               selectInput(
                 ns('graph_top_kpi'),
                 label = lang$kpi,
-                choices = c('n_sessions', 'n_actions', 'n_users') %>% 
-                  set_names(c(lang$unique_sessions, lang$unique_actions, lang$unique_users))
+                choices = c('n_sessions', 'n_actions', 'n_users', 'p_active_users') %>% 
+                  set_names(c(lang$unique_sessions, lang$unique_actions, lang$unique_users, lang$p_active_users))
               ),
               selectInput(
                 ns('graph_clearance'),
