@@ -45,3 +45,13 @@ format_difftime <- function(x) {
     x %% 60
   )
 }
+
+## Run a query in dev or prod
+sql_query <- function(ch = NULL, connector = NULL, query, stringsAsFactors = FALSE, ...) {
+  if (is.null(ch)) {
+    res <- mlutils::dataset.load(name = connector, query = query, ...)
+  } else {
+    res <- RODBC::sqlQuery(ch, query, stringsAsFactors = stringsAsFactors, ...)
+  }
+  return(res)
+}

@@ -43,6 +43,10 @@
   margin: auto 0 20px 15px;
 }
 
+.inline-select-button-wrapper {
+  margin: auto 25px 15px 0;
+}
+
 /* Botones de colores con letra blanca */
 .btn-success,
 .btn-info,

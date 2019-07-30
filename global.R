@@ -160,6 +160,7 @@ gl <- list(
     'sub_tipo'
   )
 )
+gl$is_dev <- gl$app_deployment_environment == 'dev'
 gl$app_version_text <- sprintf('Versión %s (%s)', gl$app_version, gl$app_version_date)
 gl$feature_const_cols <- gl$cols$name[gl$cols$is_constant_by_feature]
 

@@ -6,8 +6,10 @@ require(plotly)
 require(viridis)
 
 remap_text <- c(
-  'user' = 'unique_users',
-  'session' = 'unique_sessions'
+  'user' = 'active_users',
+  'session' = 'unique_sessions',
+  'n_actions' = 'n_actions',
+  'n_sessions' = 'unique_sessions'
 )
 
 generate_empty_plot <- function(title = 'Error', text = ':(') {
@@ -59,7 +61,7 @@ load_log <- function(log_files) {
 }
 
 
-usageStatsServer <- function(input, output, session, credentials) {
+usageStatsServer <- function(input, output, session, credentials, dev_connection) {
   
   log_path <- paste0(gl$app_deployment_environment, '/log/')
   
@@ -94,10 +96,91 @@ usageStatsServer <- function(input, output, session, credentials) {
     )
   })
   
+  update_user_info_trigger <- reactiveVal(0)
+  observeEvent(input$update_user_info, {
+    req(input$update_user_info > 0)
+    req(
+      !gl$is_dev ||
+        (gl$is_dev && dev_connection()$is_open)
+    )
+    qry <- read_lines('sql/usuarios-vp.sql') %>% 
+      paste(collapse = '\n')
+    tryCatch({
+      flog.info(toJSON(list(
+        session_info = msg_cred(credentials()),
+        message = 'START UPDATING USER INFO',
+        details = list()
+      )))
+      sql_query(
+        ch = dev_connection()$ch,
+        connector = 'production-connector',
+        query = qry,
+        stringsAsFactors = FALSE
+      ) %>% 
+        as_tibble() %>%
+        mutate_at(vars(vp, name), str_to_title) %>% 
+        mutate_at('user', tolower) %>% 
+        distinct() %>% # por si ya no son únicos al cambiar las mayúsculas
+        saveRDS('data/user-info.rds')
+      flog.info(toJSON(list(
+        session_info = msg_cred(credentials()),
+        message = 'DONE UPDATING USER INFO',
+        details = list()
+      )))
+    }, error = function(e){
+      flog.warn(toJSON(list(
+        session_info = msg_cred(credentials()),
+        message = 'FAILED TO UPDATE USER INFO',
+        details = list()
+      )))
+    })
+    update_user_info_trigger(update_user_info_trigger() + 1)
+  })
+  
+  user_info <- reactive({
+    update_user_info_trigger()
+    tryCatch({
+      readRDS('data/user-info.rds')
+    }, error = function(e){
+      flog.warn(toJSON(list(
+        session_info = msg_cred(credentials()),
+        message = 'USER INFO NOT FOUND',
+        details = list()
+      )))
+      NULL
+    })
+  })
+  
+  user_info_vp_totals <- reactive({
+    req(user_info())
+    user_info() %>% 
+      group_by(vp) %>% 
+      summarise(
+        total_users = n_distinct(user)
+      )
+  })
+  
+  logs_vp <- reactive({
+    if (is.data.frame(user_info())) {
+      res <- logs() %>% 
+        left_join(user_info(), by = 'user')
+    } else {
+      res <- logs() %>% 
+        mutate(
+          vp = NA,
+          name = NA
+        )
+    }
+    res %>% 
+      replace_na(list(vp = 'Otros', name = 'N/A')) %>% 
+      mutate(
+        user_name = paste0(name, ' (', user, ')')
+      )
+  })
   
   logs_filt <- reactive({
     req(input$date_range)
-    logs() %>% 
+    logs_vp() %>% 
       filter(date >= min(input$date_range[[1]]) & date <= max(input$date_range[[2]])) %>% 
       filter_at(vars(user, message), all_vars(!is.na(.)))
   })
@@ -114,49 +197,64 @@ usageStatsServer <- function(input, output, session, credentials) {
       p <- generate_empty_plot(title = lang$title_error, text = ':(')
       graph_data$daily <- NULL
     } else {
-      df <- logs_filt()
-      if (input$split_by_clearance) {
+      df <- logs_filt() %>% 
+        select(-role) %>% 
+        rename(role = top_role)
+      if (input$graph_daily_split == 'all') {
         x <- df %>% 
           mutate(
-            color = top_role
+            color = lang$all
           )
       } else {
         x <- df %>% 
           mutate(
-            color = 'all'
+            color = !!sym(input$graph_daily_split)
           )
       }
       
+      pal <- switch(
+        input$graph_daily_split,
+        all = '#000000',
+        role = gl$clearance_pal,
+        vp = colorblind_pal()(n_distinct(x$vp)) %>%
+          set_names(sort(unique(x$vp), na.last = TRUE))
+      )
+      lvls <- switch(
+        input$graph_daily_split,
+        all = lang$all,
+        role = c('all', 'owner', 'admin', 'basic'),
+        vp = sort(unique(x$vp))
+      )
       x <- x %>%
         mutate(
-          x = floor_date(date, unit = input$unit, week_start = 1),
-          color = factor(color, levels = c('all', 'owner', 'admin', 'basic'))
+          x = floor_date(date, unit = input$graph_daily_x, week_start = 1),
+          color = factor(color, levels = lvls)
         ) %>% 
         group_by(x, color) %>% 
         summarise(
-          n_unique = n_distinct(!!rlang::sym(input$variable))
+          n_unique = n_distinct(!!rlang::sym(input$graph_daily_kpi))
         ) %>% 
         ungroup() %>% 
         mutate(
-          text = sprintf('%s: %s', get_pretty_names(remap_text[input$variable]), scales::comma(n_unique))
+          text = sprintf('%s: %s', get_pretty_names(remap_text[input$graph_daily_kpi]), scales::comma(n_unique))
         )
       
       ## Datos para descargar
       graph_data$daily <- x %>% 
         transmute(
           date = x,
-          role = color,
-          !!sym(paste0('n_unique_', input$variable, 's')) := n_unique
+          !!sym(input$graph_daily_split) := color,
+          !!sym(paste0('n_unique_', input$graph_daily_kpi, 's')) := n_unique
         ) %>% 
-        arrange(desc(date), role)
-      
+        arrange(desc(date), !!sym(input$graph_daily_split))
+
       ## Gráfica
       p <- x %>% 
         plot_ly(x = ~x, y = ~n_unique) %>% 
-        add_bars(color = ~color, text = ~text, colors = gl$clearance_pal) %>%
+        add_bars(color = ~color, text = ~text, colors = pal) %>%
         layout(
           barmode = 'stack',
-          title = get_pretty_names(remap_text[input$variable]),
+          title = get_pretty_names(remap_text[input$graph_daily_kpi]),
           xaxis = list(
             title = ''
           ),
@@ -175,59 +273,87 @@ usageStatsServer <- function(input, output, session, credentials) {
       graph_data$top <- NULL
     } else {
       df <- logs_filt() %>% 
-        filter(input$graph_clearance == 'all' | top_role == input$graph_clearance)
-      if (input$split_by_message) {
-        x <- df %>% 
-          mutate(
-            color = factor(message) %>% fct_infreq(),
-            text = message
-          )
-        grp <- c('message')
-        msgs <- levels(x$color)
+        filter(top_role %in% input$graph_top_clearance)
+      if (input$graph_top_split == 'message') {
+        msgs <- df$message %>% as.factor() %>% fct_infreq() %>% levels()
+        colorvar <- sym('message')
         pal <- viridis::viridis_pal()(length(msgs)) %>% set_names(msgs)
+        sort_fun <- fct_infreq
+      } else if (input$graph_top_split == 'vp') {
+        colorvar <- sym('vp')
+        pal <- colorblind_pal()(n_distinct(df$vp)) %>% set_names(sort(unique(df$vp), na.last = TRUE))
+        sort_fun <- identity
       } else {
-        x <- df %>% 
-          mutate(
-            color = top_role,
-            text = 'ALL ACTIONS'
-          )
-        grp <- NULL
+        colorvar <- sym('role')
         pal <- gl$clearance_pal
+        sort_fun <- as_mapper(~fct_relevel(.x, names(gl$clearance_levels)))
       }
       
-      x <- x %>%
+      xvar <- sym(input$graph_top_x)
+      kpi <- sym(input$graph_top_kpi)
+      x <- df %>%
+        select(-role) %>% 
+        rename(role = top_role) %>% 
+        left_join(user_info_vp_totals(), by = 'vp') %>% 
         mutate(
-          x = user %>% fct_infreq(),
-          role = top_role
+          !!colorvar := factor(!!colorvar) %>% sort_fun()
         ) %>% 
-        group_by(x, role, !!!syms(grp), color, text) %>% 
+        group_by(!!xvar, !!colorvar) %>% 
         summarise(
           n_actions = n(),
-          n_sessions = n_distinct(session)
+          n_sessions = n_distinct(session),
+          n_users = n_distinct(user),
+          total_users = mean(total_users)
         ) %>% 
         ungroup() %>% 
         mutate(
-          text = sprintf('%s\nAcciones: %s\nSesiones: %s', text, n_actions, n_sessions)
+          vp_flag = input$graph_top_split == 'vp' & input$graph_top_x == 'vp',
+          p_active_users = ifelse(vp_flag, n_users / total_users, 0),
+          x = fct_reorder(!!xvar, !!kpi, .fun = sum, .desc = TRUE),
+          y = !!kpi,
+          color = !!colorvar,
+          text = sprintf(
+            '%s\n%s: %s\n%s: %s\n%s: %s\n%s: %s', 
+            !!colorvar,
+            lang$active_users, scales::comma(n_users),
+            lang$p_active_users, scales::percent(p_active_users),
+            lang$unique_sessions, scales::comma(n_sessions),
+            lang$n_actions, scales::comma(n_actions)
+          )
         )
      
       ## Datos para descargar
       graph_data$top <- x %>% 
-        select(user = x, role, !!!syms(grp), n_actions, n_sessions) %>% 
-        arrange(user, desc(n_actions))
-      
+        select(!!xvar, !!colorvar, starts_with('n_'), starts_with('p_')) %>% 
+        {
+          y <- .
+          if (nrow(distinct(y, !!xvar, !!colorvar)) == nrow(distinct(y, !!xvar))) {
+            arrange(y, desc(!!kpi))
+          } else {
+            y %>% 
+              group_by(!!xvar) %>% 
+              mutate(x_kpi = sum(!!kpi)) %>% 
+              arrange(desc(x_kpi), !!xvar, desc(!!kpi)) %>% 
+              select(-x_kpi) %>% 
+              ungroup()
+          }
+        }
+        
       ## Gráfica
+      
       p <- x %>% 
         filter(dense_rank(x) <= input$graph_top_nbar) %>% 
-        plot_ly(x = ~x, y = ~n_actions, hoverinfo = 'text') %>% 
+        plot_ly(x = ~x, y = ~y, hoverinfo = 'text') %>% 
         add_bars(color = ~color, text = ~text, colors = pal) %>%
         layout(
           barmode = 'stack',
-          title = get_pretty_names(remap_text[input$variable]),
+          title = get_pretty_names(remap_text[input$graph_top_kpi]),
           xaxis = list(
             title = ''
           ),
           yaxis = list(
-            title = ''
+            title = '',
+            tickformat = ifelse(substr(input$graph_top_kpi, 1, 2) == 'p_', '%', ',d')
           )
         )
     }
@@ -266,7 +392,7 @@ usageStatsServer <- function(input, output, session, credentials) {
       x <- df %>%
         filter(message %in% c(msg1, msg2)) %>% 
         transmute(
-          x = date, #floor_date(date, unit = input$unit, week_start = 1),
+          x = date, #floor_date(date, unit = input$graph_daily_x, week_start = 1),
           timestamp,
           session,
           message = factor(message, levels = c(msg1, msg2))
@@ -355,7 +481,11 @@ usageStatsServer <- function(input, output, session, credentials) {
   })
   
   output$top_table <- DT::renderDataTable({
+    req(graph_data$top)
+    decimal_columns <- str_subset(names(graph_data$top), '^n_')
+    percent_columns <- str_subset(names(graph_data$top), '^p_')
     graph_data$top %>% 
+      mutate_at(percent_columns, ~ 100 * .x) %>% 
       datatable(
         extensions = c('KeyTable'),
         filter = 'top',
@@ -365,7 +495,10 @@ usageStatsServer <- function(input, output, session, credentials) {
           pageLength = 100,
           keys = TRUE
         )
-      )
+      ) %>%
+      formatCurrency(columns = decimal_columns, digits = 0, currency = '') %>%
+      formatCurrency(columns = percent_columns, digits = 1, currency = '%', before = FALSE) %>% 
+      return()
   })
   
   output$time_table <- DT::renderDataTable({
@@ -433,10 +566,14 @@ usageStatsUI <- function(id) {
     box(
       width = 12,
       tags$div(
-        style = 'display: flex;',
+        style = 'display: flex; margin-left: 15px',
         tags$div(
-          style = 'margin: auto 25px 15px 15px;',
+          class = 'inline-select-button-wrapper',
           actionButton(ns('refresh'), lang$refresh, icon = icon('redo-alt'))
+        ),
+        tags$div(
+          class = 'inline-select-button-wrapper',
+          actionButton(ns('update_user_info'), lang$update_user_info, icon = icon('redo-alt'))
         ),
         uiOutput(ns('date_range_ui'))
       )
@@ -446,15 +583,20 @@ usageStatsUI <- function(id) {
       tabBox(
         width = 12,
         tabPanel(
-          title = 'Tendencia',
+          title = lang$graph_daily_tab,
           fluidRow(
             column(
               width = 3,
-              selectInput(ns('variable'), lang$kpi, c('user', 'session') %>%
-                            set_names(get_pretty_names(remap_text[.]))),
-              selectInput(ns('unit'), lang$unit, c('days', 'weeks', 'months', 'years') %>%
+              selectInput(ns('graph_daily_x'), lang$graph_daily_x, c('days', 'weeks', 'months', 'years') %>%
                             set_names(get_pretty_names(.))),
-              checkboxInput(ns('split_by_clearance'), lang$split_by_clearance, TRUE),
+              selectInput(
+                ns('graph_daily_split'),
+                label = lang$graph_daily_split,
+                choices = c('all', 'role', 'vp') %>% 
+                  set_names(lang$all, lang$role, lang$vp)
+              ),
+              selectInput(ns('graph_daily_kpi'), lang$kpi, c('user', 'session') %>%
+                            set_names(get_pretty_names(remap_text[.]))),
               downloadButton(ns('download_daily'), lang$download)
             ),
             column(
@@ -466,11 +608,35 @@ usageStatsUI <- function(id) {
           )
         ),
         tabPanel(
-          title = 'Top',
+          title = lang$graph_top_tab,
           fluidRow(
             column(
               width = 3,
-              selectInput(ns('graph_clearance'), lang$graph_clearance, c('all', names(gl$clearance_levels))),
+              selectInput(
+                ns('graph_top_x'),
+                label = lang$graph_top_x,
+                choices = c('user_name', 'vp') %>% 
+                  set_names(c(lang$user, lang$vp))
+              ),
+              selectInput(
+                ns('graph_top_split'),
+                label = lang$graph_top_split,
+                choices = c('role', 'vp', 'message') %>% 
+                  set_names(c(lang$role, lang$vp, lang$message))
+              ),
+              selectInput(
+                ns('graph_top_kpi'),
+                label = lang$kpi,
+                choices = c('n_sessions', 'n_actions', 'n_users', 'p_active_users') %>% 
+                  set_names(c(lang$unique_sessions, lang$n_actions, lang$active_users, lang$p_active_users))
+              ),
+              selectInput(
+                ns('graph_top_clearance'),
+                label = lang$graph_top_clearance,
+                choices = names(gl$clearance_levels),
+                selected = names(gl$clearance_levels),
+                multiple = TRUE
+              ),
               sliderInput(
                 ns('graph_top_nbar'),
                 label = lang$graph_top_nbar,
@@ -479,7 +645,6 @@ usageStatsUI <- function(id) {
                 step = 1,
                 value = 20
               ),
-              checkboxInput(ns('split_by_message'), lang$split_by_message, FALSE),
               downloadButton(ns('download_top'), lang$download)
             ),
             column(
@@ -491,7 +656,7 @@ usageStatsUI <- function(id) {
           )
         ),
         tabPanel(
-          title = 'Desempeño',
+          title = lang$graph_time_tab,
           fluidRow(
             column(
               width = 3,
@@ -507,7 +672,7 @@ usageStatsUI <- function(id) {
           )
         ),
         tabPanel(
-          title = 'Detalle',
+          title = lang$detail_table_tab,
           tags$div(
             style = 'margin-bottom: 15px;',
             downloadButton(ns('download_detail'), lang$download)
