@@ -139,7 +139,8 @@ shinyServer(function(input, output, session){
     logoutServer,
     id = 'logout',
     user_auth = reactive(credentials()$user_auth), # login
-    active = reactive(activity$counter) # click en sidebar o body
+    active = reactive(activity$counter), # click en sidebar o body
+    is_running = reactive(promotions()$is_running)
   )
   
   ## Administración de usuarios
