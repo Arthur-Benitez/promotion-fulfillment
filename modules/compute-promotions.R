@@ -460,8 +460,7 @@ perform_computations <- function(data, data_ss = NULL, min_feature_qty_toggle = 
       
       new_sspress_tot = case_when(
         impact_toggle == 'swap' ~ feature_qty_fin + base_press,
-        impact_toggle == 'add' ~ feature_qty_fin + comp_sspress_tot,
-        impact_toggle == 'max' ~ pmax(feature_qty_fin + base_press, comp_sspress_tot)
+        impact_toggle == 'add' ~ feature_qty_fin + comp_sspress_tot
       ),
       ss_winner_qty = compare_ss_qty(new_sspress_tot, sscov_tot, min_ss, max_ss),
       ss_winner_name = compare_ss_name(new_sspress_tot, sscov_tot, min_ss, max_ss, feature_qty_fin, base_press, sscov, sstemp, ss_winner_qty),
@@ -595,8 +594,7 @@ generate_header <- function(input_data, date_format = '%Y-%m-%d', impact_toggle 
       ApprovedSw = 'TRUE',
       AdditiveSw = case_when(
         impact_toggle == 'swap' ~ 'TRUE',
-        impact_toggle == 'add' ~ 'TRUE',
-        impact_toggle == 'max' ~ 'FALSE'
+        impact_toggle == 'add' ~ 'TRUE'
       ),
       `CLEANSE HIST` = 'TRUE',
       `REPLACE PRES/DISPLAY` = 'FALSE',
@@ -899,12 +897,9 @@ computePromotionsServer <- function(input, output, session, credentials) {
       distinct_at(c('old_nbr', 'negocio', 'primary_desc'))
     choices <- r$items %>% 
       left_join(info, by = c('old_nbr', 'negocio')) %>% 
-      group_by(feature_name) %>% 
-      filter(sum(!is.na(primary_desc)) > 0) %>% 
-      ungroup() %>% 
       transmute(
-        name = paste0(negocio, ' - ', ifelse(is.na(primary_desc), lang$no_info, primary_desc), ' (', old_nbr, ')'),
-        combinacion = paste(old_nbr, '-', negocio)
+        name = paste0(feature_name, ' - ',negocio, ' - ', ifelse(is.na(primary_desc), lang$no_info, primary_desc), ' (', old_nbr, ')'),
+        combinacion = paste(feature_name, '::', old_nbr, '-', negocio)
       ) %>%
       distinct() %>% 
       deframe()
@@ -912,7 +907,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
       class = 'inline-inputs',
       tags$div(
         style = 'margin-right: 20px',
-        selectInput(ns('input_grafica_ventas'), lang$grafica_ventas, choices = choices, width = '400px')
+        selectInput(ns('input_grafica_ventas'), lang$grafica_ventas, choices = choices, width = '500px')
       ),
       selectInput(
         ns('agg_grafica_ventas'),
@@ -946,7 +941,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
     )))
     
     df <- graph_table() %>% 
-      filter(paste(old_nbr, '-', negocio) == input$input_grafica_ventas) %>% 
+      filter(paste(old_nbr, '-', negocio) == str_replace(input$input_grafica_ventas, ".+ :: ", '')) %>% 
       na.omit()
     if (nrow(df) == 0) {
       plot_ly() %>%
@@ -1011,25 +1006,40 @@ computePromotionsServer <- function(input, output, session, credentials) {
           type = "line"
         )))
       # La gráfica
-      plot_ly(data = df, 
-              x = ~date, 
-              y = ~wkly_qty,
-              hoverinfo = 'text',
-              text = ~sprintf(
-                "Fecha: %s<br>Semana WM: %s<br>%s %s: %s<br>%s %s: %s",
-                date,
-                wm_yr_wk,
-                type,
-                ifelse(type == 'Ventas', 'semanales', 'semanal'),
-                scales::comma(wkly_qty, accuracy = 1),
-                type,
-                ifelse(type == 'Ventas', 'diarias', 'diario'),
-                scales::comma(dly_qty, accuracy = 0.1)
-              ),
-              color = ~type,
-              colors = (c('blue', 'orange') %>% setNames(c('Ventas', 'Forecast')))
+      plot_ly(
+        data = df, 
+        x = ~date,
+        hoverinfo = 'text'
       ) %>%
-        add_lines() %>% 
+        add_lines(
+          y = ~wkly_qty,
+          color = ~type,
+          colors = (c('blue', 'orange') %>% setNames(c('Ventas', 'Forecast'))),
+          text = ~sprintf(
+            "Fecha: %s<br>Semana WM: %s<br>%s %s: %s<br>%s %s: %s",
+            date,
+            wm_yr_wk,
+            type,
+            ifelse(type == 'Ventas', 'semanales', 'semanal'),
+            scales::comma(wkly_qty, accuracy = 1),
+            type,
+            ifelse(type == 'Ventas', 'diarias', 'diario'),
+            scales::comma(dly_qty, accuracy = 0.1)
+          )
+        ) %>% 
+        add_lines(
+          y = ~sell_price,
+          name = 'Precio',
+          line = list(
+            color = 'green',
+            dash = 'dash'
+          ),
+          yaxis = 'y2',
+          text = ~sprintf(
+            "Precio: $%s",
+            scales::comma(sell_price, accuracy = 0.01)
+          )
+        ) %>% 
         layout(
           title = list(
             text = sprintf("Ventas semanales en piezas (%s)", lang$agg_grafica_ventas_names[input$agg_grafica_ventas])
@@ -1042,14 +1052,24 @@ computePromotionsServer <- function(input, output, session, credentials) {
             ticks = 'outside'
           ),
           yaxis = list(
-            title = '',
+            title = 'Piezas',
             exponentformat = "none"
+          ),
+          yaxis2 = list(
+            title = 'Pesos',
+            tickformat = '$,.2f',
+            showgrid = FALSE,
+            overlaying = 'y',
+            #nticks = 6,
+            side = 'right'
           ),
           legend = list(
             x = 0,
             y = 1.05,
             orientation = 'h'
           ),
+          margin = list(r = -2),
+          hovermode = 'compare',
           shapes = lines
         )
     }
@@ -1194,9 +1214,20 @@ computePromotionsServer <- function(input, output, session, credentials) {
       final_result() %>%
         mutate_at(intersect(gl$output_character_cols, names(.)), as.character) %>% 
         mutate_at(vars(percent_columns), list(~100 * .)) %>%
+        select(
+          feature_name,
+          old_nbr,
+          primary_desc,
+          store_nbr,
+          negocio,
+          everything()
+        ) %>% 
         datatable(
+          extensions = c('FixedColumns', 'KeyTable'),
           filter = 'top',
           options = list(
+            fixedColumns = list(leftColumns = 5),
+            keys = TRUE,
             scrollX = TRUE,
             scrollY = '500px',
             pageLength = 100
@@ -1223,8 +1254,11 @@ computePromotionsServer <- function(input, output, session, credentials) {
       summary_table() %>% 
         mutate_at(intersect(gl$output_character_cols, names(.)), as.character) %>% 
         datatable(
+          extensions = c('FixedColumns', 'KeyTable'),
           filter = 'top',
           options = list(
+            fixedColumns = list(leftColumns = 5),
+            keys = TRUE,
             scrollX = TRUE,
             scrollY = '500px',
             pageLength = 100
@@ -1291,7 +1325,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
   })
   
   ## Tabla de alcance (output)
-  output$feature_histogram_table <- renderDT({
+  output$feature_histogram_table <- renderDT(server = FALSE, {
     needs <- need_input_ready() %then%
       need_query_ready() %then%
       need_histogram_ready()
@@ -1305,8 +1339,13 @@ computePromotionsServer <- function(input, output, session, credentials) {
         mutate_at(vars(percent_columns), list(~100 * .)) %>%
         mutate_at(intersect(gl$output_character_cols, names(.)), as.character) %>% 
         datatable(
+          extensions = c('Buttons', 'FixedColumns', 'KeyTable'),
           filter = 'none',
           options = list(
+            dom = 'Bfrtip',
+            buttons = c('copy', 'csv', 'excel'),
+            fixedColumns = list(leftColumns = 2),
+            keys = TRUE,
             scrollX = TRUE,
             scrollY = '200x',
             pageLength = 20
@@ -1543,7 +1582,7 @@ computePromotionsUI <- function(id) {
         selectInput(
           ns('impact_toggle'),
           label = lang$impact_toggle,
-          choices = c('swap', 'add', 'max') %>% 
+          choices = c('swap', 'add') %>% 
             set_names(lang$impact_toggle_names)
         )
       )

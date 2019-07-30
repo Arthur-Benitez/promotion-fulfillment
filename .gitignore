@@ -8,3 +8,4 @@ prod/
 examples/
 *.log
 packrat/lib*/
+www/notifications/
