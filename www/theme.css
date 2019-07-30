@@ -109,6 +109,14 @@
   border-color: #003896;
 }
 
+.material-switch > input[type="checkbox"]:checked + label::before {
+    background: #1A75CF !important;
+}
+
+.material-switch > input[type="checkbox"]:checked + label::after {
+    background: #003896 !important;
+}
+
 
 /* Loading de gráfica de ventas */
 #compute_promotions-grafica_ventas + .shiny-output-error-validation {
