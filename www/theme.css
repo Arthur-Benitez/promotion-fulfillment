@@ -94,6 +94,30 @@
   display: flex;
 }
 
+/* Botones de controles */
+.input-icon, .input-icon:active, .input-icon:focus, .input-icon:visited {
+  color: #003896;
+  background-color: #00000000;
+  border-color: #00000000;
+  margin: 0;
+  font-size: 35px;
+}
+
+.input-icon:hover {
+  color: white;
+  background-color: #003896;
+  border-color: #003896;
+}
+
+.material-switch > input[type="checkbox"]:checked + label::before {
+    background: #1A75CF !important;
+}
+
+.material-switch > input[type="checkbox"]:checked + label::after {
+    background: #003896 !important;
+}
+
+
 /* Loading de gráfica de ventas */
 #compute_promotions-grafica_ventas + .shiny-output-error-validation {
     color: #1a75cf;
