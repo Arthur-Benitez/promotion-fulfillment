@@ -529,25 +529,18 @@ logoutServer <- function(input, output, session, user_auth, active, is_running) 
   counter_sec <- 60
   counter_max <- 60 * 20
   rv <- reactiveValues(
-    counter = counter_max,
-    timer = reactiveTimer(1000)
+    tic = Sys.time(),
+    remaining = 0
   )
   ## El contador se resetea si se hace login, logout, run, reset o login Teradata
-  observeEvent(user_auth() + active() + input$button, {
-    rv$counter <- counter_max
-  })
-  observeEvent(is_running(), {
-    if (is_running()) {
-      rv$timer <- reactiveTimer(Inf)
-    } else {
-      rv$timer <- reactiveTimer(1000)
-    }
+  observeEvent(user_auth() + active() + input$button + is_running(), {
+    rv$tic <- Sys.time()
   })
   ## Se restan un contador cada counter_sec
-  # timer <- reactiveTimer(1000)
-  observeEvent(rv$timer(), {
-    rv$counter <- rv$counter - 1
-    if (rv$counter <= 0) {
+  timer <- reactiveTimer(1000)
+  observeEvent(timer(), {
+    rv$remaining <- counter_max - as.numeric(difftime(Sys.time(), rv$tic, units = 'secs'))
+    if (rv$remaining <= 0) {
       shinyalert(
         title = lang$auto_logout_title,
         type = 'info'
@@ -556,8 +549,16 @@ logoutServer <- function(input, output, session, user_auth, active, is_running) 
     }
   })
   output$counter <- renderText({
-    s <- ifelse(rv$counter < counter_sec, '"', "'")
-    sprintf("%d%s", rv$counter %/% ifelse(rv$counter < counter_sec, 1, counter_sec), s)
+    s <- ifelse(rv$remaining < counter_sec, '"', "'")
+    sprintf(
+      "%d%s",
+      ifelse(
+        rv$remaining < counter_sec,
+        rv$remaining %/% 1,
+        rv$remaining %/% counter_sec
+      ),
+      s
+    )
   })
   shiny::reactive({input$button})
 }
