@@ -8,6 +8,7 @@ pkgs <- c(
   'shinyjs',
   'shinycssloaders',
   # 'htmlwidgets',
+  'shinyWidgets',
   'DT',
   'shinydashboard',
   'futile.logger',
