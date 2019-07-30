@@ -1548,13 +1548,13 @@ computePromotionsUI <- function(id) {
       uiOutput(ns('items_ui')),
       tags$div(
         class = 'input-margin',
-        actionButton(ns('show_instructions'), lang$show_instructions, icon = icon('question-circle')),
-        downloadButton(ns('download_template'), lang$download_template, icon = icon('download'))
+        actionButton(ns('show_instructions'), label = '', title = lang$show_instructions, icon = icon('question-circle'), class = 'control-button'),
+        downloadButton(ns('download_template'), label = '', title = lang$download_template, icon = icon('download'), class = 'control-button')
       ),
       tags$div(
         class = 'input-margin',
-        actionButton(ns('run'), lang$run, icon = icon('play')),
-        actionButton(ns('reset'), lang$reset, icon = icon('redo-alt')),
+        actionButton(ns('run'), label = '', title = lang$run, icon = icon('play'), class = 'control-button'),
+        actionButton(ns('reset'), label = '', title = lang$reset, icon = icon('redo-alt'), class = 'control-button'),
         tags$div(
           title = lang$input_grafica_ventas_title,
           checkboxInput(ns('graph_toggle'), lang$graph_toggle, value = FALSE)
