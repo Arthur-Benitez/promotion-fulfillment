@@ -670,6 +670,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
     auth_trigger = 0,
     items_file = NULL,
     items = NULL,
+    is_running = FALSE,
     query_was_tried = FALSE,
     reset_trigger = 0,
     final_result_trigger = 0
@@ -838,6 +839,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
       } else {
         sales_graph_flag(FALSE)
         items_changed_toggle(FALSE)
+        isolate(r$is_running <- TRUE)
         # Correr query para descargar info para gráfica y asignar a variable
         isolate(sales_graph_trigger(sales_graph_trigger() + 1))
       }
@@ -891,6 +893,10 @@ computePromotionsServer <- function(input, output, session, credentials) {
     tags$hr()
   })
   
+  ## Apagar bandera r$is_running
+  observeEvent(graph_table(), {
+    r$is_running <- FALSE
+  })
   output$input_grafica_ventas <- renderUI({
     req(r$items)
     req(is.data.frame(graph_table()))
@@ -1090,6 +1096,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
         updateTabItems(session, 'io', selected = 'output_summary')
         output$output_table <- renderDT(NULL)
         r$query_was_tried <- TRUE
+        r$is_running <- TRUE
         rr(rr() + 1)
       }
     }
@@ -1141,6 +1148,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
   good_features_rv <- reactiveVal()
   observeEvent(query_result(), {
     req(query_result()$data)
+    r$is_running <- FALSE
     feature_info <- get_empty_features(query_result()$data, isolate(r$items))
     good_features <- with(feature_info, feature_name[!is_empty])
     empty_features <- with(feature_info, feature_name[is_empty])
