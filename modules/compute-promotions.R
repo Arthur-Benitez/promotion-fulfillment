@@ -839,6 +839,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
       } else {
         sales_graph_flag(FALSE)
         items_changed_toggle(FALSE)
+        isolate(r$is_running <- TRUE)
         # Correr query para descargar info para gráfica y asignar a variable
         isolate(sales_graph_trigger(sales_graph_trigger() + 1))
       }
@@ -892,6 +893,10 @@ computePromotionsServer <- function(input, output, session, credentials) {
     tags$hr()
   })
   
+  ## Apagar bandera r$is_running
+  observeEvent(graph_table(), {
+    r$is_running <- FALSE
+  })
   output$input_grafica_ventas <- renderUI({
     req(r$items)
     req(is.data.frame(graph_table()))
