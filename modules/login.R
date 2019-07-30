@@ -513,7 +513,7 @@ logoutUI <- function(id) {
 }
 
 ## Server
-logoutServer <- function(input, output, session, user_auth, active) {
+logoutServer <- function(input, output, session, user_auth, active, is_running) {
   output$ui <- renderUI({
     ns <- session$ns
     tags$div(
@@ -529,15 +529,23 @@ logoutServer <- function(input, output, session, user_auth, active) {
   counter_sec <- 60
   counter_max <- 60 * 20
   rv <- reactiveValues(
-    counter = counter_max
+    counter = counter_max,
+    timer = reactiveTimer(1000)
   )
   ## El contador se resetea si se hace login, logout, run, reset o login Teradata
   observeEvent(user_auth() + active() + input$button, {
     rv$counter <- counter_max
   })
+  observeEvent(is_running(), {
+    if (is_running()) {
+      rv$timer <- reactiveTimer(Inf)
+    } else {
+      rv$timer <- reactiveTimer(1000)
+    }
+  })
   ## Se restan un contador cada counter_sec
-  timer <- reactiveTimer(1000)
-  observeEvent(timer(), {
+  # timer <- reactiveTimer(1000)
+  observeEvent(rv$timer(), {
     rv$counter <- rv$counter - 1
     if (rv$counter <= 0) {
       shinyalert(
