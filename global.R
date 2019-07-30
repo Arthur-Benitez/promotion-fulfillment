@@ -99,6 +99,7 @@ eval(parse('lang.R', encoding = 'UTF-8'))
 eval(parse('modules/compute-promotions.R', encoding = 'UTF-8'))
 eval(parse('modules/login.R', encoding = 'UTF-8'))
 eval(parse('modules/usage-stats.R', encoding = 'UTF-8'))
+eval(parse('modules/notifications.R', encoding = 'UTF-8'))
 
 # Parámetros globales -----------------------------------------------------
 
@@ -113,8 +114,8 @@ gl <- list(
       'dev'
     }
   },
-  app_version = '1.1.0',
-  app_version_date = '2019-07-15',
+  app_version = '1.2.5',
+  app_version_date = '2019-07-25',
   ## Compute promotions
   cols = tribble(
     ~name, ~type, ~is_constant_by_feature,

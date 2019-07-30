@@ -67,11 +67,13 @@ assert_clearance <- function(requester, affected, affected_new) {
   ## Add: affected = NULL, affected_new = user to add
   ## Update: affected = current user to change, affected_new = user after changes
   ## Delete: affected = current user to delete, affected_new = NULL
+  stopifnot(!is.null(affected) || !is.null(affected_new))
   requester_level <- user_clearance(requester, gl$clearance_levels)
   affected_level <- user_clearance(affected, gl$clearance_levels)
   affected_new_level <- user_clearance(affected_new, gl$clearance_levels)
-  if (is.null(requester$user)) {
-    ## NULL has the highest clearance by default to override any settings
+  
+  if (is.null(requester$user) || requester_level == min(gl$clearance_levels)) {
+    ## NULL (root) and the highest level (owner) have the absolute clearance by default to override any settings
     verdict <- TRUE
   } else if (
     requester_level < affected_level &&
@@ -413,9 +415,9 @@ loginUI <- function(id) {
     class = 'login-panel',
     shiny::wellPanel(
       includeHTML('html/welcome.html') %>% 
-        str_replace_all('__email__', lang$email) %>% 
         str_replace_all('__email_name__', lang$email_name) %>% 
         str_replace_all('__app_name__', lang$app_name) %>% 
+        str_replace_all('__email_details__', lang$emailto) %>%
         HTML()
     )
   )

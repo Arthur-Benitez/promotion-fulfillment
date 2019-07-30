@@ -139,3 +139,7 @@
 #download_ui {
   display: inline-block;
 }
+
+#notification-buttons .shiny-input-container {
+  margin: 10px;
+}
