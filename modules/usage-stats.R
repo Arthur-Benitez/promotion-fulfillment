@@ -622,7 +622,6 @@ usageStatsUI <- function(id) {
             column(
               width = 9,
               plotlyOutput(ns('graph_daily')) %>% withSpinner(type = 8),
-              tags$hr(),
               DT::DTOutput(ns('daily_table')) %>% withSpinner(type = 8)
             )
           )
@@ -670,7 +669,6 @@ usageStatsUI <- function(id) {
             column(
               width = 9,
               plotlyOutput(ns('graph_top')) %>% withSpinner(type = 8),
-              tags$hr(),
               DT::DTOutput(ns('top_table')) %>% withSpinner(type = 8)
             )
           )
@@ -686,7 +684,6 @@ usageStatsUI <- function(id) {
             column(
               width = 9,
               plotlyOutput(ns('graph_time')) %>% withSpinner(type = 8),
-              tags$hr(),
               DT::DTOutput(ns('time_table')) %>% withSpinner(type = 8)
             )
           )
