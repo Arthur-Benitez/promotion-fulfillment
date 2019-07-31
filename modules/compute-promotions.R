@@ -887,12 +887,6 @@ computePromotionsServer <- function(input, output, session, credentials) {
       )
   })
   
-  output$hr <- renderUI({
-    req(r$items)
-    req(isTRUE(input$graph_toggle))
-    tags$hr()
-  })
-  
   ## Apagar bandera r$is_running
   observeEvent(graph_table(), {
     r$is_running <- FALSE
@@ -1606,7 +1600,6 @@ computePromotionsUI <- function(id) {
         value = 'input_table',
         title = lang$tab_input,
         DTOutput(ns('input_table')),
-        uiOutput(ns('hr')),
         uiOutput(ns('input_grafica_ventas')),
         plotlyOutput(ns('grafica_ventas')) %>% withSpinner(type = 8)
       ),
@@ -1654,7 +1647,6 @@ computePromotionsUI <- function(id) {
           )
         ),
         plotlyOutput(ns('feature_histogram')) %>% withSpinner(type = 8),
-        tags$br(),
         DTOutput(ns('feature_histogram_table'))
       ),
       tabPanel(
