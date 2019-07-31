@@ -878,10 +878,10 @@ computePromotionsServer <- function(input, output, session, credentials) {
     r$items %>% 
       mutate_at(intersect(gl$output_character_cols, names(.)), as.character) %>%
       datatable(
-        filter = 'top',
+        filter = 'none',
         options = list(
           scrollX = TRUE,
-          scrollY = ifelse(input$graph_toggle, '150px', '600px'),
+          scrollY = ifelse(input$graph_toggle, '150px', '500px'),
           pageLength = 100
         )
       )
@@ -1083,7 +1083,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
     ns <- session$ns
     tagList(
       uiOutput(ns('input_grafica_ventas')),
-      plotlyOutput(ns('grafica_ventas')) %>% withSpinner(type = 8)
+      plotlyOutput(ns('grafica_ventas'), height = gl$plotly_height) %>% withSpinner(type = 8)
     )
   })
   
@@ -1362,7 +1362,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
             fixedColumns = list(leftColumns = 2),
             keys = TRUE,
             scrollX = TRUE,
-            scrollY = '200x',
+            scrollY = '200px',
             pageLength = 20
           )
         ) %>%
@@ -1655,7 +1655,7 @@ computePromotionsUI <- function(id) {
                         min = 0.05, max = 0.5, value = 0.10, step = 0.05)
           )
         ),
-        plotlyOutput(ns('feature_histogram')) %>% withSpinner(type = 8),
+        plotlyOutput(ns('feature_histogram'), height = gl$plotly_height) %>% withSpinner(type = 8),
         DTOutput(ns('feature_histogram_table'))
       ),
       tabPanel(
