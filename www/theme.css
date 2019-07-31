@@ -68,7 +68,7 @@
 }
 
 /* Botones del header */
-.header-icon {
+.header-icon, .header-icon:focus {
   color: white;
   background-color: #1A75CF;
   border-color: #1A75CF;
