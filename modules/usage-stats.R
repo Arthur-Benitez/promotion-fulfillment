@@ -111,9 +111,16 @@ usageStatsServer <- function(input, output, session, credentials, dev_connection
         message = 'START UPDATING USER INFO',
         details = list()
       )))
+      shinyalert(
+        title = 'Actualizando base de datos de usuarios...',
+        text = '',
+        type = 'info',
+        closeOnEsc = TRUE,
+        closeOnClickOutside = TRUE
+      )
       sql_query(
         ch = dev_connection()$ch,
-        connector = 'production-connector',
+        connector = 'WM3', # con un usuario personal porque el aplicativo no puede accesar WM_AD_HOC
         query = qry,
         stringsAsFactors = FALSE
       ) %>% 
@@ -127,6 +134,13 @@ usageStatsServer <- function(input, output, session, credentials, dev_connection
         message = 'DONE UPDATING USER INFO',
         details = list()
       )))
+      shinyalert(
+        title = 'Base de datos de usuarios actualizada',
+        text = '',
+        type = 'info',
+        closeOnEsc = TRUE,
+        closeOnClickOutside = TRUE
+      )
     }, error = function(e){
       flog.warn(toJSON(list(
         session_info = msg_cred(credentials()),
@@ -152,12 +166,18 @@ usageStatsServer <- function(input, output, session, credentials, dev_connection
   })
   
   user_info_vp_totals <- reactive({
-    req(user_info())
-    user_info() %>% 
-      group_by(vp) %>% 
-      summarise(
-        total_users = n_distinct(user)
+    if (is.data.frame(user_info())) {
+      user_info() %>% 
+        group_by(vp) %>% 
+        summarise(
+          total_users = n_distinct(user)
+        )
+    } else {
+      tibble(
+        vp = 'Otros',
+        total_users = 0
       )
+    }
   })
   
   logs_vp <- reactive({
