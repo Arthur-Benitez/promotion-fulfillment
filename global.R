@@ -117,23 +117,11 @@ gl <- list(
   app_version = '1.3.0',
   app_version_date = '2019-07-30',
   ## Compute promotions
-  cols = tribble(
-    ~name, ~type, ~is_constant_by_feature,
-    'feature_name', 'character', FALSE, # excepción porque es la variable agrupadora en una de las validaciones
-    'user', 'character', TRUE,
-    'dept_nbr', 'numeric', TRUE,
-    'negocio', 'character', TRUE,
-    'old_nbr', 'numeric', FALSE,
-    'min_feature_qty', 'numeric', TRUE,
-    'max_feature_qty', 'numeric', TRUE,
-    'max_ddv', 'numeric', FALSE,
-    'semana_ini', 'numeric', TRUE,
-    'semana_fin', 'numeric', TRUE,
-    'fcst_or_sales', 'character', TRUE,
-    'StartDate', 'date', TRUE,
-    'EndDate', 'date', TRUE,
-    'Priority', 'numeric', TRUE
-  ),
+  cols = tryCatch({
+    read_csv('data/column-info.csv', col_types = 'cclcc')
+  }, error = function(e){
+    tribble(~name, ~type, ~is_constant_by_feature, ~pretty_name, ~description)
+  }),
   negocios = c(
     'SUPERCENTER',
     'BODEGA',

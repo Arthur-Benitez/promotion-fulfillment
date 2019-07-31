@@ -1,0 +1,15 @@
+name,type,is_constant_by_feature,pretty_name,description
+feature_name,character,FALSE,ID Promo,ID de la promocion
+user,character,TRUE,USER,AAA: USER
+dept_nbr,numeric,TRUE,DEPT_NBR,AAA: DEPT_NBR
+negocio,character,TRUE,NEGOCIO,AAA: NEGOCIO
+old_nbr,numeric,FALSE,OLD_NBR,Columna OLD_NBR de Teradata
+min_feature_qty,numeric,TRUE,MIN_FEATURE_QTY,AAA: MIN_FEATURE_QTY
+max_feature_qty,numeric,TRUE,MAX_FEATURE_QTY,AAA: MAX_FEATURE_QTY
+max_ddv,numeric,FALSE,MAX_DDV,AAA: MAX_DDV
+semana_ini,numeric,TRUE,SEMANA_INI,AAA: SEMANA_INI
+semana_fin,numeric,TRUE,SEMANA_FIN,AAA: SEMANA_FIN
+fcst_or_sales,character,TRUE,FCST_OR_SALES,AAA: FCST_OR_SALES
+StartDate,date,TRUE,STARTDATE,AAA: STARTDATE
+EndDate,date,TRUE,ENDDATE,AAA: ENDDATE
+Priority,numeric,TRUE,PRIORITY,AAA: PRIORITY
