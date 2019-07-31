@@ -361,8 +361,9 @@ usageStatsServer <- function(input, output, session, credentials, dev_connection
         
       ## Gráfica
       
-      p <- x %>% 
-        filter(dense_rank(x) <= input$graph_top_nbar) %>% 
+      y <- x %>% 
+        filter(dense_rank(x) <= input$graph_top_nbar)
+      p <- y %>% 
         plot_ly(x = ~x, y = ~y, hoverinfo = 'text') %>% 
         add_bars(color = ~color, text = ~text, colors = pal) %>%
         layout(
@@ -374,6 +375,9 @@ usageStatsServer <- function(input, output, session, credentials, dev_connection
           yaxis = list(
             title = '',
             tickformat = ifelse(substr(input$graph_top_kpi, 1, 2) == 'p_', '%', ',d')
+          ),
+          margin = list(
+            b = max(nchar(as.character(y$x))) * 7 * sin(30 / 180 * pi) # Necesario porque el auto-height de plotly no considera los ticks con ángulo; 7 = avg character width; sin(...) = corrección por el ángulo de 30 grados
           )
         )
     }
@@ -621,7 +625,7 @@ usageStatsUI <- function(id) {
             ),
             column(
               width = 9,
-              plotlyOutput(ns('graph_daily')) %>% withSpinner(type = 8),
+              plotlyOutput(ns('graph_daily'), height = gl$plotly_height) %>% withSpinner(type = 8),
               DT::DTOutput(ns('daily_table')) %>% withSpinner(type = 8)
             )
           )
@@ -668,7 +672,7 @@ usageStatsUI <- function(id) {
             ),
             column(
               width = 9,
-              plotlyOutput(ns('graph_top')) %>% withSpinner(type = 8),
+              plotlyOutput(ns('graph_top'), height = gl$plotly_height) %>% withSpinner(type = 8),
               DT::DTOutput(ns('top_table')) %>% withSpinner(type = 8)
             )
           )
@@ -683,7 +687,7 @@ usageStatsUI <- function(id) {
             ),
             column(
               width = 9,
-              plotlyOutput(ns('graph_time')) %>% withSpinner(type = 8),
+              plotlyOutput(ns('graph_time'), height = gl$plotly_height) %>% withSpinner(type = 8),
               DT::DTOutput(ns('time_table')) %>% withSpinner(type = 8)
             )
           )

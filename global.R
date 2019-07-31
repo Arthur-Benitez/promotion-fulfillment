@@ -158,7 +158,8 @@ gl <- list(
     'vendor9_nbr',
     'open_status',
     'sub_tipo'
-  )
+  ),
+  plotly_height = 300
 )
 gl$is_dev <- gl$app_deployment_environment == 'dev'
 gl$app_version_text <- sprintf('Versión %s (%s)', gl$app_version, gl$app_version_date)
