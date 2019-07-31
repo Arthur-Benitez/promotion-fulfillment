@@ -140,11 +140,6 @@ table.dataTable thead tr td {
   height: 100%;
 }
 
-.svg-container > * {
-  width: 99.5%;
-  height: 99.5%;
-}
-
 .plotly.html-widget {
   border-width: 1px;
   border-color: rgb(244, 244, 244);
