@@ -1077,6 +1077,16 @@ computePromotionsServer <- function(input, output, session, credentials) {
         )
     }
   })
+  
+  output$grafica_ventas_completa <- renderUI({
+    req(isTRUE(input$graph_toggle))
+    ns <- session$ns
+    tagList(
+      uiOutput(ns('input_grafica_ventas')),
+      plotlyOutput(ns('grafica_ventas')) %>% withSpinner(type = 8)
+    )
+  })
+  
   ## Seleccionar pestaña de output para que se vea el loader
   rr <- reactiveVal(0)
   tik <- reactiveVal(NULL)
@@ -1599,9 +1609,8 @@ computePromotionsUI <- function(id) {
       tabPanel(
         value = 'input_table',
         title = lang$tab_input,
-        DTOutput(ns('input_table')),
-        uiOutput(ns('input_grafica_ventas')),
-        plotlyOutput(ns('grafica_ventas')) %>% withSpinner(type = 8)
+        uiOutput(ns('grafica_ventas_completa')),
+        DTOutput(ns('input_table'))
       ),
       tabPanel(
         value = 'output_summary',
