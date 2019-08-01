@@ -488,7 +488,8 @@ usageStatsServer <- function(input, output, session, credentials, dev_connection
           pageLength = 100,
           keys = TRUE
         ),
-        colnames = remap_names(gl$cols, names(.), 'pretty_name')
+        colnames = remap_names(gl$cols, names(.), 'pretty_name'),
+        callback = build_callback(remap_names(gl$cols, names(.), 'description'))
       ) %>%
       format_columns(gl$cols)
   })
@@ -505,7 +506,8 @@ usageStatsServer <- function(input, output, session, credentials, dev_connection
           pageLength = 100,
           keys = TRUE
         ),
-        colnames = remap_names(gl$cols, names(.), 'pretty_name')
+        colnames = remap_names(gl$cols, names(.), 'pretty_name'),
+        callback = build_callback(remap_names(gl$cols, names(.), 'description'))
       ) %>%
       format_columns(gl$cols)
   })
@@ -523,7 +525,8 @@ usageStatsServer <- function(input, output, session, credentials, dev_connection
           pageLength = 100,
           keys = TRUE
         ),
-        colnames = remap_names(gl$cols, names(.), 'pretty_name')
+        colnames = remap_names(gl$cols, names(.), 'pretty_name'),
+        callback = build_callback(remap_names(gl$cols, names(.), 'description'))
       ) %>%
       format_columns(gl$cols) %>% 
       return()
@@ -541,7 +544,8 @@ usageStatsServer <- function(input, output, session, credentials, dev_connection
           pageLength = 100,
           keys = TRUE
         ),
-        colnames = remap_names(gl$cols, names(.), 'pretty_name')
+        colnames = remap_names(gl$cols, names(.), 'pretty_name'),
+        callback = build_callback(remap_names(gl$cols, names(.), 'description'))
       ) %>% 
       format_columns(gl$cols)
   })
