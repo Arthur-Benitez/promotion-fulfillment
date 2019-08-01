@@ -102,3 +102,22 @@ build_callback <- function(titles) {
     }
   ", paste(c('', titles), collapse = "', '")))
 }
+
+## Generar datatable con parámetros comunes
+generate_basic_datatable <- function(x, column_info, scrollX = FALSE, scrollY = '200px') {
+  x %>% 
+    transform_columns(column_info) %>% 
+    datatable(
+      extensions = c('KeyTable'),
+      filter = 'top',
+      options = list(
+        scrollX = scrollX,
+        scrollY = scrollY,
+        pageLength = 100,
+        keys = TRUE
+      ),
+      colnames = remap_names(column_info, names(.), 'pretty_name'),
+      callback = build_callback(remap_names(column_info, names(.), 'description'))
+    ) %>%
+    format_columns(column_info)
+}

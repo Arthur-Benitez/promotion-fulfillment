@@ -876,18 +876,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
         shiny::need(!is.null(r$items), lang$need_valid_input)
     )
     r$items %>% 
-      transform_columns(gl$cols) %>% 
-      datatable(
-        filter = 'none',
-        options = list(
-          scrollX = TRUE,
-          scrollY = ifelse(input$graph_toggle, '150px', '500px'),
-          pageLength = 100
-        ),
-        colnames = remap_names(gl$cols, names(.), 'pretty_name'),
-        callback = build_callback(remap_names(gl$cols, names(.), 'description'))
-      ) %>% 
-      format_columns(gl$cols)
+      generate_basic_datatable(gl$cols, scrollX = TRUE, scrollY = ifelse(input$graph_toggle, '150px', '500px'))
   })
   
   ## Apagar bandera r$is_running

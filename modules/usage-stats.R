@@ -478,78 +478,25 @@ usageStatsServer <- function(input, output, session, credentials, dev_connection
       }) %>%
       arrange(desc(timestamp))
     graph_data$detail %>% 
-      transform_columns(gl$cols) %>% 
-      datatable(
-        extensions = c('KeyTable'),
-        filter = 'top',
-        options = list(
-          scrollX = TRUE,
-          scrollY = '500px',
-          pageLength = 100,
-          keys = TRUE
-        ),
-        colnames = remap_names(gl$cols, names(.), 'pretty_name'),
-        callback = build_callback(remap_names(gl$cols, names(.), 'description'))
-      ) %>%
-      format_columns(gl$cols)
+      generate_basic_datatable(gl$cols, scrollX = TRUE, scrollY = '500px')
   })
   
   output$daily_table <- DT::renderDataTable({
     req(graph_data$daily)
     graph_data$daily %>% 
-      transform_columns(gl$cols) %>% 
-      datatable(
-        extensions = c('KeyTable'),
-        filter = 'top',
-        options = list(
-          scrollX = FALSE,
-          scrollY = '200px',
-          pageLength = 100,
-          keys = TRUE
-        ),
-        colnames = remap_names(gl$cols, names(.), 'pretty_name'),
-        callback = build_callback(remap_names(gl$cols, names(.), 'description'))
-      ) %>%
-      format_columns(gl$cols)
+      generate_basic_datatable(gl$cols)
   })
   
   output$top_table <- DT::renderDataTable({
     req(graph_data$top)
     graph_data$top %>% 
-      transform_columns(gl$cols) %>% 
-      datatable(
-        extensions = c('KeyTable'),
-        filter = 'top',
-        options = list(
-          scrollX = FALSE,
-          scrollY = '200px',
-          pageLength = 100,
-          keys = TRUE
-        ),
-        colnames = remap_names(gl$cols, names(.), 'pretty_name'),
-        callback = build_callback(remap_names(gl$cols, names(.), 'description'))
-      ) %>%
-      format_columns(gl$cols) %>% 
-      return()
+      generate_basic_datatable(gl$cols)
   })
   
   output$time_table <- DT::renderDataTable({
     req(graph_data$time)
     graph_data$time %>% 
-      transform_columns(gl$cols) %>% 
-      datatable(
-        extensions = c('KeyTable'),
-        filter = 'top',
-        options = list(
-          scrollX = FALSE,
-          scrollY = '200px',
-          pageLength = 100,
-          keys = TRUE
-        ),
-        colnames = remap_names(gl$cols, names(.), 'pretty_name'),
-        callback = build_callback(remap_names(gl$cols, names(.), 'description'))
-      ) %>% 
-      format_columns(gl$cols)
+      generate_basic_datatable(gl$cols)
   })
   
   output$download_detail <- downloadHandler(
