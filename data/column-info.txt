@@ -1,14 +1,14 @@
 name	type	is_constant_by_feature	is_input	format	pretty_name	description
 feature_name	character	FALSE	TRUE	character	ID Promo	"Nombre único de la promo (hasta 22 caracteres, sin espacios)."
 user	character	TRUE	TRUE	character	Usuario	Usuario de red que cargará las promos.
-dept_nbr	numeric	TRUE	TRUE	integer	Departamento	Número de departamento (sin ceros a la izquierda).
+dept_nbr	numeric	TRUE	TRUE	character	Departamento	Número de departamento (sin ceros a la izquierda).
 negocio	character	TRUE	TRUE	character	Negocio	"Formato de negocio (BAE, BODEGA, MIBODEGA, SUPERAMA o SUPERCENTER)"
-old_nbr	numeric	FALSE	TRUE	integer	OLD_NBR	Número de artículo.
+old_nbr	numeric	FALSE	TRUE	character	OLD_NBR	Número de artículo.
 min_feature_qty	numeric	TRUE	TRUE	comma	Mínimo de exhibición	"Mínimas piezas totales en el display (entre todos los artículos). Su efecto depende de la opción seleccionada: No hacer nada (ignora el mínimo), Conservadora (si un display no llega al mínimo con los max_ddv, entonces no se le manda mercancía), o Agresiva [no recomendado] (si un display no llega al mínimo con los max_ddv, entonces se le manda el mínimo de piezas)"
 max_feature_qty	numeric	TRUE	TRUE	comma	Máximo de exhibición	Máximas piezas totales en el display (entre todos los artículos).
 max_ddv	numeric	FALSE	TRUE	comma	Máximo de DDV	Tope máximo de días de venta por artículo.
-semana_ini	numeric	TRUE	TRUE	integer	Semana inicial cálculo	"Semana Walmart inicial para calcular forecast o ventas (debe ser a pasado si fcst_or_sales = ""S"" y a futuro si es = ""F"")."
-semana_fin	numeric	TRUE	TRUE	integer	Semana final cálculo	"Semana Walmart final para calcular forecast o ventas (debe ser a pasado si fcst_or_sales = ""S"" y a futuro si es = ""F"")."
+semana_ini	numeric	TRUE	TRUE	character	Semana inicial cálculo	"Semana Walmart inicial para calcular forecast o ventas (debe ser a pasado si fcst_or_sales = ""S"" y a futuro si es = ""F"")."
+semana_fin	numeric	TRUE	TRUE	character	Semana final cálculo	"Semana Walmart final para calcular forecast o ventas (debe ser a pasado si fcst_or_sales = ""S"" y a futuro si es = ""F"")."
 fcst_or_sales	character	TRUE	TRUE	character	¿Forecast o ventas?	"F para usar forecast y ""S"" para usar ventas."
 StartDate	date	TRUE	TRUE	date	StartDate	Fecha de inicio de validez de la promo. Hay que especificar el formato de la fecha al subir el archivo.
 EndDate	date	TRUE	TRUE	date	EndDate	Fecha de fin de validez de la promo. Hay que especificar el formato de la fecha al subir el archivo.
