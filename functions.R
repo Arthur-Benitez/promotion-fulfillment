@@ -66,30 +66,24 @@ get_column_formats <- function(column_info, columns, format) {
   intersect(column_info$name[column_info$format == format], columns)
 }
 
-## Transform variables (e.g. % cols times 100)
+## Transform variables before formatting
 transform_columns <- function(x, column_info) {
-  percent_columns <- intersect(
-    column_info$name[column_info$format == 'percent'],
-    names(x)
-  )
-  character_columns <- intersect(
-    column_info$name[column_info$format == 'character'],
-    names(x)
-  )
+  datetime_columns <- get_column_formats(column_info, names(x), 'datetime')
   x %>% 
-    mutate_at(percent_columns, ~ 100 * .x) %>% 
-    mutate_at(character_columns, as.character)
+    mutate_at(datetime_columns, ~ format(.x, '%F %H:%M:%S'))
 }
 
 ## Format columns
 format_columns <- function(dt, column_info) {
+  character_columns <- get_column_formats(column_info, names(dt$x$data), 'character')
   comma_columns <- get_column_formats(column_info, names(dt$x$data), 'comma')
   currency_columns <- get_column_formats(column_info, names(dt$x$data), 'currency')
   percent_columns <- get_column_formats(column_info, names(dt$x$data), 'percent')
   dt %>%
-    formatCurrency(columns = currency_columns, digits = 0, currency = '$') %>% 
-    formatCurrency(columns = comma_columns, digits = 0, currency = '') %>% 
-    formatCurrency(columns = percent_columns, digits = 1, currency = '%', before = FALSE)
+    formatString(columns = character_columns) %>% 
+    formatRound(columns = comma_columns, digits = 0) %>% 
+    formatCurrency(columns = currency_columns, digits = 0) %>% 
+    formatPercentage(columns = percent_columns, digits = 1) 
 }
 
 ## Build JS callback to set hover text help
