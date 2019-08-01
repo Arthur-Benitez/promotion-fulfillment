@@ -495,6 +495,7 @@ usageStatsServer <- function(input, output, session, credentials, dev_connection
   })
   
   output$daily_table <- DT::renderDataTable({
+    req(graph_data$daily)
     graph_data$daily %>% 
       transform_columns(gl$cols) %>% 
       datatable(
@@ -533,6 +534,7 @@ usageStatsServer <- function(input, output, session, credentials, dev_connection
   })
   
   output$time_table <- DT::renderDataTable({
+    req(graph_data$time)
     graph_data$time %>% 
       transform_columns(gl$cols) %>% 
       datatable(
