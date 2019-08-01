@@ -1570,9 +1570,9 @@ computePromotionsUI <- function(id) {
           ns('sspres_benchmark_toggle'),
           label = lang$sspres_benchmark_toggle,
           choices = c(
-            'none',
+            'future',
             'current',
-            'future'
+            'none'
             ) %>% 
             set_names(lang$sspres_benchmark_toggle_names)
         )
