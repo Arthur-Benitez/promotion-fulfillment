@@ -1226,8 +1226,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
     )
     tryCatch({
       percent_columns <- c('feature_perc_pos_or_fcst')
-      decimal_columns <- c('avg_dly_pos_or_fcst', 'feature_qty_req_min',	'feature_qty_req', 'feature_ddv_req', 'feature_qty_pre', 'feature_ddv_pre', 'feature_qty_pre_tot', 'feature_ddv_fin', 'feature_qty_fin', 'display_key', 'store_cost', 'vnpk_fin', 'cost')
-      final_result() %>%
+      x <- final_result() %>%
         mutate_at(intersect(gl$output_character_cols, names(.)), as.character) %>% 
         mutate_at(vars(percent_columns), list(~100 * .)) %>%
         select(
@@ -1237,7 +1236,9 @@ computePromotionsServer <- function(input, output, session, credentials) {
           store_nbr,
           negocio,
           everything()
-        ) %>% 
+        )
+      comma_columns <- get_column_formats(gl$cols, names(x), 'comma')
+      x %>% 
         datatable(
           extensions = c('FixedColumns', 'KeyTable'),
           filter = 'top',
@@ -1250,7 +1251,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
           ),
           colnames = remap_names(gl$cols, names(.), 'pretty_name')
         ) %>%
-        formatCurrency(columns = decimal_columns, digits = 1, currency = '') %>%
+        formatCurrency(columns = comma_columns, digits = 1, currency = '') %>%
         formatCurrency(columns = percent_columns, digits = 1, currency = '%', before = FALSE)
     }, error = function(e){
       NULL
@@ -1268,8 +1269,10 @@ computePromotionsServer <- function(input, output, session, credentials) {
         need_query_ready()
     )
     tryCatch({
-      summary_table() %>% 
-        mutate_at(intersect(gl$output_character_cols, names(.)), as.character) %>% 
+      x <- summary_table() %>% 
+        mutate_at(intersect(gl$output_character_cols, names(.)), as.character)
+      comma_columns <- get_column_formats(gl$cols, names(x), 'comma')
+      x %>% 
         datatable(
           extensions = c('FixedColumns', 'KeyTable'),
           filter = 'top',
@@ -1282,7 +1285,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
           ),
           colnames = remap_names(gl$cols, names(.), 'pretty_name')
         ) %>%
-        formatCurrency(columns = str_subset(names(summary_table()), '^(total|avg)_'), digits = 1, currency = '')
+        formatCurrency(columns = comma_columns, digits = 1, currency = '')
     }, error = function(e){
       NULL
     })
@@ -1352,10 +1355,11 @@ computePromotionsServer <- function(input, output, session, credentials) {
     )
     tryCatch({
       percent_columns <- c('p_stores')
-      decimal_columns <- str_subset(names(histogram_data()), '^(n|total|avg)_')
-      histogram_data() %>%
+      x <- histogram_data() %>%
         mutate_at(vars(percent_columns), list(~100 * .)) %>%
-        mutate_at(intersect(gl$output_character_cols, names(.)), as.character) %>% 
+        mutate_at(intersect(gl$output_character_cols, names(.)), as.character)
+      comma_columns <- get_column_formats(gl$cols, names(x), 'comma')
+      x %>% 
         datatable(
           extensions = c('Buttons', 'FixedColumns', 'KeyTable'),
           filter = 'none',
@@ -1370,7 +1374,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
           ),
           colnames = remap_names(gl$cols, names(.), 'pretty_name')
         ) %>%
-        formatCurrency(columns = decimal_columns, digits = 1, currency = '') %>%
+        formatCurrency(columns = comma_columns, digits = 1, currency = '') %>% 
         formatCurrency(columns = percent_columns, digits = 1, currency = '%', before = FALSE)
     }, error = function(e){
       NULL

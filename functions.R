@@ -61,3 +61,8 @@ remap_names <- function(column_info, columns, target_col = c('pretty_name', 'des
   maybe_extract(columns, deframe(column_info[c('name', target_col[1])]))
 }
 
+## Get columns with a given format
+get_column_formats <- function(column_info, columns, format) {
+  intersect(column_info$name[column_info$format == format], columns)
+}
+
