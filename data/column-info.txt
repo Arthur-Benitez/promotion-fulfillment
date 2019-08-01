@@ -3,7 +3,7 @@ feature_name	character	FALSE	TRUE	character		ID Promo	"Nombre único de la promo
 user	character	TRUE	TRUE	character		Usuario	Usuario de red que cargará las promos.
 dept_nbr	numeric	TRUE	TRUE	character		Departamento	Número de departamento (sin ceros a la izquierda).
 negocio	character	TRUE	TRUE	character		Negocio	"Formato de negocio (BAE, BODEGA, MIBODEGA, SUPERAMA o SUPERCENTER)"
-old_nbr	numeric	FALSE	TRUE	character		Artículo (old_nbr)	Número de artículo (old_nbr).
+old_nbr	numeric	FALSE	TRUE	character		Artículo (old_nbr)	Número de artículo de HOST (old_nbr en Teradata).
 min_feature_qty	numeric	TRUE	TRUE	comma	0	Mínimo de exhibición	"Mínimas piezas totales en el display (entre todos los artículos). Su efecto depende de la opción seleccionada en ""Lógica mínimo""."
 max_feature_qty	numeric	TRUE	TRUE	comma	0	Máximo de exhibición	Máximas piezas totales en el display (entre todos los artículos).
 max_ddv	numeric	FALSE	TRUE	comma	0	Máximo de DDV	Tope máximo de días de venta por artículo.
@@ -13,3 +13,102 @@ fcst_or_sales	character	TRUE	TRUE	character		¿Forecast o ventas?	"""F"" para us
 StartDate	date	TRUE	TRUE	date		StartDate	Fecha de inicio de efectividad de la promo. Hay que especificar el formato de la fecha al subir el archivo.
 EndDate	date	TRUE	TRUE	date		EndDate	Fecha de fin de efectividad de la promo. Hay que especificar el formato de la fecha al subir el archivo.
 Priority	numeric	TRUE	TRUE	comma	0	Priority	Prioridad de la estrategia en el sistema.
+timestamp	datetime		FALSE	datetime		Timestamp	Timestamp
+cid	numeric		FALSE	character		CID	CID = repl_group_nbr en Teradata
+primary_desc	character		FALSE	character		Descripción	Descripción del artículo.
+n_stores	numeric		FALSE	comma	0	Número de tiendas	Número de tiendas.
+avg_dly_sales	numeric		FALSE	comma	2	Ventas diarias promedio	Ventas diarias promedio dentro de la ventana de semanas especificada.
+avg_dly_forecast	numeric		FALSE	comma	2	Forecast diario promedio	Forecast diario promedio dentro de la ventana de semanas especificada.
+total_cost	numeric		FALSE	comma	0	Costo total	Costo total de la estrategia sin tomar en cuenta otros safeties (i.e. compra máxima).
+total_impact_cost	numeric		FALSE	comma	0	Impacto en costo	Impacto en la compra en pesos a costo tomando en cuenta los demás safeties.
+total_qty	numeric		FALSE	comma	1	Cantidad total	Piezas totales de la estrategia sin tomar en cuenta otros safeties.
+total_impact_qty	numeric		FALSE	comma	1	Impacto en piezas	Impacto en la compra en piezas tomando en cuenta los demás safeties.
+total_ddv	numeric		FALSE	comma	1	DDV totales	Días de venta totales de la estrategia sin tomar en cuenta otros safeties.
+total_impact_ddv	numeric		FALSE	comma	1	Impacto en DDV	Impacto en días de venta tomando en cuenta los demás safeties.
+total_vnpk	numeric		FALSE	comma	1	VNPK totales	Vendor packs totales de la estrategia sin tomar en cuenta otros safeties.
+total_impact_vnpk	numeric		FALSE	comma	1	Impacto en VNPK	Impacto en la compra en vendor packs tomando en cuenta los demás safeties.
+perc_max_feature_qty_bin	character		FALSE	character		Porcentaje de alcance	Porcentaje del máximo de exhibición que se recomienda enviar a la tienda.
+p_stores	numeric		FALSE	percent	1	Porcentaje de tiendas	Porcentaje de tiendas del formato que tienen el nivel de alcance.
+avg_store_cost	numeric		FALSE	comma	1	Costo promedio por tienda	Costo promedio por tienda de la estrategia sin tomar en cuenta otros safeties.
+avg_store_dly_pos_or_fcst	numeric		FALSE	comma	1	Forecast o ventas promedio	"Forecast promedio por tienda si la bandera de forecast o ventas está en ""F"", y ventas promedio por tienda si está en ""S""."
+avg_store_qty	numeric		FALSE	comma	1	Piezas promedio por tienda	Piezas promedio por tienda de la estrategia sin tomar en cuenta otros safeties.
+store_nbr	numeric		FALSE	character		Tienda	Determinante de la tienda (store_nbr).
+dc_nbr	numeric		FALSE	character		Número de CEDIS	Determinante del CEDIS al que está alineada la combinación.
+dc_name	character		FALSE	character		Nombre de CEDIS	Nombre del CEDIS al que está alineada la combinación.
+avg_dly_pos_or_fcst	numeric		FALSE	comma	2	Forecast o ventas promedio	"Forecast promedio si la bandera de forecast o ventas está en ""F"", y ventas promedio si está en ""S""."
+feature_perc_pos_or_fcst	numeric		FALSE	percent	1	Porcentaje de la exhibición	Porcentaje de la exhibición asignado al artículo.
+feature_qty_req_min	numeric		FALSE	comma	1	Piezas mínimas del artículo	= Porcentaje de la exhibición * Mínimo de exhibición
+feature_qty_req	numeric		FALSE	comma	1	Sugerencia inicial (piezas)	= Porcentaje de la exhibición * Máximo de exhibición
+feature_ddv_req	numeric		FALSE	comma	1	Sugerencia inicial (DDV)	= Sugerencia inicial (piezas) / Forecast o ventas promedio
+feature_ddv_pre	numeric		FALSE	comma	1	DDV topados	"= Mínimo(Sugerencia inicial (DDV), Máximo de DDV)"
+feature_qty_pre	numeric		FALSE	comma	1	Piezas topadas	= Porcentaje de la exhibición * DDV topados
+feature_qty_pre_tot	numeric		FALSE	comma	1	Piezas de la exhibición topadas	Total de piezas en la exhibición después de aplicar los topes.
+feature_qty_fin	numeric		FALSE	comma	1	Piezas finales	"Piezas finales recomendadas después de aplicar la ""Lógica mínimo""."
+feature_ddv_fin	numeric		FALSE	comma	1	DDV finales	"Días de venta finales recomendadas después de aplicar la ""Lógica mínimo""."
+display_key	character		FALSE	character		Llave de artículos en query	Llaves para filtrar los resultados del query.
+split_var	character		FALSE	character		Llave de query	El query corre una vez por cada valor distinto de esta variable.
+acct_dept_nbr	numeric		FALSE	character		Departamento	Número de departamento (sin ceros a la izquierda).
+vendor9_nbr	numeric		FALSE	character		Proveedor	Número del proveedor a 9 dígitos.
+vendor_name	character		FALSE	character		Nombre del proveedor	Nombre del proveedor.
+status_grs	character		FALSE	character		Status GRS	Status GRS.
+item_nbr	numeric		FALSE	character		Artículo (item_nbr)	Número de artículo de Teradata (item_nbr).
+size_desc	character		FALSE	character		Presentación del artículo	Descripción de la presentación del artículo.
+fineline	numeric		FALSE	character		Fineline	Fineline.
+cost	numeric		FALSE	comma	2	Costo unitario	Costo unitario de la combinación.
+vnpk_qty	numeric		FALSE	comma	1	VNPK	Vendor packs.
+whpk_qty	numeric		FALSE	comma	1	WHPK	Warehouse packs.
+state	character		FALSE	character		Estado	MX para todo México.
+open_status	numeric		FALSE	character		Open status	Estátus de la tienda.
+status_code	character		FALSE	character		Status code	Estátus del artículo.
+carry_option	character		FALSE	character		Carry option	Identifica si el artículo está modulado (Resurtido).
+carried_status	character		FALSE	character		Carried status	Identifica el artículo como resurtible.
+type_code	numeric		FALSE	character		Type code	"Tipo de resurtido (SSTK, XDOCK, DSD)"
+itm_mbm_code	character		FALSE	character		Itm mbm code	Identifica si el artículo está modulado (Modulares).
+cancel_when_out_flag	character		FALSE	character		Cancel when out flag	Bandera de cancel when out.
+ordbk_flag	character		FALSE	character		ORDBK flag	Bandera de resurtido automático.
+sub_tipo	numeric		FALSE	character		Sub tipo	Sub tipo.
+category_nbr	numeric		FALSE	character		Categoría	Categoría (primeros dos dígitos de la fineline).
+store_cost	numeric		FALSE	comma	2	Costo total	Costo total de la estrategia sin tomar en cuenta otros safeties (i.e. compra máxima).
+vnpk_fin	numeric		FALSE	comma	1	VNPK totales	Vendor packs totales de la estrategia sin tomar en cuenta otros safeties.
+sspress	numeric		FALSE	comma	1	SSPres	SSPres vigente al momento de la consulta.
+base_press	numeric		FALSE	comma	1	Base Presentation	Base Presentation vigente al momento de la consulta.
+sspress_tot	numeric		FALSE	comma	1	SSPres + Base Presentation	SSPres + Base Presentation
+sscov	numeric		FALSE	comma	1	SSCov	SSCov promedio en piezas en el periodo StartDate a EndDate
+sstemp	numeric		FALSE	comma	1	SSTemp	SSTemp promedio en piezas en el periodo StartDate a EndDate
+sscov_tot	numeric		FALSE	comma	1	SSCov + SSTemp	SSCov + SSTemp
+min_ss	numeric		FALSE	comma	1	MinSS	MinSS vigente al momento de la consulta.
+max_ss	numeric		FALSE	comma	1	MaxSS	MaxSS vigente al momento de la consulta.
+ss_ganador	numeric		FALSE	comma	1	Ganador actual en piezas	SS Ganador en piezas de la competencia entre todos los safeties *vigentes*.
+ganador	character		FALSE	character		Ganador actual	Nombre del SS Ganador *actual*.
+comp_sspress	numeric		FALSE	comma	1	SSPres comparativo	SSPres comparativo (ver parámetros de impacto).
+comp_sspress_tot	numeric		FALSE	comma	1	SSPres comparativo + Base Presentation	SSPres comparativo + Base Presentation
+comp_ss_winner_qty	numeric		FALSE	comma	1	SS Ganador comparativo en piezas	SS Ganador en piezas de la competencia entre todos los safeties *comparativos*.
+comp_ss_winner_name	character		FALSE	character		SS Ganador comparativo	Nombre del SS Ganador *comparativo*.
+new_sspress	numeric		FALSE	comma	1	SSPres final recomendado	SSPres final recomendado
+new_sspress_tot	numeric		FALSE	comma	1	SSPres final recomendado + Base Presentation	SSPres final recomendado + Base Presentation
+ss_winner_qty	numeric		FALSE	comma	1	SS Ganador final en piezas	SS Ganador en piezas de la competencia entre todos los safeties *aplicando la estrategia*.
+ss_winner_name	character		FALSE	character		SS Ganador final	Nombre del SS Ganador *aplicando la estrategia*.
+impact_qty	numeric		FALSE	comma	1	Impacto en piezas	Impacto en la compra en piezas tomando en cuenta los demás safeties.
+impact_cost	numeric		FALSE	comma	0	Impacto en costo	Impacto en la compra en pesos a costo tomando en cuenta los demás safeties.
+impact_ddv	numeric		FALSE	comma	1	Impacto en DDV	Impacto en días de venta tomando en cuenta los demás safeties.
+impact_vnpk	numeric		FALSE	comma	1	Impacto en VNPK	Impacto en la compra en vendor packs tomando en cuenta los demás safeties.
+date	date		FALSE	date		Fecha	Fecha.
+all	character		FALSE	character		Todos	Todos.
+role	character		FALSE	character		Permisos	Nivel de permisos (owner > admin > basic).
+vp	character		FALSE	character		Vicepresidencia	Vicepresidencia.
+n_unique_users	numeric		FALSE	comma	0	Usuarios únicos	Usuarios únicos.
+n_unique_sessions	numeric		FALSE	comma	0	Sesiones únicas	Sesiones únicas. Se registra una sesión cada que un usuario entra o recarga la página.
+user_name	character		FALSE	character		Usuario	Nombre de usuario y usuario de red. El nombre sólo aparece si está en WM_AD_HOC.TABLA_RESURTIDOR.
+n_actions	numeric		FALSE	comma	0	Acciones	Número de acciones registradas en el log.
+n_sessions	numeric		FALSE	comma	0	Sesiones únicas	Sesiones únicas. Se registra una sesión cada que un usuario entra o recarga la página.
+n_users	numeric		FALSE	comma	0	Usuarios únicos	Usuarios únicos.
+p_active_users	numeric		FALSE	percent	1	Porcentaje de usuarios activos	Porcentaje de usuarios de la VP que estuvieron activos.
+message	character		FALSE	character		Evento	Evento registrado en el log (ej. cargar un archivo de parámetros).
+session	character		FALSE	character		ID de la sesión	UUID de la sesión. Se registra una sesión cada que un usuario entra o recarga la página.
+event_group	numeric		FALSE	comma	0	Grupo de evento	Cada pareja START..END de un evento dado dentro de una misma sesión genera un grupo de evento.
+duration_secs	numeric		FALSE	comma	1	Duración (segundos)	Duración del evento en segundos.
+level	character		FALSE	character		Nivel del log	Nivel de urgencia del log (ERROR > WARN > INFO).
+clearance	numeric		FALSE	character		Permisos (número)	"Nivel de permisos (owner = 0, admin = 1, basic = 2)."
+top_role	character		FALSE	character		Permisos máximos	Nivel máximo de permisos.
+details	character		FALSE	character		Detalles	Más detalles del evento.
+name	character		FALSE	character		Nombre	Nombre del usuario obtenido de WM_AD_HOC.TABLA_RESURTIDOR.
