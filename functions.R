@@ -83,9 +83,9 @@ transform_columns <- function(x, column_info) {
 
 ## Format columns
 format_columns <- function(dt, column_info) {
-  comma_columns <- get_column_formats(gl$cols, names(dt$x$data), 'comma')
-  currency_columns <- get_column_formats(gl$cols, names(dt$x$data), 'currency')
-  percent_columns <- get_column_formats(gl$cols, names(dt$x$data), 'percent')
+  comma_columns <- get_column_formats(column_info, names(dt$x$data), 'comma')
+  currency_columns <- get_column_formats(column_info, names(dt$x$data), 'currency')
+  percent_columns <- get_column_formats(column_info, names(dt$x$data), 'percent')
   dt %>%
     formatCurrency(columns = currency_columns, digits = 0, currency = '$') %>% 
     formatCurrency(columns = comma_columns, digits = 0, currency = '') %>% 
