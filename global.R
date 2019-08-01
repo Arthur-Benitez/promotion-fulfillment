@@ -118,7 +118,7 @@ gl <- list(
   app_version_date = '2019-07-30',
   ## Compute promotions
   cols = tryCatch({
-    read_csv('data/column-info.txt', col_types = 'ccllcc')
+    read_tsv('data/column-info.txt', col_types = 'ccllccc')
   }, error = function(e){
     tribble(~name, ~type, ~is_constant_by_feature, ~pretty_name, ~description)
   }),
