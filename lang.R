@@ -99,9 +99,9 @@ lang <- list(
   sspres_benchmark_toggle = 'SSPres Comparativo',
   sspres_benchmark_toggle_title = '¿Contra qué SSPres comparar las sugerencias?',
   sspres_benchmark_toggle_names = c(
-    'No comparar (SSPres = 0)',
+    'Comparar vs SSPres futuro',
     'Comparar vs SSPres actual',
-    'Comparar vs SSPres futuro'
+    'No comparar (SSPres = 0)'
   ),
   
   impact_toggle = 'Acción SSPres',
