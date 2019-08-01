@@ -478,6 +478,7 @@ usageStatsServer <- function(input, output, session, credentials, dev_connection
       }) %>%
       arrange(desc(timestamp))
     graph_data$detail %>% 
+      transform_columns(gl$cols) %>% 
       datatable(
         extensions = c('KeyTable'),
         filter = 'top',
@@ -488,30 +489,13 @@ usageStatsServer <- function(input, output, session, credentials, dev_connection
           keys = TRUE
         ),
         colnames = remap_names(gl$cols, names(.), 'pretty_name')
-      )
+      ) %>%
+      format_columns(gl$cols)
   })
   
   output$daily_table <- DT::renderDataTable({
     graph_data$daily %>% 
-      datatable(
-        extensions = c('KeyTable'),
-        filter = 'top',
-        options = list(
-          scrollX = FALSE,
-          scrollY = '200px',
-          pageLength = 100,
-          keys = TRUE
-        ),
-        colnames = remap_names(gl$cols, names(.), 'pretty_name')
-      )
-  })
-  
-  output$top_table <- DT::renderDataTable({
-    req(graph_data$top)
-    decimal_columns <- str_subset(names(graph_data$top), '^n_')
-    percent_columns <- str_subset(names(graph_data$top), '^p_')
-    graph_data$top %>% 
-      mutate_at(percent_columns, ~ 100 * .x) %>% 
+      transform_columns(gl$cols) %>% 
       datatable(
         extensions = c('KeyTable'),
         filter = 'top',
@@ -523,13 +507,13 @@ usageStatsServer <- function(input, output, session, credentials, dev_connection
         ),
         colnames = remap_names(gl$cols, names(.), 'pretty_name')
       ) %>%
-      formatCurrency(columns = decimal_columns, digits = 0, currency = '') %>%
-      formatCurrency(columns = percent_columns, digits = 1, currency = '%', before = FALSE) %>% 
-      return()
+      format_columns(gl$cols)
   })
   
-  output$time_table <- DT::renderDataTable({
-    graph_data$time %>% 
+  output$top_table <- DT::renderDataTable({
+    req(graph_data$top)
+    graph_data$top %>% 
+      transform_columns(gl$cols) %>% 
       datatable(
         extensions = c('KeyTable'),
         filter = 'top',
@@ -540,7 +524,26 @@ usageStatsServer <- function(input, output, session, credentials, dev_connection
           keys = TRUE
         ),
         colnames = remap_names(gl$cols, names(.), 'pretty_name')
-      )
+      ) %>%
+      format_columns(gl$cols) %>% 
+      return()
+  })
+  
+  output$time_table <- DT::renderDataTable({
+    graph_data$time %>% 
+      transform_columns(gl$cols) %>% 
+      datatable(
+        extensions = c('KeyTable'),
+        filter = 'top',
+        options = list(
+          scrollX = FALSE,
+          scrollY = '200px',
+          pageLength = 100,
+          keys = TRUE
+        ),
+        colnames = remap_names(gl$cols, names(.), 'pretty_name')
+      ) %>% 
+      format_columns(gl$cols)
   })
   
   output$download_detail <- downloadHandler(

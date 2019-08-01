@@ -876,7 +876,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
         shiny::need(!is.null(r$items), lang$need_valid_input)
     )
     r$items %>% 
-      mutate_at(intersect(gl$output_character_cols, names(.)), as.character) %>%
+      transform_columns(gl$cols) %>% 
       datatable(
         filter = 'none',
         options = list(
@@ -885,7 +885,8 @@ computePromotionsServer <- function(input, output, session, credentials) {
           pageLength = 100
         ),
         colnames = remap_names(gl$cols, names(.), 'pretty_name')
-      )
+      ) %>% 
+      format_columns(gl$cols)
   })
   
   ## Apagar bandera r$is_running
@@ -1226,9 +1227,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
     )
     tryCatch({
       percent_columns <- c('feature_perc_pos_or_fcst')
-      x <- final_result() %>%
-        mutate_at(intersect(gl$output_character_cols, names(.)), as.character) %>% 
-        mutate_at(vars(percent_columns), list(~100 * .)) %>%
+      final_result() %>%
         select(
           feature_name,
           old_nbr,
@@ -1236,9 +1235,8 @@ computePromotionsServer <- function(input, output, session, credentials) {
           store_nbr,
           negocio,
           everything()
-        )
-      comma_columns <- get_column_formats(gl$cols, names(x), 'comma')
-      x %>% 
+        ) %>% 
+        transform_columns(gl$cols) %>% 
         datatable(
           extensions = c('FixedColumns', 'KeyTable'),
           filter = 'top',
@@ -1251,8 +1249,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
           ),
           colnames = remap_names(gl$cols, names(.), 'pretty_name')
         ) %>%
-        formatCurrency(columns = comma_columns, digits = 1, currency = '') %>%
-        formatCurrency(columns = percent_columns, digits = 1, currency = '%', before = FALSE)
+        format_columns(gl$cols)
     }, error = function(e){
       NULL
     })
@@ -1269,10 +1266,8 @@ computePromotionsServer <- function(input, output, session, credentials) {
         need_query_ready()
     )
     tryCatch({
-      x <- summary_table() %>% 
-        mutate_at(intersect(gl$output_character_cols, names(.)), as.character)
-      comma_columns <- get_column_formats(gl$cols, names(x), 'comma')
-      x %>% 
+      summary_table() %>% 
+        transform_columns(gl$cols) %>% 
         datatable(
           extensions = c('FixedColumns', 'KeyTable'),
           filter = 'top',
@@ -1285,7 +1280,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
           ),
           colnames = remap_names(gl$cols, names(.), 'pretty_name')
         ) %>%
-        formatCurrency(columns = comma_columns, digits = 1, currency = '')
+        format_columns(gl$cols)
     }, error = function(e){
       NULL
     })
@@ -1354,12 +1349,8 @@ computePromotionsServer <- function(input, output, session, credentials) {
        shiny::need(is.null(needs), '')
     )
     tryCatch({
-      percent_columns <- c('p_stores')
-      x <- histogram_data() %>%
-        mutate_at(vars(percent_columns), list(~100 * .)) %>%
-        mutate_at(intersect(gl$output_character_cols, names(.)), as.character)
-      comma_columns <- get_column_formats(gl$cols, names(x), 'comma')
-      x %>% 
+      histogram_data() %>% 
+        transform_columns(gl$cols) %>% 
         datatable(
           extensions = c('Buttons', 'FixedColumns', 'KeyTable'),
           filter = 'none',
@@ -1374,8 +1365,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
           ),
           colnames = remap_names(gl$cols, names(.), 'pretty_name')
         ) %>%
-        formatCurrency(columns = comma_columns, digits = 1, currency = '') %>% 
-        formatCurrency(columns = percent_columns, digits = 1, currency = '%', before = FALSE)
+        format_columns(gl$cols)
     }, error = function(e){
       NULL
     })

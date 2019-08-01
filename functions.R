@@ -66,3 +66,29 @@ get_column_formats <- function(column_info, columns, format) {
   intersect(column_info$name[column_info$format == format], columns)
 }
 
+## Transform variables (e.g. % cols times 100)
+transform_columns <- function(x, column_info) {
+  percent_columns <- intersect(
+    column_info$name[column_info$format == 'percent'],
+    names(x)
+  )
+  character_columns <- intersect(
+    column_info$name[column_info$format == 'character'],
+    names(x)
+  )
+  x %>% 
+    mutate_at(percent_columns, ~ 100 * .x) %>% 
+    mutate_at(character_columns, as.character)
+}
+
+## Format columns
+format_columns <- function(dt, column_info) {
+  comma_columns <- get_column_formats(gl$cols, names(dt$x$data), 'comma')
+  currency_columns <- get_column_formats(gl$cols, names(dt$x$data), 'currency')
+  percent_columns <- get_column_formats(gl$cols, names(dt$x$data), 'percent')
+  dt %>%
+    formatCurrency(columns = currency_columns, digits = 0, currency = '$') %>% 
+    formatCurrency(columns = comma_columns, digits = 0, currency = '') %>% 
+    formatCurrency(columns = percent_columns, digits = 1, currency = '%', before = FALSE)
+}
+
