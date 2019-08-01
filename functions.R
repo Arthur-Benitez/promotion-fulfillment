@@ -75,15 +75,22 @@ transform_columns <- function(x, column_info) {
 
 ## Format columns
 format_columns <- function(dt, column_info) {
-  character_columns <- get_column_formats(column_info, names(dt$x$data), 'character')
-  comma_columns <- get_column_formats(column_info, names(dt$x$data), 'comma')
-  currency_columns <- get_column_formats(column_info, names(dt$x$data), 'currency')
-  percent_columns <- get_column_formats(column_info, names(dt$x$data), 'percent')
-  dt %>%
-    formatString(columns = character_columns) %>% 
-    formatRound(columns = comma_columns, digits = 0) %>% 
-    formatCurrency(columns = currency_columns, digits = 0) %>% 
-    formatPercentage(columns = percent_columns, digits = 1) 
+  format_funs <- column_info %>% 
+    filter(name %in% names(dt$x$data)) %>% 
+    mutate(
+      fun = pmap(list(name, format, digits), function(name, format, digits){
+        switch(format,
+          'character' = ~formatString(.x, columns = name),
+          'comma' = ~formatRound(.x, columns = name, digits = digits),
+          'currency' = ~formatCurrency(.x, columns = name, digits = digits),
+          'percent' = ~formatPercentage(.x, columns = name, digits = digits),
+          identity
+        )
+      })
+    ) %>% 
+    pull(fun)
+  format_fun <- purrr::compose(!!!format_funs)
+  format_fun(dt)
 }
 
 ## Build JS callback to set hover text help
