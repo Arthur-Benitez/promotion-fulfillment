@@ -486,7 +486,8 @@ usageStatsServer <- function(input, output, session, credentials, dev_connection
           scrollY = '500px',
           pageLength = 100,
           keys = TRUE
-        )
+        ),
+        colnames = remap_names(gl$cols, names(.), 'pretty_name')
       )
   })
   
@@ -500,7 +501,8 @@ usageStatsServer <- function(input, output, session, credentials, dev_connection
           scrollY = '200px',
           pageLength = 100,
           keys = TRUE
-        )
+        ),
+        colnames = remap_names(gl$cols, names(.), 'pretty_name')
       )
   })
   
@@ -518,7 +520,8 @@ usageStatsServer <- function(input, output, session, credentials, dev_connection
           scrollY = '200px',
           pageLength = 100,
           keys = TRUE
-        )
+        ),
+        colnames = remap_names(gl$cols, names(.), 'pretty_name')
       ) %>%
       formatCurrency(columns = decimal_columns, digits = 0, currency = '') %>%
       formatCurrency(columns = percent_columns, digits = 1, currency = '%', before = FALSE) %>% 
@@ -535,7 +538,8 @@ usageStatsServer <- function(input, output, session, credentials, dev_connection
           scrollY = '200px',
           pageLength = 100,
           keys = TRUE
-        )
+        ),
+        colnames = remap_names(gl$cols, names(.), 'pretty_name')
       )
   })
   

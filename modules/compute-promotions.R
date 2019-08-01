@@ -883,7 +883,8 @@ computePromotionsServer <- function(input, output, session, credentials) {
           scrollX = TRUE,
           scrollY = ifelse(input$graph_toggle, '150px', '500px'),
           pageLength = 100
-        )
+        ),
+        colnames = remap_names(gl$cols, names(.), 'pretty_name')
       )
   })
   
@@ -1246,7 +1247,8 @@ computePromotionsServer <- function(input, output, session, credentials) {
             scrollX = TRUE,
             scrollY = '500px',
             pageLength = 100
-          )
+          ),
+          colnames = remap_names(gl$cols, names(.), 'pretty_name')
         ) %>%
         formatCurrency(columns = decimal_columns, digits = 1, currency = '') %>%
         formatCurrency(columns = percent_columns, digits = 1, currency = '%', before = FALSE)
@@ -1277,7 +1279,8 @@ computePromotionsServer <- function(input, output, session, credentials) {
             scrollX = TRUE,
             scrollY = '500px',
             pageLength = 100
-          )
+          ),
+          colnames = remap_names(gl$cols, names(.), 'pretty_name')
         ) %>%
         formatCurrency(columns = str_subset(names(summary_table()), '^(total|avg)_'), digits = 1, currency = '')
     }, error = function(e){
@@ -1364,7 +1367,8 @@ computePromotionsServer <- function(input, output, session, credentials) {
             scrollX = TRUE,
             scrollY = '200px',
             pageLength = 20
-          )
+          ),
+          colnames = remap_names(gl$cols, names(.), 'pretty_name')
         ) %>%
         formatCurrency(columns = decimal_columns, digits = 1, currency = '') %>%
         formatCurrency(columns = percent_columns, digits = 1, currency = '%', before = FALSE)
