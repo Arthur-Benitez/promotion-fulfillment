@@ -41,16 +41,17 @@ alert_param <- function(good_features, empty_features, timestamp) {
 ## Leer entrada
 parse_input <- function(input_file, gl, calendar_day, date_format = '%Y-%m-%d') {
   tryCatch({
+    column_info <- gl$cols[gl$cols$is_input, ]
     nms <- names(read_csv(input_file, n_max = 0))
-    if (!all(gl$cols$name %in% nms)) {
-      return(sprintf('Las siguientes columnas faltan en el archivo de entrada: %s', paste(setdiff(gl$cols$name, nms), collapse = ', ')))
+    if (!all(column_info$name %in% nms)) {
+      return(sprintf('Las siguientes columnas faltan en el archivo de entrada: %s', paste(setdiff(column_info$name, nms), collapse = ', ')))
     }
     x <- read_csv(
       file = input_file,
       col_names = TRUE,
-      col_types = generate_cols_spec(gl$cols$name, gl$cols$type, date_format = date_format)
+      col_types = generate_cols_spec(column_info$name, column_info$type, date_format = date_format)
     ) %>% 
-      .[gl$cols$name] %>% 
+      .[column_info$name] %>% 
       mutate(
         fcst_or_sales = toupper(fcst_or_sales),
         display_key = paste(dept_nbr, old_nbr, negocio, sep = '.'),
@@ -70,11 +71,12 @@ parse_input <- function(input_file, gl, calendar_day, date_format = '%Y-%m-%d') 
 
 ## Validar inputs
 validate_input <- function(data, gl, calendar_day) {
+  column_info <- gl$cols[gl$cols$is_input, ]
   if (
     ## Condiciones básicas
     !is.data.frame(data) ||
     nrow(data) == 0 ||
-    length(setdiff(gl$cols$name, names(data))) > 0
+    length(setdiff(column_info$name, names(data))) > 0
   ) {
     return(FALSE)
   } else {
