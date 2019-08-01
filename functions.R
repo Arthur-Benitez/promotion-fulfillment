@@ -92,3 +92,13 @@ format_columns <- function(dt, column_info) {
     formatCurrency(columns = percent_columns, digits = 1, currency = '%', before = FALSE)
 }
 
+## Build JS callback to set hover text help
+build_callback <- function(titles) {
+  JS(sprintf("
+    let tips = ['%s'];
+    let header = table.columns().header();
+    for (let i = 0; i < tips.length; i++) {
+      $(header[i]).attr('title', tips[i])
+    }
+  ", paste(c('', titles), collapse = "', '")))
+}

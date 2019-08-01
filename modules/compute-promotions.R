@@ -884,7 +884,8 @@ computePromotionsServer <- function(input, output, session, credentials) {
           scrollY = ifelse(input$graph_toggle, '150px', '500px'),
           pageLength = 100
         ),
-        colnames = remap_names(gl$cols, names(.), 'pretty_name')
+        colnames = remap_names(gl$cols, names(.), 'pretty_name'),
+        callback = build_callback(remap_names(gl$cols, names(.), 'description'))
       ) %>% 
       format_columns(gl$cols)
   })
@@ -1247,7 +1248,8 @@ computePromotionsServer <- function(input, output, session, credentials) {
             scrollY = '500px',
             pageLength = 100
           ),
-          colnames = remap_names(gl$cols, names(.), 'pretty_name')
+          colnames = remap_names(gl$cols, names(.), 'pretty_name'),
+          callback = build_callback(remap_names(gl$cols, names(.), 'description'))
         ) %>%
         format_columns(gl$cols)
     }, error = function(e){
@@ -1278,7 +1280,8 @@ computePromotionsServer <- function(input, output, session, credentials) {
             scrollY = '500px',
             pageLength = 100
           ),
-          colnames = remap_names(gl$cols, names(.), 'pretty_name')
+          colnames = remap_names(gl$cols, names(.), 'pretty_name'),
+          callback = build_callback(remap_names(gl$cols, names(.), 'description'))
         ) %>%
         format_columns(gl$cols)
     }, error = function(e){
@@ -1363,7 +1366,8 @@ computePromotionsServer <- function(input, output, session, credentials) {
             scrollY = '200px',
             pageLength = 20
           ),
-          colnames = remap_names(gl$cols, names(.), 'pretty_name')
+          colnames = remap_names(gl$cols, names(.), 'pretty_name'),
+          callback = build_callback(remap_names(gl$cols, names(.), 'description'))
         ) %>%
         format_columns(gl$cols)
     }, error = function(e){
