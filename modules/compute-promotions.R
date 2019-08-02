@@ -878,7 +878,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
         shiny::need(!is.null(r$items_file), lang$need_items_file) %then%
         shiny::need(!is.null(r$items), lang$need_valid_input)
     )
-    r$items %>% 
+    r$items[intersect(names(r$items), gl$cols$name[gl$cols$is_input])] %>%
       generate_basic_datatable(gl$cols, scrollX = TRUE, scrollY = ifelse(input$graph_toggle, '150px', '500px'))
   })
   
