@@ -108,7 +108,7 @@ lang <- list(
   
   impact_toggle = 'Acción SSPres',
   impact_toggle_title = '¿Qué hacer con el SSPres cargado?',
-  impact_toggle_names = c('Sustituir', 'Sumar'),
+  impact_toggle_names = c('Sumar', 'Sustituir'),
   
   ## Validation
   need_items_file = 'Cargar un archivo de items para comenzar.',
