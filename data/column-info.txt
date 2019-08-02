@@ -33,6 +33,7 @@ avg_store_cost	numeric		FALSE	comma	1	Costo promedio por tienda	Costo promedio p
 avg_store_dly_pos_or_fcst	numeric		FALSE	comma	1	Forecast o ventas promedio	"Forecast promedio por tienda si la bandera de forecast o ventas está en ""F"", y ventas promedio por tienda si está en ""S""."
 avg_store_qty	numeric		FALSE	comma	1	Piezas promedio por tienda	Piezas promedio por tienda de la estrategia sin tomar en cuenta otros safeties.
 store_nbr	numeric		FALSE	character		Tienda	Determinante de la tienda (store_nbr).
+store_name	character		FALSE	character		Nombre de la tienda	Nombre de la tienda (store_name).
 dc_nbr	numeric		FALSE	character		Número de CEDIS	Determinante del CEDIS al que está alineada la combinación.
 dc_name	character		FALSE	character		Nombre de CEDIS	Nombre del CEDIS al que está alineada la combinación.
 avg_dly_pos_or_fcst	numeric		FALSE	comma	2	Forecast o ventas promedio	"Forecast promedio si la bandera de forecast o ventas está en ""F"", y ventas promedio si está en ""S""."
@@ -71,8 +72,10 @@ category_nbr	numeric		FALSE	character		Categoría	Categoría (primeros dos dígi
 store_cost	numeric		FALSE	comma	2	Costo total	Costo total de la estrategia sin tomar en cuenta otros safeties (i.e. compra máxima).
 vnpk_fin	numeric		FALSE	comma	1	VNPK totales	Vendor packs totales de la estrategia sin tomar en cuenta otros safeties.
 sspress	numeric		FALSE	comma	1	SSPres	SSPres vigente al momento de la consulta.
+sspress_fut	numeric		FALSE	comma	1	SSPres futuro	SSPres promedio cargado en el periodo especificado por el usuario (i.e. entre StartDate y EndDate).
 base_press	numeric		FALSE	comma	1	Base Presentation	Base Presentation vigente al momento de la consulta.
 sspress_tot	numeric		FALSE	comma	1	SSPres + Base Presentation	SSPres + Base Presentation
+sspress_fut_tot	numeric		FALSE	comma	1	SSPres futuro + Base Presentation	SSPres + Base Presentation futuro
 sscov	numeric		FALSE	comma	1	SSCov	SSCov promedio en piezas en el periodo StartDate a EndDate
 sstemp	numeric		FALSE	comma	1	SSTemp	SSTemp promedio en piezas en el periodo StartDate a EndDate
 sscov_tot	numeric		FALSE	comma	1	SSCov + SSTemp	SSCov + SSTemp
