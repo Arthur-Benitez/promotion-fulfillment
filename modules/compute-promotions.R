@@ -1591,7 +1591,7 @@ computePromotionsUI <- function(id) {
         selectInput(
           ns('impact_toggle'),
           label = lang$impact_toggle,
-          choices = c('swap', 'add') %>% 
+          choices = c('add', 'swap') %>% 
             set_names(lang$impact_toggle_names)
         )
       )
