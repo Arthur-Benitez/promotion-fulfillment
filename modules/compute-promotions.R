@@ -431,8 +431,10 @@ perform_computations <- function(data, data_ss = NULL, min_feature_qty_toggle = 
     data <- data %>%
       mutate(
         sspress = 0,
+        sspress_fut = 0,
         base_press = 0,
         sspress_tot = 0,
+        sspress_fut_tot = 0,
         sscov = 0,
         sstemp = 0,
         sscov_tot = 0,
@@ -450,9 +452,7 @@ perform_computations <- function(data, data_ss = NULL, min_feature_qty_toggle = 
     } else if (sspres_benchmark_toggle == 'current') {
       data$comp_sspress <- data$sspress
     } else if (sspres_benchmark_toggle == 'future') {
-      # Aún no existe la columna
-      # data$comp_sspress <- data$sspress_future
-      data$comp_sspress <- data$sspress
+      data$comp_sspress <- data$sspress_fut
     }
   }
   data <- data %>%
@@ -1579,9 +1579,9 @@ computePromotionsUI <- function(id) {
           ns('sspres_benchmark_toggle'),
           label = lang$sspres_benchmark_toggle,
           choices = c(
-            'none',
-            'current'
-            #'future'
+            'future',
+            'current',
+            'none'
             ) %>% 
             set_names(lang$sspres_benchmark_toggle_names)
         )
