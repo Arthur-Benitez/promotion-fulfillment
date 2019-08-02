@@ -461,12 +461,13 @@ perform_computations <- function(data, data_ss = NULL, min_feature_qty_toggle = 
       comp_ss_winner_qty = compare_ss_qty(comp_sspress_tot, sscov_tot, min_ss, max_ss),
       comp_ss_winner_name = compare_ss_name(comp_sspress_tot, sscov_tot, min_ss, max_ss, comp_sspress, base_press, sscov, sstemp, comp_ss_winner_qty),
       
-      new_sspress_tot = case_when(
-        impact_toggle == 'swap' ~ feature_qty_fin + base_press,
-        impact_toggle == 'add' ~ feature_qty_fin + comp_sspress_tot
+      new_sspress = case_when(
+        impact_toggle == 'swap' ~ feature_qty_fin,
+        impact_toggle == 'add' ~ feature_qty_fin + comp_sspress
       ),
+      new_sspress_tot = new_sspress + base_press,
       ss_winner_qty = compare_ss_qty(new_sspress_tot, sscov_tot, min_ss, max_ss),
-      ss_winner_name = compare_ss_name(new_sspress_tot, sscov_tot, min_ss, max_ss, feature_qty_fin, base_press, sscov, sstemp, ss_winner_qty),
+      ss_winner_name = compare_ss_name(new_sspress_tot, sscov_tot, min_ss, max_ss, new_sspress, base_press, sscov, sstemp, ss_winner_qty),
       
       impact_qty = ss_winner_qty - comp_ss_winner_qty,
       impact_cost = impact_qty * cost,
