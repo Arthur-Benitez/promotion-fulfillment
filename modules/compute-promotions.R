@@ -41,16 +41,17 @@ alert_param <- function(good_features, empty_features, timestamp) {
 ## Leer entrada
 parse_input <- function(input_file, gl, calendar_day, date_format = '%Y-%m-%d') {
   tryCatch({
+    column_info <- gl$cols[gl$cols$is_input, ]
     nms <- names(read_csv(input_file, n_max = 0))
-    if (!all(gl$cols$name %in% nms)) {
-      return(sprintf('Las siguientes columnas faltan en el archivo de entrada: %s', paste(setdiff(gl$cols$name, nms), collapse = ', ')))
+    if (!all(column_info$name %in% nms)) {
+      return(sprintf('Las siguientes columnas faltan en el archivo de entrada: %s', paste(setdiff(column_info$name, nms), collapse = ', ')))
     }
     x <- read_csv(
       file = input_file,
       col_names = TRUE,
-      col_types = generate_cols_spec(gl$cols$name, gl$cols$type, date_format = date_format)
+      col_types = generate_cols_spec(column_info$name, column_info$type, date_format = date_format)
     ) %>% 
-      .[gl$cols$name] %>% 
+      .[column_info$name] %>% 
       mutate(
         fcst_or_sales = toupper(fcst_or_sales),
         display_key = paste(dept_nbr, old_nbr, negocio, sep = '.'),
@@ -70,11 +71,12 @@ parse_input <- function(input_file, gl, calendar_day, date_format = '%Y-%m-%d') 
 
 ## Validar inputs
 validate_input <- function(data, gl, calendar_day) {
+  column_info <- gl$cols[gl$cols$is_input, ]
   if (
     ## Condiciones básicas
     !is.data.frame(data) ||
     nrow(data) == 0 ||
-    length(setdiff(gl$cols$name, names(data))) > 0
+    length(setdiff(column_info$name, names(data))) > 0
   ) {
     return(FALSE)
   } else {
@@ -877,21 +879,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
         shiny::need(!is.null(r$items), lang$need_valid_input)
     )
     r$items %>% 
-      mutate_at(intersect(gl$output_character_cols, names(.)), as.character) %>%
-      datatable(
-        filter = 'top',
-        options = list(
-          scrollX = TRUE,
-          scrollY = ifelse(input$graph_toggle, '150px', '600px'),
-          pageLength = 100
-        )
-      )
-  })
-  
-  output$hr <- renderUI({
-    req(r$items)
-    req(isTRUE(input$graph_toggle))
-    tags$hr()
+      generate_basic_datatable(gl$cols, scrollX = TRUE, scrollY = ifelse(input$graph_toggle, '150px', '500px'))
   })
   
   ## Apagar bandera r$is_running
@@ -1084,6 +1072,16 @@ computePromotionsServer <- function(input, output, session, credentials) {
         )
     }
   })
+  
+  output$grafica_ventas_completa <- renderUI({
+    req(isTRUE(input$graph_toggle))
+    ns <- session$ns
+    tagList(
+      uiOutput(ns('input_grafica_ventas')),
+      plotlyOutput(ns('grafica_ventas'), height = gl$plotly_height) %>% withSpinner(type = 8)
+    )
+  })
+  
   ## Seleccionar pestaña de output para que se vea el loader
   rr <- reactiveVal(0)
   tik <- reactiveVal(NULL)
@@ -1222,10 +1220,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
     )
     tryCatch({
       percent_columns <- c('feature_perc_pos_or_fcst')
-      decimal_columns <- c('avg_dly_pos_or_fcst', 'feature_qty_req_min',	'feature_qty_req', 'feature_ddv_req', 'feature_qty_pre', 'feature_ddv_pre', 'feature_qty_pre_tot', 'feature_ddv_fin', 'feature_qty_fin', 'display_key', 'store_cost', 'vnpk_fin', 'cost')
       final_result() %>%
-        mutate_at(intersect(gl$output_character_cols, names(.)), as.character) %>% 
-        mutate_at(vars(percent_columns), list(~100 * .)) %>%
         select(
           feature_name,
           old_nbr,
@@ -1234,6 +1229,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
           negocio,
           everything()
         ) %>% 
+        transform_columns(gl$cols) %>% 
         datatable(
           extensions = c('FixedColumns', 'KeyTable'),
           filter = 'top',
@@ -1243,10 +1239,11 @@ computePromotionsServer <- function(input, output, session, credentials) {
             scrollX = TRUE,
             scrollY = '500px',
             pageLength = 100
-          )
+          ),
+          colnames = remap_names(gl$cols, names(.), 'pretty_name'),
+          callback = build_callback(remap_names(gl$cols, names(.), 'description'))
         ) %>%
-        formatCurrency(columns = decimal_columns, digits = 1, currency = '') %>%
-        formatCurrency(columns = percent_columns, digits = 1, currency = '%', before = FALSE)
+        format_columns(gl$cols)
     }, error = function(e){
       NULL
     })
@@ -1264,7 +1261,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
     )
     tryCatch({
       summary_table() %>% 
-        mutate_at(intersect(gl$output_character_cols, names(.)), as.character) %>% 
+        transform_columns(gl$cols) %>% 
         datatable(
           extensions = c('FixedColumns', 'KeyTable'),
           filter = 'top',
@@ -1274,9 +1271,11 @@ computePromotionsServer <- function(input, output, session, credentials) {
             scrollX = TRUE,
             scrollY = '500px',
             pageLength = 100
-          )
+          ),
+          colnames = remap_names(gl$cols, names(.), 'pretty_name'),
+          callback = build_callback(remap_names(gl$cols, names(.), 'description'))
         ) %>%
-        formatCurrency(columns = str_subset(names(summary_table()), '^(total|avg)_'), digits = 1, currency = '')
+        format_columns(gl$cols)
     }, error = function(e){
       NULL
     })
@@ -1345,11 +1344,8 @@ computePromotionsServer <- function(input, output, session, credentials) {
        shiny::need(is.null(needs), '')
     )
     tryCatch({
-      percent_columns <- c('p_stores')
-      decimal_columns <- str_subset(names(histogram_data()), '^(n|total|avg)_')
-      histogram_data() %>%
-        mutate_at(vars(percent_columns), list(~100 * .)) %>%
-        mutate_at(intersect(gl$output_character_cols, names(.)), as.character) %>% 
+      histogram_data() %>% 
+        transform_columns(gl$cols) %>% 
         datatable(
           extensions = c('Buttons', 'FixedColumns', 'KeyTable'),
           filter = 'none',
@@ -1359,12 +1355,13 @@ computePromotionsServer <- function(input, output, session, credentials) {
             fixedColumns = list(leftColumns = 2),
             keys = TRUE,
             scrollX = TRUE,
-            scrollY = '200x',
+            scrollY = '200px',
             pageLength = 20
-          )
+          ),
+          colnames = remap_names(gl$cols, names(.), 'pretty_name'),
+          callback = build_callback(remap_names(gl$cols, names(.), 'description'))
         ) %>%
-        formatCurrency(columns = decimal_columns, digits = 1, currency = '') %>%
-        formatCurrency(columns = percent_columns, digits = 1, currency = '%', before = FALSE)
+        format_columns(gl$cols)
     }, error = function(e){
       NULL
     })
@@ -1606,10 +1603,8 @@ computePromotionsUI <- function(id) {
       tabPanel(
         value = 'input_table',
         title = lang$tab_input,
-        DTOutput(ns('input_table')),
-        uiOutput(ns('hr')),
-        uiOutput(ns('input_grafica_ventas')),
-        plotlyOutput(ns('grafica_ventas')) %>% withSpinner(type = 8)
+        uiOutput(ns('grafica_ventas_completa')),
+        DTOutput(ns('input_table'))
       ),
       tabPanel(
         value = 'output_summary',
@@ -1654,8 +1649,7 @@ computePromotionsUI <- function(id) {
                         min = 0.05, max = 0.5, value = 0.10, step = 0.05)
           )
         ),
-        plotlyOutput(ns('feature_histogram')) %>% withSpinner(type = 8),
-        tags$br(),
+        plotlyOutput(ns('feature_histogram'), height = gl$plotly_height) %>% withSpinner(type = 8),
         DTOutput(ns('feature_histogram_table'))
       ),
       tabPanel(

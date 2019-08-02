@@ -361,8 +361,9 @@ usageStatsServer <- function(input, output, session, credentials, dev_connection
         
       ## Gráfica
       
-      p <- x %>% 
-        filter(dense_rank(x) <= input$graph_top_nbar) %>% 
+      y <- x %>% 
+        filter(dense_rank(x) <= input$graph_top_nbar)
+      p <- y %>% 
         plot_ly(x = ~x, y = ~y, hoverinfo = 'text') %>% 
         add_bars(color = ~color, text = ~text, colors = pal) %>%
         layout(
@@ -374,6 +375,9 @@ usageStatsServer <- function(input, output, session, credentials, dev_connection
           yaxis = list(
             title = '',
             tickformat = ifelse(substr(input$graph_top_kpi, 1, 2) == 'p_', '%', ',d')
+          ),
+          margin = list(
+            b = max(nchar(as.character(y$x))) * 7 * sin(30 / 180 * pi) # Necesario porque el auto-height de plotly no considera los ticks con ángulo; 7 = avg character width; sin(...) = corrección por el ángulo de 30 grados
           )
         )
     }
@@ -474,65 +478,25 @@ usageStatsServer <- function(input, output, session, credentials, dev_connection
       }) %>%
       arrange(desc(timestamp))
     graph_data$detail %>% 
-      datatable(
-        extensions = c('KeyTable'),
-        filter = 'top',
-        options = list(
-          scrollX = TRUE,
-          scrollY = '500px',
-          pageLength = 100,
-          keys = TRUE
-        )
-      )
+      generate_basic_datatable(gl$cols, scrollX = TRUE, scrollY = '500px')
   })
   
   output$daily_table <- DT::renderDataTable({
+    req(graph_data$daily)
     graph_data$daily %>% 
-      datatable(
-        extensions = c('KeyTable'),
-        filter = 'top',
-        options = list(
-          scrollX = FALSE,
-          scrollY = '200px',
-          pageLength = 100,
-          keys = TRUE
-        )
-      )
+      generate_basic_datatable(gl$cols)
   })
   
   output$top_table <- DT::renderDataTable({
     req(graph_data$top)
-    decimal_columns <- str_subset(names(graph_data$top), '^n_')
-    percent_columns <- str_subset(names(graph_data$top), '^p_')
     graph_data$top %>% 
-      mutate_at(percent_columns, ~ 100 * .x) %>% 
-      datatable(
-        extensions = c('KeyTable'),
-        filter = 'top',
-        options = list(
-          scrollX = FALSE,
-          scrollY = '200px',
-          pageLength = 100,
-          keys = TRUE
-        )
-      ) %>%
-      formatCurrency(columns = decimal_columns, digits = 0, currency = '') %>%
-      formatCurrency(columns = percent_columns, digits = 1, currency = '%', before = FALSE) %>% 
-      return()
+      generate_basic_datatable(gl$cols)
   })
   
   output$time_table <- DT::renderDataTable({
+    req(graph_data$time)
     graph_data$time %>% 
-      datatable(
-        extensions = c('KeyTable'),
-        filter = 'top',
-        options = list(
-          scrollX = FALSE,
-          scrollY = '200px',
-          pageLength = 100,
-          keys = TRUE
-        )
-      )
+      generate_basic_datatable(gl$cols)
   })
   
   output$download_detail <- downloadHandler(
@@ -621,8 +585,7 @@ usageStatsUI <- function(id) {
             ),
             column(
               width = 9,
-              plotlyOutput(ns('graph_daily')) %>% withSpinner(type = 8),
-              tags$hr(),
+              plotlyOutput(ns('graph_daily'), height = gl$plotly_height) %>% withSpinner(type = 8),
               DT::DTOutput(ns('daily_table')) %>% withSpinner(type = 8)
             )
           )
@@ -669,8 +632,7 @@ usageStatsUI <- function(id) {
             ),
             column(
               width = 9,
-              plotlyOutput(ns('graph_top')) %>% withSpinner(type = 8),
-              tags$hr(),
+              plotlyOutput(ns('graph_top'), height = gl$plotly_height) %>% withSpinner(type = 8),
               DT::DTOutput(ns('top_table')) %>% withSpinner(type = 8)
             )
           )
@@ -685,8 +647,7 @@ usageStatsUI <- function(id) {
             ),
             column(
               width = 9,
-              plotlyOutput(ns('graph_time')) %>% withSpinner(type = 8),
-              tags$hr(),
+              plotlyOutput(ns('graph_time'), height = gl$plotly_height) %>% withSpinner(type = 8),
               DT::DTOutput(ns('time_table')) %>% withSpinner(type = 8)
             )
           )
