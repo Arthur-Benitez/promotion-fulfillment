@@ -96,13 +96,11 @@ date	date		FALSE	date		Fecha	Fecha.
 all	character		FALSE	character		Todos	Todos.
 role	character		FALSE	character		Permisos	Nivel de permisos (owner > admin > basic).
 vp	character		FALSE	character		Vicepresidencia	Vicepresidencia.
-n_unique_users	numeric		FALSE	comma	0	Usuarios únicos	Usuarios únicos.
-n_unique_sessions	numeric		FALSE	comma	0	Sesiones únicas	Sesiones únicas. Se registra una sesión cada que un usuario entra o recarga la página.
 user_name	character		FALSE	character		Usuario	Nombre de usuario y usuario de red. El nombre sólo aparece si está en WM_AD_HOC.TABLA_RESURTIDOR.
 n_actions	numeric		FALSE	comma	0	Acciones	Número de acciones registradas en el log.
 n_sessions	numeric		FALSE	comma	0	Sesiones únicas	Sesiones únicas. Se registra una sesión cada que un usuario entra o recarga la página.
-n_users	numeric		FALSE	comma	0	Usuarios únicos	Usuarios únicos.
-p_active_users	numeric		FALSE	percent	1	Porcentaje de usuarios activos	Porcentaje de usuarios de la VP que estuvieron activos.
+n_users	numeric		FALSE	comma	0	Usuarios activos	Usuarios activos.
+p_active_users	numeric		FALSE	percent	1	Porcentaje de usuarios activos en la VP	Porcentaje de usuarios de la VP que estuvieron activos.
 message	character		FALSE	character		Evento	Evento registrado en el log (ej. cargar un archivo de parámetros).
 session	character		FALSE	character		ID de la sesión	UUID de la sesión. Se registra una sesión cada que un usuario entra o recarga la página.
 event_group	numeric		FALSE	comma	0	Grupo de evento	Cada pareja START..END de un evento dado dentro de una misma sesión genera un grupo de evento.
