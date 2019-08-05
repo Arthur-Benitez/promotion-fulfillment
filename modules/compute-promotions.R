@@ -1443,12 +1443,13 @@ computePromotionsServer <- function(input, output, session, credentials) {
     showModal(modalDialog(
       size = 'l',
       easyClose = TRUE,
-      title = 'Instrucciones',
+      title = NULL,
       includeHTML('html/instructions.html'),
       renderDT({ 
         generate_basic_datatable(glossary_table, gl$cols)
       }),
-      footer = modalButton(lang$ok)
+      modalButton(NULL, icon = icon('times')),
+      footer = NULL
     ))
   }, ignoreInit = TRUE)
   
