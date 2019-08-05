@@ -1432,17 +1432,22 @@ computePromotionsServer <- function(input, output, session, credentials) {
   )
   
   ## Mostrar instrucciones
-  eval(parse(file = 'html/instructions-table.R', encoding = 'UTF-8'))
-  output$instructions_table <- renderTable({
-    instructions_table
-  })
   observeEvent(input$show_instructions, {
+    glossary_table <- gl$cols %>% 
+      arrange(pretty_name) %>% 
+      select(pretty_name, description, is_input, name) %>% 
+      mutate(
+        is_input = factor(ifelse(is_input, lang$yes, lang$no))
+      ) %>% 
+      rename_all(~paste0('var_', .))
     showModal(modalDialog(
       size = 'l',
       easyClose = TRUE,
       title = 'Instrucciones',
       includeHTML('html/instructions.html'),
-      uiOutput(session$ns('instructions_table')),
+      renderDT({ 
+        generate_basic_datatable(glossary_table, gl$cols)
+      }),
       footer = modalButton(lang$ok)
     ))
   }, ignoreInit = TRUE)
