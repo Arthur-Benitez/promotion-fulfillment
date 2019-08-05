@@ -42,15 +42,18 @@ alert_param <- function(good_features, empty_features, timestamp) {
 parse_input <- function(input_file, gl, calendar_day, date_format = '%Y-%m-%d') {
   tryCatch({
     column_info <- gl$cols[gl$cols$is_input, ]
-    nms <- names(read_csv(input_file, n_max = 0))
+    nms <- names(read.xlsx(input_file, sheet = 1, rows = 1))
     if (!all(column_info$name %in% nms)) {
       return(sprintf('Las siguientes columnas faltan en el archivo de entrada: %s', paste(setdiff(column_info$name, nms), collapse = ', ')))
     }
-    x <- read_csv(
-      file = input_file,
-      col_names = TRUE,
-      col_types = generate_cols_spec(column_info$name, column_info$type, date_format = date_format)
+    x <- read.xlsx(
+      xlsxFile = input_file,
+      sheet = 1,
+      colNames = TRUE,
+      detectDates = TRUE,
+      fillMergedCells = TRUE
     ) %>% 
+      as_tibble() %>% 
       .[column_info$name] %>% 
       mutate(
         fcst_or_sales = toupper(fcst_or_sales),
