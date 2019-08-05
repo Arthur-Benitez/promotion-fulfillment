@@ -93,30 +93,34 @@ h6,
 }
 
 /* Botones del header */
-.header-icon, .header-icon:focus {
+.nav .header-icons {
+  display: flex;
+}
+
+.header-icon,
+.header-icon:hover,
+.header-icon:focus {
   color: white;
+  padding: 10px 13px 3px 13px;
+  font-size: 25px;
+}
+
+.header-icon, .header-icon:focus {
   background-color: #1A75CF;
   border-color: #1A75CF;
-  margin: 0 5px;
-  font-size: 25px;
 }
 
 .header-icon:hover {
-  color: white;
   background-color: #003896;
   border-color: #003896;
-  margin: 0 5px;
-  font-size: 25px;
 }
 
 .header-text {
-  margin: 0 5px;
+  width: 50px;
+  padding-top: 6px;
   color: white;
   font-size: 30px;
-}
-
-#header-icons {
-  display: flex;
+  text-align: center;
 }
 
 /* Botones de controles */

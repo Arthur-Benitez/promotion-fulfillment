@@ -15,13 +15,16 @@ header <- dashboardHeader(
     )
   ),
   tags$li(
-    id = 'header-icons',
-    class = 'dropdown',
+    class = 'dropdown header-icons',
     tags$div(
       title = lang$help_title,
       actionButton('help', '', icon = icon('question-circle'), class = 'header-icon')
     ),
-    uiOutput('logout_counter'),
+    tags$div(
+      title = lang$logout_timeout_info,
+      class = 'header-text',
+      logoutUI('logout')
+    ),
     uiOutput('user_level_icon')
   )
 )

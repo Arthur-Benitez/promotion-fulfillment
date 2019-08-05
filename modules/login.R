@@ -516,14 +516,7 @@ logoutUI <- function(id) {
 logoutServer <- function(input, output, session, user_auth, active, is_running) {
   output$ui <- renderUI({
     ns <- session$ns
-    tags$div(
-      id = 'header-icons',
-      tags$div(
-        title = lang$logout_timeout_info,
-        class = 'header-text',
-        textOutput(ns('counter'))
-      )
-    )
+    textOutput(ns('counter'))
   })
   ## Contador de tiempo hasta logout automático
   counter_sec <- 60
