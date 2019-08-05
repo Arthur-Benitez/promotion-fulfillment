@@ -98,6 +98,8 @@ h6,
 }
 
 .header-icon,
+.header-icon:active,
+.header-icon:active:focus,
 .header-icon:hover,
 .header-icon:focus {
   color: white;
@@ -105,7 +107,8 @@ h6,
   font-size: 25px;
 }
 
-.header-icon, .header-icon:focus {
+.header-icon,
+.header-icon:focus {
   background-color: #1A75CF;
   border-color: #1A75CF;
 }
@@ -113,6 +116,13 @@ h6,
 .header-icon:hover {
   background-color: #003896;
   border-color: #003896;
+}
+
+.header-icon:active,
+.header-icon:active:hover,
+.header-icon:active:focus {
+  background-color: #6CABE7;
+  border-color: #6CABE7;
 }
 
 .header-text {
@@ -124,19 +134,34 @@ h6,
 }
 
 /* Botones de controles */
-.input-icon, .input-icon:active, .input-icon:focus, .input-icon:visited {
-  color: #003896;
-  background-color: #00000000;
-  border-color: #00000000;
+.input-icon,
+.input-icon:active,
+.input-icon:focus,
+.input-icon:visited {
   margin: 0;
   padding: 12px 12px 0 12px;
   font-size: 35px;
+}
+
+.input-icon,
+.input-icon:focus,
+.input-icon:visited {
+  color: #003896;
+  background-color: #00000000;
+  border-color: #00000000;
 }
 
 .input-icon:hover {
   color: white;
   background-color: #003896;
   border-color: #003896;
+}
+
+.input-icon:active,
+.input-icon:active:focus {
+  color: white;
+  background-color: #6CABE7;
+  border-color: #6CABE7;
 }
 
 .material-switch > input[type="checkbox"]:checked + label::before {
