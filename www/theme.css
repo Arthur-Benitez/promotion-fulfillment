@@ -16,6 +16,10 @@ h6,
 .h4,
 .h5,
 .h6 {
+  font-family: "Bogle", "Helvetica Neue", "Helvetica", "Arial", sans-serif;
+}
+
+.plotly text {
   font-family: "Bogle", "Helvetica Neue", "Helvetica", "Arial", sans-serif !important;
 }
 
