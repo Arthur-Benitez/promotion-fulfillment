@@ -1367,6 +1367,30 @@ computePromotionsServer <- function(input, output, session, credentials) {
     })
   })
   
+  ###---------------------------------------------------------------------
+  output$alcance_dispersion <- renderUI({
+    ns <- session$ns
+    if (isFALSE(input$dispersion_toggle)) {
+      tagList(
+        tags$div(
+          class = 'inline-inputs',
+          tags$div(
+            class = 'input-margin',
+            uiOutput(ns('output_feature_select_ui'))
+          ),
+          tags$div(
+            class = 'input-margin',
+            sliderInput(ns('feature_histogram_bin_size'), lang$bin_size,
+                        min = 0.05, max = 0.5, value = 0.10, step = 0.05)
+          )
+        ),
+        plotlyOutput(ns('feature_histogram'), height = gl$plotly_height) %>% withSpinner(type = 8),
+        DTOutput(ns('feature_histogram_table'))
+      )
+    }
+  })
+  ###--------------------------------------------------------------------------------
+  
   ## Reset con botón
   observeEvent(input$reset, {
     r$reset_trigger <- r$reset_trigger + 1
@@ -1638,19 +1662,11 @@ computePromotionsUI <- function(id) {
         value = 'output_histogram',
         title = lang$tab_output_histogram,
         tags$div(
-          class = 'inline-inputs',
-          tags$div(
-            class = 'input-margin',
-            uiOutput(ns('output_feature_select_ui'))
-          ),
-          tags$div(
-            class = 'input-margin',
-            sliderInput(ns('feature_histogram_bin_size'), lang$bin_size,
-                        min = 0.05, max = 0.5, value = 0.10, step = 0.05)
-          )
+          class = 'form-group',
+          title = lang$dispersion_graph_title,
+          shinyWidgets::materialSwitch(ns('dispersion_toggle'), tags$b(lang$dispersion_toggle), value = FALSE, status = 'success')
         ),
-        plotlyOutput(ns('feature_histogram'), height = gl$plotly_height) %>% withSpinner(type = 8),
-        DTOutput(ns('feature_histogram_table'))
+        uiOutput(ns('alcance_dispersion'))
       ),
       tabPanel(
         value = 'output_detail',
