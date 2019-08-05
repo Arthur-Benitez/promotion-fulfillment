@@ -1304,11 +1304,11 @@ computePromotionsServer <- function(input, output, session, credentials) {
   })
   histogram_data <- reactive({
     req(final_results_filt())
-    generate_histogram_data(final_results_filt(), bin_size = input$feature_histogram_bin_size)
+    generate_histogram_data(final_results_filt(), bin_size = input$quantity_histogram_bin_size)
   })
   
   ## Histograma de alcance
-  output$feature_histogram <- renderPlotly({
+  quantity_histogram <- reactive({
     shiny::validate(
       need_input_ready() %then%
         need_query_ready() %then%
@@ -1336,7 +1336,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
   })
   
   ## Tabla de alcance (output)
-  output$feature_histogram_table <- renderDT(server = FALSE, {
+  quantity_histogram_table <- reactive({
     needs <- need_input_ready() %then%
       need_query_ready() %then%
       need_histogram_ready()
@@ -1368,18 +1368,16 @@ computePromotionsServer <- function(input, output, session, credentials) {
   })
   
   ###---------------------------------------------------------------------
-  output$alcance_dispersion <- renderUI({
+  observeEvent(input$dispersion_toggle, {
     ns <- session$ns
     if (isFALSE(input$dispersion_toggle)) {
-      tagList(
-        tags$div(
-          class = 'input-margin',
-          sliderInput(ns('feature_histogram_bin_size'), lang$bin_size,
-                      min = 0.05, max = 0.5, value = 0.10, step = 0.05)
-        ),
-        plotlyOutput(ns('feature_histogram'), height = gl$plotly_height) %>% withSpinner(type = 8),
-        DTOutput(ns('feature_histogram_table'))
-      )
+      output$histogram_slider <- renderUI(sliderInput(ns('quantity_histogram_bin_size'), lang$bin_size, min = 0.05, max = 0.5, value = 0.10, step = 0.05))
+      output$feature_histogram <- renderPlotly(quantity_histogram())
+      output$feature_histogram_table <- renderDT(server = FALSE, quantity_histogram_table())
+    } else {
+      output$histogram_slider <- renderUI(sliderInput(ns('dispersion_histogram_bin_size'), lang$bin_size, min = 1, max = 20, value = 3, step = 1))
+      # output$feature_histogram <- renderPlotly(dispersion_histogram())
+      # output$feature_histogram_table <- renderDT(dispersion_histogram_table())
     }
   })
   ###--------------------------------------------------------------------------------
@@ -1660,7 +1658,9 @@ computePromotionsUI <- function(id) {
           shinyWidgets::materialSwitch(ns('dispersion_toggle'), tags$b(lang$dispersion_toggle), value = FALSE, status = 'success'),
           uiOutput(ns('output_feature_select_ui'))
         ),
-        uiOutput(ns('alcance_dispersion'))
+        uiOutput(ns('histogram_slider')),
+        plotlyOutput(ns('feature_histogram'), height = gl$plotly_height) %>% withSpinner(type = 8),
+        DTOutput(ns('feature_histogram_table'))
       ),
       tabPanel(
         value = 'output_detail',
