@@ -179,6 +179,46 @@ table.dataTable thead tr td {
   box-sizing: content-box;
 }
 
+/* Custom modals */
+.modal-lg {
+  width: 80%;
+}
+
+.modal-body button[data-dismiss="modal"],
+.modal-body button[data-dismiss="modal"]:active,
+.modal-body button[data-dismiss="modal"]:focus {
+  position: absolute;
+  top: -25px;
+  right: -25px;
+  border-radius: 60px;
+  font-size: 30px;
+  line-height: 20px;
+  text-align: center;
+  width: 50px;
+  height: 50px;
+  color: white;
+}
+
+.modal-body button[data-dismiss="modal"] {
+  background-color: #1A75CF;
+  border-color: #1A75CF;
+}
+
+.modal-body button[data-dismiss="modal"]:active,
+.modal-body button[data-dismiss="modal"]:active:hover {
+  background-color: #6CABE7;
+  border-color: #6CABE7;
+}
+
+.modal-body button[data-dismiss="modal"]:hover {
+  background-color: #003896;
+  border-color: #003896;
+}
+
+.modal-body button[data-dismiss="modal"]:focus {
+  outline: 0;
+}
+
 /* Loading de gráfica de ventas */
 #compute_promotions-grafica_ventas + .shiny-output-error-validation {
     color: #1a75cf;
