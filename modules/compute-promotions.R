@@ -1653,9 +1653,12 @@ computePromotionsUI <- function(id) {
         value = 'output_histogram',
         title = lang$tab_output_histogram,
         tags$div(
-          class = 'form-group',
-          title = lang$dispersion_graph_title,
-          shinyWidgets::materialSwitch(ns('dispersion_toggle'), tags$b(lang$dispersion_toggle), value = FALSE, status = 'success'),
+          class = 'inline-inputs',
+          tags$div(
+            class = 'form-group',
+            title = lang$dispersion_graph_title,
+            shinyWidgets::materialSwitch(ns('dispersion_toggle'), tags$b(lang$dispersion_toggle), value = FALSE, status = 'success')
+          ),
           uiOutput(ns('output_feature_select_ui'))
         ),
         uiOutput(ns('histogram_slider')),
