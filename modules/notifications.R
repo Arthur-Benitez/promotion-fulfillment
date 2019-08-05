@@ -41,10 +41,10 @@ notificationsServer <- function(input, output, session, credentials) {
   observeEvent(credentials(), {
     req(isTRUE(credentials()$user_auth))
     if (file.exists(deploy_file)) {
-      all_messages <- read_csv(deploy_file)
+      all_messages <- read_csv(deploy_file, col_types = 'cD')
       if (is.data.frame(all_messages) && nrow(all_messages) > 0) {
         if (file.exists(user_file())) {
-          user_messages <- read_csv(user_file())
+          user_messages <- read_csv(user_file(), col_types = 'cT')
           r$unread_messages <- all_messages %>% 
             filter(!(message %in% user_messages$message))
         } else {
