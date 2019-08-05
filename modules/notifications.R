@@ -53,7 +53,7 @@ notificationsServer <- function(input, output, session, credentials) {
         r$message_data <- r$unread_messages %>%
           select(message) %>% 
           mutate(
-            view_time = format(Sys.time(), "%x %H:%M:%S", tz = 'America/Mexico_City')
+            view_time = Sys.time()
           )
         r$trigger <- r$trigger + 1
       }
