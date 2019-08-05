@@ -1424,12 +1424,13 @@ computePromotionsServer <- function(input, output, session, credentials) {
   
   ## Descargar template
   output$download_template <- downloadHandler(
-    filename = 'promo-fulfillment-template.csv',
+    filename = 'promo-fulfillment-template.xlsx',
     content = function(file) {
       x <- generate_sample_input(calendar_day)
-      write_excel_csv(x, file)
+      openxlsx::write.xlsx(x, file = file, sheetName = "pf-template", append = FALSE, row.names = FALSE)
     },
-    contentType = 'text/csv'
+    # Excel content type
+    contentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
   )
   
   ## Mostrar instrucciones
