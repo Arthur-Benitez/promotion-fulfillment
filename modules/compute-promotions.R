@@ -784,7 +784,6 @@ computePromotionsServer <- function(input, output, session, credentials) {
   })
   observe({
     req(r$items_file, input$date_format)
-    req(r$is_open || gl$app_deployment_environment == 'prod')
     flog.info(toJSON(list(
       session_info = msg_cred(credentials()),
       message = 'PARSING INPUT FILE',
@@ -874,7 +873,6 @@ computePromotionsServer <- function(input, output, session, credentials) {
   
   output$input_table <- renderDT({
     shiny::validate(
-      shiny::need(r$is_open || gl$app_deployment_environment == 'prod', lang$need_auth) %then%
         shiny::need(!is.null(r$items_file), lang$need_items_file) %then%
         shiny::need(!is.null(r$items), lang$need_valid_input)
     )
@@ -1086,6 +1084,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
   rr <- reactiveVal(0)
   tik <- reactiveVal(NULL)
   observeEvent(input$run, {
+    req(r$is_open || gl$app_deployment_environment == 'prod')
     if (is.null(tik()) || as.numeric(difftime(Sys.time(), tik(), units = 'secs')) >= 30) {
       tik(Sys.time())
       ns <- session$ns
