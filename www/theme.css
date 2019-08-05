@@ -206,7 +206,7 @@ table.dataTable thead tr td {
 
 /* Custom modals */
 .modal-lg {
-  width: 80%;
+  width: 70%;
 }
 
 .modal-body button[data-dismiss="modal"],
