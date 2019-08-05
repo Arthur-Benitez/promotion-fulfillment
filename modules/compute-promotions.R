@@ -664,7 +664,7 @@ generate_sample_input <- function(calendar_day) {
 computePromotionsServer <- function(input, output, session, credentials) {
   
   ## Calendario para validar inputs
-  calendar_day <- read_tsv('data/calendar-day.tsv')
+  calendar_day <- read_tsv('data/calendar-day.tsv', col_types = 'nD')
   
   ## Valores reactivos para usar en observadores
   r <- reactiveValues(
