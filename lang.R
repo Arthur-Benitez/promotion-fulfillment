@@ -53,6 +53,8 @@ lang <- list(
   success = 'Éxito',
   warning = 'Advertencia',
   done = 'Listo',
+  yes = 'Sí',
+  no = 'No',
   days = 'Días',
   weeks = 'Semanas',
   months = 'Meses',
