@@ -87,6 +87,8 @@ lang <- list(
   tab_output_summary = 'Resultados',
   tab_output_table = 'Cálculos',
   feature = 'Promoción',
+  dispersion_graph_title = 'Mostrar información sobre la dispersión de inventario',
+  dispersion_toggle = 'Dispersión de inventario',
   bin_size = 'Tamaño del rango',
   summary_groups = 'Nivel de detalle',
   running_query = 'Ejecutando consulta...',
