@@ -650,6 +650,7 @@ generate_sample_input <- function(calendar_day) {
     dept_nbr = 95,
     negocio = 'BAE',
     old_nbr = c(9506783, 9506804, 9574857, 9506748, 9574857, 9506748),
+    primary_desc = c('MARUCHAN CAMARON', 'MARUCHAN CMRONCHILE', 'MARUCHAN CMRONHBNER', 'MARUCHAN POLLO', 'MARUCHAN CMRONHBNER', 'MARUCHAN POLLO'),
     min_feature_qty = c(600, 600, 600, 600, 300, 300),
     max_feature_qty = c(3000, 3000, 3000, 3000, 2000, 2000),
     max_ddv = 30,
