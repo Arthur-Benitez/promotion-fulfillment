@@ -1373,16 +1373,9 @@ computePromotionsServer <- function(input, output, session, credentials) {
     if (isFALSE(input$dispersion_toggle)) {
       tagList(
         tags$div(
-          class = 'inline-inputs',
-          tags$div(
-            class = 'input-margin',
-            uiOutput(ns('output_feature_select_ui'))
-          ),
-          tags$div(
-            class = 'input-margin',
-            sliderInput(ns('feature_histogram_bin_size'), lang$bin_size,
-                        min = 0.05, max = 0.5, value = 0.10, step = 0.05)
-          )
+          class = 'input-margin',
+          sliderInput(ns('feature_histogram_bin_size'), lang$bin_size,
+                      min = 0.05, max = 0.5, value = 0.10, step = 0.05)
         ),
         plotlyOutput(ns('feature_histogram'), height = gl$plotly_height) %>% withSpinner(type = 8),
         DTOutput(ns('feature_histogram_table'))
@@ -1664,7 +1657,8 @@ computePromotionsUI <- function(id) {
         tags$div(
           class = 'form-group',
           title = lang$dispersion_graph_title,
-          shinyWidgets::materialSwitch(ns('dispersion_toggle'), tags$b(lang$dispersion_toggle), value = FALSE, status = 'success')
+          shinyWidgets::materialSwitch(ns('dispersion_toggle'), tags$b(lang$dispersion_toggle), value = FALSE, status = 'success'),
+          uiOutput(ns('output_feature_select_ui'))
         ),
         uiOutput(ns('alcance_dispersion'))
       ),
