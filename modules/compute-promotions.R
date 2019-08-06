@@ -532,13 +532,57 @@ summarise_data <- function(data, group = c('feature_name', 'cid')) {
 }
 
 ## Tabla de histograma
-generate_histogram_data <- function(output_filtered_data, bin_size = 0.2) {
+generate_quantity_histogram_data <- function(output_filtered_data, bin_size = 0.2) {
   res <- output_filtered_data %>% 
     summarise_data(group = c('feature_name', 'store_nbr')) %>% 
     ungroup() %>% 
     mutate(
       perc_max_feature_qty = round(total_qty / max_feature_qty, 5)
     )
+  
+  max_bin <- bin_size * ceiling(max(res$perc_max_feature_qty) / bin_size)
+  cut_values <- seq(0, max(max_bin, 0), by = bin_size)
+  cut_labels <- paste(
+    scales::percent(head(cut_values, -1), accuracy = 1),
+    scales::percent(cut_values[-1], accuracy = 1),
+    sep = ' - '
+  )
+  
+  res %>% 
+    mutate(
+      perc_max_feature_qty_bin = cut(perc_max_feature_qty,
+                                     breaks = cut_values,
+                                     labels = cut_labels,
+                                     include.lowest = TRUE),
+      temp_cost = total_cost, # Creadas para evitar name clashes en el summarise
+      temp_qty = total_qty
+    ) %>% 
+    group_by(perc_max_feature_qty_bin) %>% 
+    summarise(
+      n_stores = n(),
+      total_cost = sum(temp_cost),
+      avg_store_cost = mean(temp_cost),
+      total_qty = sum(temp_qty),
+      avg_store_qty = mean(temp_qty),
+      fcst_or_sales = ifelse(any(is.na(avg_dly_sales)), "F", "S"),
+      avg_store_dly_pos_or_fcst = mean(coalesce(avg_dly_sales, avg_dly_forecast)),
+      min_feature_qty = mean(min_feature_qty),
+      max_feature_qty = mean(max_feature_qty),
+      total_ddv = sum(temp_qty) / sum(coalesce(avg_dly_sales, avg_dly_forecast))
+    ) %>% 
+    ungroup() %>% 
+    mutate(
+      p_stores = n_stores / sum(n_stores)
+    ) %>% 
+    right_join(tibble(perc_max_feature_qty_bin = factor(cut_labels, levels = cut_labels)), by = 'perc_max_feature_qty_bin') %>% 
+    replace(., is.na(.), 0) %>% 
+    select(perc_max_feature_qty_bin, n_stores, p_stores, everything())
+}
+
+## Tabla de histograma
+generate_dispersion_histogram_data <- function(output_filtered_data, bins = 5) {
+  res <- output_filtered_data %>% 
+    summarise_data(group = c('feature_name', 'store_nbr'))
   
   max_bin <- bin_size * ceiling(max(res$perc_max_feature_qty) / bin_size)
   cut_values <- seq(0, max(max_bin, 0), by = bin_size)
@@ -1208,7 +1252,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
       shiny::need(is.data.frame(final_result()), lang$need_final_result)
   })
   need_histogram_ready <- reactive({
-    shiny::need(!is.null(histogram_data()), lang$need_final_result) %then%
+    shiny::need(!is.null(quantity_histogram_data()) || !is.null(dispersion_histogram_data()), lang$need_final_result) %then%
       shiny::need(nchar(input$output_feature_select) > 0, lang$need_select_feature)
   })
   
@@ -1302,9 +1346,13 @@ computePromotionsServer <- function(input, output, session, credentials) {
     final_result() %>% 
       filter(feature_name == input$output_feature_select)
   })
-  histogram_data <- reactive({
+  quantity_histogram_data <- reactive({
     req(final_results_filt())
-    generate_histogram_data(final_results_filt(), bin_size = input$quantity_histogram_bin_size)
+    generate_quantity_histogram_data(final_results_filt(), bin_size = input$quantity_histogram_bin_size)
+  })
+  dispersion_histogram_data <- reactive({
+    req(final_results_filt())
+    generate_dispersion_histogram_data(final_results_filt(), bins = input$dispersion_histogram_bin_size)
   })
   
   ## Histograma de alcance
@@ -1316,7 +1364,34 @@ computePromotionsServer <- function(input, output, session, credentials) {
     )
     tryCatch({
       mfq <- unique(final_results_filt()$max_feature_qty)
-      histogram_data() %>% 
+      quantity_histogram_data() %>% 
+        mutate(
+          label_y = n_stores + 0.03 * max(n_stores),
+          label = scales::percent(p_stores),
+          text = sprintf('Tiendas: %s (%s)<br>Costo total: %s<br>Costo promedio: %s<br>Cant. total: %s<br>Cant. promedio: %s<br>%s promedio: %s', scales::comma(n_stores, accuracy = 1), scales::percent(p_stores), scales::comma(total_cost, accuracy = 1), scales::comma(avg_store_cost, accuracy = 1), scales::comma(total_qty, accuracy = 1), scales::comma(avg_store_qty, accuracy = 1), ifelse(first(fcst_or_sales) == 'F', 'Forecast', 'Venta'), scales::comma(avg_store_dly_pos_or_fcst, accuracy = 1))
+        ) %>% 
+        plot_ly(x = ~perc_max_feature_qty_bin, y = ~n_stores, text = ~text, hoverinfo = 'text', type = 'bar', name = NULL) %>% 
+        add_text(y = ~label_y, text = ~label, name = NULL) %>% 
+        plotly::layout(
+          title = 'Alcance a piezas máximas por tienda',
+          xaxis = list(title = sprintf('Alcance (%% de Max. Feature Qty. = %s)', scales::comma(mfq))),
+          yaxis = list(title = 'Número de tiendas', separators = '.,'),
+          showlegend = FALSE
+        )
+    }, error = function(e){
+      NULL
+    })
+  })
+  
+  dispersion_histogram <- reactive({
+    shiny::validate(
+      need_input_ready() %then%
+        need_query_ready() %then%
+        need_histogram_ready()
+    )
+    tryCatch({
+      mfq <- unique(final_results_filt()$max_feature_qty)
+      dispersion_histogram_data() %>% 
         mutate(
           label_y = n_stores + 0.03 * max(n_stores),
           label = scales::percent(p_stores),
@@ -1344,7 +1419,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
        shiny::need(is.null(needs), '')
     )
     tryCatch({
-      histogram_data() %>% 
+      quantity_histogram_data() %>% 
         transform_columns(gl$cols) %>% 
         datatable(
           extensions = c('Buttons', 'FixedColumns', 'KeyTable'),
@@ -1375,7 +1450,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
       output$feature_histogram <- renderPlotly(quantity_histogram())
       output$feature_histogram_table <- renderDT(server = FALSE, quantity_histogram_table())
     } else {
-      output$histogram_slider <- renderUI(sliderInput(ns('dispersion_histogram_bin_size'), lang$bin_size, min = 1, max = 20, value = 3, step = 1))
+      output$histogram_slider <- renderUI(sliderInput(ns('dispersion_histogram_bin_size'), lang$bin_size, min = 1, max = 20, value = 5, step = 1))
       # output$feature_histogram <- renderPlotly(dispersion_histogram())
       # output$feature_histogram_table <- renderDT(dispersion_histogram_table())
     }
