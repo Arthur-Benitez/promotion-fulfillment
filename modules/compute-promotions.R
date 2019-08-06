@@ -3,18 +3,18 @@
 # Funciones ---------------------------------------------------------------
 
 ## Generar espeficicación de columnas para readr
-generate_cols_spec <- function(columns, types, date_format = '%Y-%m-%d') {
-  cs <- cols(.default = col_character())
-  for (i in seq_along(columns)) {
-    cs$cols[[columns[i]]] <- switch(
-      types[i],
-      'integer' = col_integer(),
-      'numeric' = col_double(),
-      'character' = col_character(),
-      'date' = col_date(format = date_format)
-    )
-  }
-  cs
+generate_cols_spec <- function(column_info, columns) {
+  types <- remap_names(column_info = column_info, columns = columns, target_col = 'type')
+  excel_types <- case_when(
+    types %in% c('numeric', 'date', 'datetime') ~ types,
+    types %in% c('character') ~ 'text',
+    TRUE ~ 'text'
+  )
+  tibble(
+    name = columns,
+    type = types,
+    excel_type = excel_types
+  )
 }
 
 ## Decide que alerta mostrar
@@ -42,19 +42,22 @@ alert_param <- function(good_features, empty_features, timestamp) {
 parse_input <- function(input_file, gl, calendar_day, date_format = '%Y-%m-%d') {
   tryCatch({
     column_info <- gl$cols[gl$cols$is_input, ]
-    nms <- names(read.xlsx(input_file, sheet = 1, rows = 1))
+    nms <- names(readxl::read_excel(input_file, sheet = 1, n_max = 0))
     if (!all(column_info$name %in% nms)) {
       return(sprintf('Las siguientes columnas faltan en el archivo de entrada: %s', paste(setdiff(column_info$name, nms), collapse = ', ')))
     }
-    x <- read.xlsx(
-      xlsxFile = input_file,
+    col_types <- generate_cols_spec(column_info, nms)
+    x <- read_excel(
+      path = input_file,
       sheet = 1,
-      colNames = TRUE,
-      detectDates = TRUE,
-      fillMergedCells = TRUE
-    ) %>% 
-      as_tibble() %>% 
+      col_names = TRUE,
+      col_types = col_types$excel_type
+      ) %>% 
       .[column_info$name] %>% 
+      mutate_at(
+        col_types$name[col_types$type %in% c('date')],
+        as.Date
+      ) %>% 
       mutate(
         fcst_or_sales = toupper(fcst_or_sales),
         display_key = paste(dept_nbr, old_nbr, negocio, sep = '.'),
