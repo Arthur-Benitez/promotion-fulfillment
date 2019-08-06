@@ -1445,10 +1445,31 @@ computePromotionsServer <- function(input, output, session, credentials) {
       size = 'l',
       easyClose = TRUE,
       title = NULL,
-      includeHTML('html/instructions.html'),
-      renderDT({ 
-        generate_basic_datatable(glossary_table, gl$cols)
-      }),
+      tags$div(
+        class = 'modal-tabbox',
+        tags$h1('Instrucciones'),
+        tabBox(
+          width = 12,
+          tabPanel(
+            title = 'Uso básico',
+            includeHTML('html/instructions-basic-usage.html')
+          ),
+          tabPanel(
+            title = lang$compute_promotions_computation_parameters,
+            includeHTML('html/instructions-computation.html')
+          ),
+          tabPanel(
+            title = lang$compute_promotions_impact_parameters,
+            includeHTML('html/instructions-impact.html')
+          ),
+          tabPanel(
+            title = 'Glosario de columnas',
+            renderDT({ 
+              generate_basic_datatable(glossary_table, gl$cols)
+            })
+          )
+        )
+      ),
       modalButton(NULL, icon = icon('times')),
       footer = NULL
     ))
