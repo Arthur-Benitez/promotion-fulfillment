@@ -1433,6 +1433,11 @@ computePromotionsServer <- function(input, output, session, credentials) {
   
   ## Mostrar instrucciones
   observeEvent(input$show_instructions, {
+    flog.info(toJSON(list(
+      session_info = msg_cred(credentials()),
+      message = 'SHOWING INSTRUCTIONS',
+      details = list()
+    )))
     glossary_table <- gl$cols %>% 
       arrange(pretty_name) %>% 
       select(pretty_name, description, is_input, is_constant_by_feature, name) %>% 
