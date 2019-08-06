@@ -1435,9 +1435,10 @@ computePromotionsServer <- function(input, output, session, credentials) {
   observeEvent(input$show_instructions, {
     glossary_table <- gl$cols %>% 
       arrange(pretty_name) %>% 
-      select(pretty_name, description, is_input, name) %>% 
-      mutate(
-        is_input = factor(ifelse(is_input, lang$yes, lang$no))
+      select(pretty_name, description, is_input, is_constant_by_feature, name) %>% 
+      mutate_at(
+        vars(is_input, is_constant_by_feature),
+        ~fct_explicit_na(factor(ifelse(., lang$yes, lang$no)), '-')
       ) %>% 
       rename_all(~paste0('var_', .))
     showModal(modalDialog(
