@@ -1,27 +1,43 @@
 <!DOCTYPE html>
 
 <h1>Instrucciones</h1>
+<h2>Uso básico</h2>
 <p>La herramienta calcula la distribución de producto en las diferentes tiendas para una promoción dada. Sólo tienes que seguir estos pasos:</p>
 <ol>
   <li>Descarga el formato con el botón de la izquierda.</li>
   <li>Llena los campos requeridos del formato sin cambiar los nombres ni el orden de las columnas.</li>
   <ul>
     <li>Asegúrate de que el archivo se guarda en formato CSV.</li>
-    <li>Puedes calcular varias promociones a la vez, pero verifica que los campos marcados abajo sean iguales por cada promoción.</li>
+    <li>Puedes calcular varias promociones a la vez, pero verifica que los campos marcados abajo con un "No" en "¿Puede cambiar dentro de una misma promo?" sean iguales dentro de una misma promoción.</li>
   </ul>
   <li>Carga el archivo a la herramienta y da click en "Correr".</li>
   <li>Descarga el HEADER y el DETAIL para cargar la promoción.</li>
 </ol>
-<p>Al usar los menús de selección en la sección de "Impacto", por favor ten en cuenta lo que implica cada uno:</p>
+<p><i class="fas fa-info-circle text-icon"></i> Puedes poner el mouse sobre un control o columna para obtener más información.</p>
+<h2>Exhibiciones</h2>
+<p>Las opciones de esta sección controlan reglas adicionales para el cálculo de las exhibiciones.</p>
 <ul>
-  <li>SSPres comparativo</li>
+  <li><b>Lógica mínimo:</b> Determina qué enviarle a tiendas cuyos días de venta corresponden a menos mercancía que el mínimo de exhibición.</li>
   <ul>
-    <li>No comparar: Asume que no habrá ninguna estrategia de SSPres cargada durante el periodo efectivo de la nueva estrategia, por lo que se omite el SSPres actual en la competencia del SS Ganador. Si eliges esta opción, es indistinto lo que elijas en la opción de "Acción SSPres".</li>
-    <li>Comparar vs SSPres actual: El impacto de elegir esta opción depende de lo que sea seleccionado en "Acción SSPres", dicho impacto se enuncia a continuación para cada caso.</li>
-  </ul>
-  <li>Acción SSPres</li>
-  <ul>
-    <li>Sustituir: Asume que se está sustituyendo la estrategia cargada actualmente con la calculada por Promo Fulfillment.</li>
-    <li>Sumar: Asume que existe una estrategia de SSPres cargada y que seguirá vigente durante el periodo efectivo de la nueva estrategia, por lo que suma el SSPres Actual y el nuevo SSPres.</li>
+    <li><em>No hacer nada:</em> Ignorar el mínimo de exhibición. Hace que siempre se cumpla el límite de días de venta, independientemente de si equivale a menos piezas que el mínimo de exhibición.</li>
+    <li><em>Conservadora:</em> Si los días de venta de una exhibición en una tienda equivalen a menos piezas que el mínimo de exhibición, entonces <em>no enviarle nada a esa tienda</em>.</li>
+    <li><em>Agresiva:</em> Si los días de venta de una exhibición en una tienda equivalen a menos piezas que el mínimo de exhibición, entonces <em>enviarle el mínimo de exhibición</em>. Nota que esto puede hacer que para algunas tiendas no se cumpla el límite de días de venta.</li>
   </ul>
 </ul>
+<h2>Cálculo de impacto</h2>
+<p>Las opciones de la sección "Impacto" controlan cómo se estima el impacto de cargar las estrategias calculadas por la herramienta.</p>
+<p><i class="fas fa-info-circle text-icon"></i> Ten en cuenta que <em>únicamente se aproxima el impacto en el safety</em>, pero el impacto total en el inventario puede ser completamente diferente (ej. debido a cambios en el forecast, en las ventas, etc).</p>
+<ul>
+  <li><b>SSPres comparativo:</b> Controla el safety "base" contra el cuál se comparará (i.e. antes de cargar la nueva estrategia).</li>
+  <ul>
+    <li><em>Comparar vs SSPres futuro:</em> Comparar contra el SSPres promedio que está cargado en la ventana StartDate - EndDate.</li>
+    <li><em>Comparar vs SSPres actual:</em> Comparar contra el SSPres cargado y efectivo <em>al día de hoy</em>. Si hay algo cargado cuya fecha de efectividad está en el futuro, no se verá reflejado en la herramienta.</li>
+    <li><em>No comparar:</em> Asume que no habrá ninguna estrategia de SSPres cargada durante el periodo efectivo de la nueva estrategia, por lo que se omite el SSPres actual en la competencia del SS Ganador. Si eliges esta opción, es indistinto lo que elijas en la opción de "Acción SSPres".</li>
+  </ul>
+  <li><b>Acción SSPres:</b> Controla cómo se agrega la nueva estrategia al sistema.</li>
+  <ul>
+    <li><em>Sumar:</em> Calcula el impacto sumando la estrategia calculada por Promo Fulfillment al SSPres seleccionado en la opción "SSPres comparativo". Sirve para simular una estrategia con la bandera de additive en TRUE.</li>
+    <li><em>Sustituir:</em> Calcula el impacto sustituyendo el SSPres seleccionado en "SSPres comparativo" con el calculado por Promo Fulfillment. Esto simula que la nueva estrategia será más prioritaria que lo que está cargado actualmente y que las opciones de additive están en FALSE. Nota: La herramienta siempre saca las estrategias con additive en TRUE, así que para que realmente ocurra una sustitución, deberás quitar las estrategias obsoletas de GRS manualmente.</li>
+  </ul>
+</ul>
+<h2>Glosario de columnas</h2>

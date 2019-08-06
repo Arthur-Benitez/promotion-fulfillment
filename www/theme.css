@@ -244,6 +244,12 @@ table.dataTable thead tr td {
   outline: 0;
 }
 
+/* Icons */
+.text-icon {
+  color: #003896;
+}
+
+
 /* Loading de gráfica de ventas */
 #compute_promotions-grafica_ventas + .shiny-output-error-validation {
     color: #1a75cf;
