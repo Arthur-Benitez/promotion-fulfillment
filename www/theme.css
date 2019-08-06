@@ -244,6 +244,15 @@ table.dataTable thead tr td {
   outline: 0;
 }
 
+.modal-tabbox {
+  overflow: auto;
+}
+
+.modal-tabbox p,
+.modal-tabbox li {
+  font-size: 18px;
+}
+
 /* Icons */
 .text-icon {
   color: #003896;
