@@ -119,6 +119,7 @@ usageStatsServer <- function(input, output, session, credentials, dev_connection
         stringsAsFactors = FALSE
       ) %>% 
         as_tibble() %>%
+        set_names(tolower(names(.))) %>% 
         mutate_at(vars(vp, name), str_to_title) %>% 
         mutate_at('user', tolower) %>% 
         distinct() %>% # por si ya no son únicos al cambiar las mayúsculas
