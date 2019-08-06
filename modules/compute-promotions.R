@@ -524,7 +524,7 @@ summarise_data <- function(data, group = c('feature_name', 'cid')) {
       total_vnpk = sum(vnpk_fin, na.rm = TRUE),
       total_impact_vnpk = sum(impact_vnpk, na.rm = TRUE)
     ) %>% 
-    ungroup() %>% 
+    group_by(!!!syms(grp)) %>% # Agrupar para guardar la info de los grupos afuera y fijar las columnas correctamente
     arrange(!!!syms(grp)) %>% 
     select(!!!syms(grp), !!!syms(val_vars))
   
@@ -1265,7 +1265,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
           extensions = c('FixedColumns', 'KeyTable'),
           filter = 'top',
           options = list(
-            fixedColumns = list(leftColumns = 5),
+            fixedColumns = list(leftColumns = length(group_vars(.)) + 1),
             keys = TRUE,
             scrollX = TRUE,
             scrollY = '500px',
