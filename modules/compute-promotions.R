@@ -484,19 +484,19 @@ summarise_data <- function(data, group = c('feature_name', 'cid')) {
   ## Checks
   stopifnot(is.null(group) || all(group %in% c('feature_name', 'store_nbr', 'cid', 'dc_nbr')))
   ## Cambios a combinaciones específicas
-  if ('cid' %in% group) {
-    group <- c(group, 'old_nbr', 'primary_desc')
-  }
-  if ('dc_nbr' %in% group) {
-    group <- c(group, 'dc_name')
-  }
+  extra_groups <- list(
+    'cid' = c('old_nbr', 'primary_desc'),
+    'dc_nbr' = c('dc_name'),
+    'store_nbr' = c('store_name')
+  )
+  group <- c(group, unlist(extra_groups[intersect(names(extra_groups), group)]))
   if (is.null(group)) {
     group <- 'feature_name'
     data <- data %>% 
       mutate(feature_name = 'Total')
   }
   ## Grupos de tabla de salida
-  group_order <- c('feature_name', 'store_nbr', 'cid', 'old_nbr', 'primary_desc', 'dc_nbr', 'dc_name')
+  group_order <- c('feature_name', 'store_nbr', 'store_name', 'cid', 'old_nbr', 'primary_desc', 'dc_nbr', 'dc_name')
   grp <- group_order[group_order %in% group]
   ## Variables numéricas de tabla de salida
   vv <- c('avg_dly_sales', 'avg_dly_forecast', 'min_feature_qty', 'max_feature_qty', 'total_cost', 'total_impact_cost', 'total_qty', 'total_impact_qty', 'total_ddv', 'total_impact_ddv', 'total_vnpk', 'total_impact_vnpk')
