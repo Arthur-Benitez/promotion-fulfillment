@@ -40,6 +40,9 @@ alert_param <- function(good_features, empty_features, timestamp) {
 
 ## Leer entrada
 parse_input <- function(input_file, gl, calendar_day, date_format = '%Y-%m-%d') {
+  if (tools::file_ext(input_file) != 'xlsx') {
+    return('¡Cuidado! De ahora en adelante, el template de carga debe estar en formato de Excel (.xlsx). Te sugerimos que descarges el formato ejemplo de nuevo.')
+  }
   tryCatch({
     column_info <- gl$cols[gl$cols$is_input, ]
     nms <- names(readxl::read_excel(input_file, sheet = 1, n_max = 0))
