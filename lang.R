@@ -90,6 +90,7 @@ lang <- list(
   dispersion_graph_title = 'Mostrar información sobre la dispersión de inventario',
   dispersion_toggle = 'Dispersión de inventario',
   bin_size = 'Tamaño del rango',
+  bin_number = 'Número de barras',
   summary_groups = 'Nivel de detalle',
   running_query = 'Ejecutando consulta...',
   running_computations = 'Realizando cálculos...',
