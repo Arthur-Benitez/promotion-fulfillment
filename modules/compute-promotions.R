@@ -1444,6 +1444,37 @@ computePromotionsServer <- function(input, output, session, credentials) {
     })
   })
   
+  dispersion_histogram_table <- reactive({
+    needs <- need_input_ready() %then%
+      need_query_ready() %then%
+      need_histogram_ready()
+    shiny::validate(
+      shiny::need(is.null(needs), '')
+    )
+    tryCatch({
+      dispersion_histogram_data() %>% 
+        transform_columns(gl$cols) %>% 
+        datatable(
+          extensions = c('Buttons', 'FixedColumns', 'KeyTable'),
+          filter = 'none',
+          options = list(
+            dom = 'Bfrtip',
+            buttons = c('copy', 'csv', 'excel'),
+            fixedColumns = list(leftColumns = 2),
+            keys = TRUE,
+            scrollX = TRUE,
+            scrollY = '200px',
+            pageLength = 20
+          ),
+          colnames = remap_names(gl$cols, names(.), 'pretty_name'),
+          callback = build_callback(remap_names(gl$cols, names(.), 'description'))
+        ) %>%
+        format_columns(gl$cols)
+    }, error = function(e){
+      NULL
+    })
+  })
+  
   ###---------------------------------------------------------------------
   observeEvent(input$dispersion_toggle, {
     ns <- session$ns
@@ -1454,7 +1485,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
     } else {
       output$histogram_slider <- renderUI(sliderInput(ns('dispersion_histogram_bin_size'), lang$bin_number, min = 1, max = 20, value = 5, step = 1))
       output$feature_histogram <- renderPlotly(dispersion_histogram())
-      # output$feature_histogram_table <- renderDT(dispersion_histogram_table())
+      output$feature_histogram_table <- renderDT(dispersion_histogram_table())
     }
   })
   ###--------------------------------------------------------------------------------
