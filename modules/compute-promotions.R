@@ -585,24 +585,24 @@ generate_dispersion_histogram_data <- function(output_filtered_data, bins = 5) {
   res <- output_filtered_data %>% 
     summarise_data(group = c('feature_name', 'store_nbr'))
   
-  max_bin <- bin_size * ceiling(max(res$perc_max_feature_qty) / bin_size)
-  cut_values <- seq(0, max(max_bin, 0), by = bin_size)
+  max_ddv <- mean(res$max_ddv)
+  cut_values <- round(c(seq(0, 2 * max_ddv, length.out = bins), Inf))
   cut_labels <- paste(
-    scales::percent(head(cut_values, -1), accuracy = 1),
-    scales::percent(cut_values[-1], accuracy = 1),
+    head(cut_values, -1),
+    cut_values[-1],
     sep = ' - '
   )
   
   res %>% 
     mutate(
-      perc_max_feature_qty_bin = cut(perc_max_feature_qty,
-                                     breaks = cut_values,
-                                     labels = cut_labels,
-                                     include.lowest = TRUE),
+      ddv_bin = cut(total_ddv,
+                    breaks = cut_values,
+                    labels = cut_labels,
+                    include.lowest = TRUE),
       temp_cost = total_cost, # Creadas para evitar name clashes en el summarise
       temp_qty = total_qty
     ) %>% 
-    group_by(perc_max_feature_qty_bin) %>% 
+    group_by(ddv_bin) %>% 
     summarise(
       n_stores = n(),
       total_cost = sum(temp_cost),
@@ -612,16 +612,15 @@ generate_dispersion_histogram_data <- function(output_filtered_data, bins = 5) {
       fcst_or_sales = ifelse(any(is.na(avg_dly_sales)), "F", "S"),
       avg_store_dly_pos_or_fcst = mean(coalesce(avg_dly_sales, avg_dly_forecast)),
       min_feature_qty = mean(min_feature_qty),
-      max_feature_qty = mean(max_feature_qty),
-      total_ddv = sum(temp_qty) / sum(coalesce(avg_dly_sales, avg_dly_forecast))
+      max_feature_qty = mean(max_feature_qty)
     ) %>% 
     ungroup() %>% 
     mutate(
       p_stores = n_stores / sum(n_stores)
     ) %>% 
-    right_join(tibble(perc_max_feature_qty_bin = factor(cut_labels, levels = cut_labels)), by = 'perc_max_feature_qty_bin') %>% 
+    right_join(tibble(ddv_bin = factor(cut_labels, levels = cut_labels)), by = 'ddv_bin') %>% 
     replace(., is.na(.), 0) %>% 
-    select(perc_max_feature_qty_bin, n_stores, p_stores, everything())
+    select(ddv_bin, n_stores, p_stores, everything())
 }
 
 ## Generar el nombre de la promo para GRS
@@ -1398,11 +1397,11 @@ computePromotionsServer <- function(input, output, session, credentials) {
           label = scales::percent(p_stores),
           text = sprintf('Tiendas: %s (%s)<br>Costo total: %s<br>Costo promedio: %s<br>Cant. total: %s<br>Cant. promedio: %s<br>%s promedio: %s', scales::comma(n_stores, accuracy = 1), scales::percent(p_stores), scales::comma(total_cost, accuracy = 1), scales::comma(avg_store_cost, accuracy = 1), scales::comma(total_qty, accuracy = 1), scales::comma(avg_store_qty, accuracy = 1), ifelse(first(fcst_or_sales) == 'F', 'Forecast', 'Venta'), scales::comma(avg_store_dly_pos_or_fcst, accuracy = 1))
         ) %>% 
-        plot_ly(x = ~perc_max_feature_qty_bin, y = ~n_stores, text = ~text, hoverinfo = 'text', type = 'bar', name = NULL) %>% 
+        plot_ly(x = ~ddv_bin, y = ~n_stores, text = ~text, hoverinfo = 'text', type = 'bar', name = NULL) %>% 
         add_text(y = ~label_y, text = ~label, name = NULL) %>% 
         plotly::layout(
-          title = 'Alcance a piezas máximas por tienda',
-          xaxis = list(title = sprintf('Alcance (%% de Max. Feature Qty. = %s)', scales::comma(mfq))),
+          title = 'Dispersión de inventario por DDV',
+          xaxis = list(title = 'Rango de días de venta por tienda'),
           yaxis = list(title = 'Número de tiendas', separators = '.,'),
           showlegend = FALSE
         )
@@ -1452,7 +1451,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
       output$feature_histogram_table <- renderDT(server = FALSE, quantity_histogram_table())
     } else {
       output$histogram_slider <- renderUI(sliderInput(ns('dispersion_histogram_bin_size'), lang$bin_size, min = 1, max = 20, value = 5, step = 1))
-      # output$feature_histogram <- renderPlotly(dispersion_histogram())
+      output$feature_histogram <- renderPlotly(dispersion_histogram())
       # output$feature_histogram_table <- renderDT(dispersion_histogram_table())
     }
   })
