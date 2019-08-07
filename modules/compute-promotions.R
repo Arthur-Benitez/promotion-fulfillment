@@ -3,18 +3,18 @@
 # Funciones ---------------------------------------------------------------
 
 ## Generar espeficicación de columnas para readr
-generate_cols_spec <- function(columns, types, date_format = '%Y-%m-%d') {
-  cs <- cols(.default = col_character())
-  for (i in seq_along(columns)) {
-    cs$cols[[columns[i]]] <- switch(
-      types[i],
-      'integer' = col_integer(),
-      'numeric' = col_double(),
-      'character' = col_character(),
-      'date' = col_date(format = date_format)
-    )
-  }
-  cs
+generate_cols_spec <- function(column_info, columns) {
+  types <- remap_names(column_info = column_info, columns = columns, target_col = 'type')
+  excel_types <- case_when(
+    types %in% c('numeric', 'date', 'datetime') ~ types,
+    types %in% c('character') ~ 'text',
+    TRUE ~ 'text'
+  )
+  tibble(
+    name = columns,
+    type = types,
+    excel_type = excel_types
+  )
 }
 
 ## Decide que alerta mostrar
@@ -40,18 +40,27 @@ alert_param <- function(good_features, empty_features, timestamp) {
 
 ## Leer entrada
 parse_input <- function(input_file, gl, calendar_day, date_format = '%Y-%m-%d') {
+  if (tools::file_ext(input_file) != 'xlsx') {
+    return('¡Cuidado! De ahora en adelante, el template de carga debe estar en formato de Excel (.xlsx). Te sugerimos que descarges el formato ejemplo de nuevo.')
+  }
   tryCatch({
     column_info <- gl$cols[gl$cols$is_input, ]
-    nms <- names(read_csv(input_file, n_max = 0))
+    nms <- names(readxl::read_excel(input_file, sheet = 1, n_max = 0))
     if (!all(column_info$name %in% nms)) {
       return(sprintf('Las siguientes columnas faltan en el archivo de entrada: %s', paste(setdiff(column_info$name, nms), collapse = ', ')))
     }
-    x <- read_csv(
-      file = input_file,
+    col_types <- generate_cols_spec(column_info, nms)
+    x <- read_excel(
+      path = input_file,
+      sheet = 1,
       col_names = TRUE,
-      col_types = generate_cols_spec(column_info$name, column_info$type, date_format = date_format)
-    ) %>% 
+      col_types = col_types$excel_type
+      ) %>% 
       .[column_info$name] %>% 
+      mutate_at(
+        col_types$name[col_types$type %in% c('date')],
+        as.Date
+      ) %>% 
       mutate(
         fcst_or_sales = toupper(fcst_or_sales),
         display_key = paste(dept_nbr, old_nbr, negocio, sep = '.'),
@@ -89,7 +98,7 @@ validate_input <- function(data, gl, calendar_day) {
       cond <- tribble(
         ~message, ~passed,
         ## Checar que no haya valores faltantes
-        'No puede haber valores faltantes (blanks). Esto se debe comúnmente a que la fecha está en un formato incorrecto',
+        'No puede haber valores faltantes (blanks). Esto se debe comúnmente a que la fecha está almacenada como texto en Excel. Asegúrate de que Excel reconozca las fechas.',
         !anyNA(data),
         ## Checar que feature_name sea de longitid <= 22 caracteres (para que en total sean <= 40 para GRS)
         'feature_name no puede tener más de 22 caracteres',
@@ -647,6 +656,7 @@ generate_sample_input <- function(calendar_day) {
     dept_nbr = 95,
     negocio = 'BAE',
     old_nbr = c(9506783, 9506804, 9574857, 9506748, 9574857, 9506748),
+    primary_desc_temp = c('MARUCHAN CAMARON', 'MARUCHAN CMRONCHILE', 'MARUCHAN CMRONHBNER', 'MARUCHAN POLLO', 'MARUCHAN CMRONHBNER', 'MARUCHAN POLLO'),
     min_feature_qty = c(600, 600, 600, 600, 300, 300),
     max_feature_qty = c(3000, 3000, 3000, 3000, 2000, 2000),
     max_ddv = 30,
@@ -1423,12 +1433,13 @@ computePromotionsServer <- function(input, output, session, credentials) {
   
   ## Descargar template
   output$download_template <- downloadHandler(
-    filename = 'promo-fulfillment-template.csv',
+    filename = 'promo-fulfillment-template.xlsx',
     content = function(file) {
       x <- generate_sample_input(calendar_day)
-      write_excel_csv(x, file)
+      openxlsx::write.xlsx(x, file = file, sheetName = "pf-template", append = FALSE, row.names = FALSE)
     },
-    contentType = 'text/csv'
+    # Excel content type
+    contentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
   )
   
   ## Mostrar instrucciones
@@ -1572,9 +1583,6 @@ computePromotionsUI <- function(id) {
         lang$compute_promotions_inputs,
         title = lang$compute_promotions_inputs_title
       ),
-      selectInput(ns('date_format'), lang$date_format, c('yyyy-mm-dd' = '%Y-%m-%d',
-                                                         'dd/mm/yyyy' = '%d/%m/%Y',
-                                                         'mm/dd/yyyy' = '%m/%d/%Y')),
       uiOutput(ns('items_ui')),
       tags$div(
         class = 'form-group',
@@ -1662,7 +1670,10 @@ computePromotionsUI <- function(id) {
           tags$div(
             class = 'inline-button-wrapper',
             uiOutput(ns('download_detail_ui'))
-          )
+          ),
+          selectInput(ns('date_format'), lang$date_format, c('yyyy-mm-dd' = '%Y-%m-%d',
+                                                             'dd/mm/yyyy' = '%d/%m/%Y',
+                                                             'mm/dd/yyyy' = '%m/%d/%Y'))
         ),
         DTOutput(ns('summary_table')) %>% withSpinner(type = 8)
       ),

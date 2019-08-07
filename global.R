@@ -17,6 +17,7 @@ library(shinyalert)
 library(RODBC)
 library(future)
 library(promises)
+library(openxlsx)
 
 ## Procesamiento paralelo de future
 plan(multiprocess)

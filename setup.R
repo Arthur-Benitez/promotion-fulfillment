@@ -14,7 +14,8 @@ pkgs <- c(
   'futile.logger',
   'zip',
   'future',
-  'promises'
+  'promises',
+  'openxlsx'
 )
 
 sapply(pkgs, function(pk){
