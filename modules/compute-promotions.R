@@ -591,7 +591,9 @@ generate_dispersion_histogram_data <- function(output_filtered_data, bins = 5) {
     head(cut_values, -1),
     cut_values[-1],
     sep = ' - '
-  )
+  ) %>% 
+    replace(list = length(.), sprintf('+%s', 2 * max_ddv)) %>% 
+    paste('DDV')
   
   res %>% 
     mutate(
