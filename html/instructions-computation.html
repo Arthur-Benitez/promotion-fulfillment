@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<h2>Exhibiciones</h2>
+<p>Las opciones de esta sección controlan reglas adicionales para el cálculo de las exhibiciones.</p>
+<ul>
+  <li><b>Lógica mínimo:</b> Determina qué enviarle a tiendas cuyos días de venta corresponden a menos mercancía que el mínimo de exhibición.</li>
+  <ul>
+    <li><em>No hacer nada:</em> Ignorar el mínimo de exhibición. Hace que siempre se cumpla el límite de días de venta, independientemente de si equivale a menos piezas que el mínimo de exhibición.</li>
+    <li><em>Conservadora:</em> Si los días de venta de una exhibición en una tienda equivalen a menos piezas que el mínimo de exhibición, entonces <em>no enviarle nada a esa tienda</em>.</li>
+    <li><em>Agresiva:</em> Si los días de venta de una exhibición en una tienda equivalen a menos piezas que el mínimo de exhibición, entonces <em>enviarle el mínimo de exhibición</em>. Nota que esto puede hacer que para algunas tiendas no se cumpla el límite de días de venta.</li>
+  </ul>
+</ul>
+<p><i class="fas fa-info-circle text-icon"></i> Utilizar la lógica agresiva del mínimo puede ocasionar que en algunas tiendas no se cumpla el límite de días de venta. Te sugerimos ver las gráficas en la pestaña de Alcance antes de cargar la estrategia.</p>

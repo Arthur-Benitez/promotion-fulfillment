@@ -5,12 +5,6 @@ require(jsonlite)
 require(plotly)
 require(viridis)
 
-remap_text <- c(
-  'user' = 'active_users',
-  'session' = 'unique_sessions',
-  'n_actions' = 'n_actions',
-  'n_sessions' = 'unique_sessions'
-)
 
 generate_empty_plot <- function(title = 'Error', text = ':(') {
   plot_ly() %>% 
@@ -125,6 +119,7 @@ usageStatsServer <- function(input, output, session, credentials, dev_connection
         stringsAsFactors = FALSE
       ) %>% 
         as_tibble() %>%
+        set_names(tolower(names(.))) %>% 
         mutate_at(vars(vp, name), str_to_title) %>% 
         mutate_at('user', tolower) %>% 
         distinct() %>% # por si ya no son únicos al cambiar las mayúsculas
@@ -252,11 +247,13 @@ usageStatsServer <- function(input, output, session, credentials, dev_connection
         ) %>% 
         group_by(x, color) %>% 
         summarise(
-          n_unique = n_distinct(!!rlang::sym(input$graph_daily_kpi))
+          n_users = n_distinct(user),
+          n_sessions = n_distinct(session)
         ) %>% 
         ungroup() %>% 
         mutate(
-          text = sprintf('%s: %s', get_pretty_names(remap_text[input$graph_daily_kpi]), scales::comma(n_unique))
+          y = !!sym(input$graph_daily_kpi),
+          text = sprintf('%s: %s', get_pretty_names(input$graph_daily_kpi), scales::comma(!!sym(input$graph_daily_kpi)))
         )
       
       ## Datos para descargar
@@ -264,17 +261,18 @@ usageStatsServer <- function(input, output, session, credentials, dev_connection
         transmute(
           date = x,
           !!sym(input$graph_daily_split) := color,
-          !!sym(paste0('n_unique_', input$graph_daily_kpi, 's')) := n_unique
+          n_users,
+          n_sessions
         ) %>% 
         arrange(desc(date), !!sym(input$graph_daily_split))
 
       ## Gráfica
       p <- x %>% 
-        plot_ly(x = ~x, y = ~n_unique) %>% 
+        plot_ly(x = ~x, y = ~y) %>% 
         add_bars(color = ~color, text = ~text, colors = pal) %>%
         layout(
           barmode = 'stack',
-          title = get_pretty_names(remap_text[input$graph_daily_kpi]),
+          title = get_pretty_names(input$graph_daily_kpi),
           xaxis = list(
             title = ''
           ),
@@ -335,9 +333,9 @@ usageStatsServer <- function(input, output, session, credentials, dev_connection
           text = sprintf(
             '%s\n%s: %s\n%s: %s\n%s: %s\n%s: %s', 
             !!colorvar,
-            lang$active_users, scales::comma(n_users),
+            lang$n_users, scales::comma(n_users),
             lang$p_active_users, scales::percent(p_active_users),
-            lang$unique_sessions, scales::comma(n_sessions),
+            lang$n_sessions, scales::comma(n_sessions),
             lang$n_actions, scales::comma(n_actions)
           )
         )
@@ -368,7 +366,7 @@ usageStatsServer <- function(input, output, session, credentials, dev_connection
         add_bars(color = ~color, text = ~text, colors = pal) %>%
         layout(
           barmode = 'stack',
-          title = get_pretty_names(remap_text[input$graph_top_kpi]),
+          title = get_pretty_names(input$graph_top_kpi),
           xaxis = list(
             title = ''
           ),
@@ -579,8 +577,8 @@ usageStatsUI <- function(id) {
                 choices = c('all', 'role', 'vp') %>% 
                   set_names(lang$all, lang$role, lang$vp)
               ),
-              selectInput(ns('graph_daily_kpi'), lang$kpi, c('user', 'session') %>%
-                            set_names(get_pretty_names(remap_text[.]))),
+              selectInput(ns('graph_daily_kpi'), lang$kpi, c('n_users', 'n_sessions') %>%
+                            set_names(get_pretty_names(.))),
               downloadButton(ns('download_daily'), lang$download)
             ),
             column(
@@ -611,7 +609,7 @@ usageStatsUI <- function(id) {
                 ns('graph_top_kpi'),
                 label = lang$kpi,
                 choices = c('n_sessions', 'n_actions', 'n_users', 'p_active_users') %>% 
-                  set_names(c(lang$unique_sessions, lang$n_actions, lang$active_users, lang$p_active_users))
+                  set_names(c(lang$n_sessions, lang$n_actions, lang$n_users, lang$p_active_users))
               ),
               selectInput(
                 ns('graph_top_clearance'),

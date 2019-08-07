@@ -53,6 +53,8 @@ lang <- list(
   success = 'Éxito',
   warning = 'Advertencia',
   done = 'Listo',
+  yes = 'Sí',
+  no = 'No',
   days = 'Días',
   weeks = 'Semanas',
   months = 'Meses',
@@ -108,7 +110,7 @@ lang <- list(
   
   impact_toggle = 'Acción SSPres',
   impact_toggle_title = '¿Qué hacer con el SSPres cargado?',
-  impact_toggle_names = c('Sustituir', 'Sumar'),
+  impact_toggle_names = c('Sumar', 'Sustituir'),
   
   ## Validation
   need_items_file = 'Cargar un archivo de items para comenzar.',
@@ -137,10 +139,10 @@ lang <- list(
   graph_top_split = 'Separar (color)',
   graph_top_x = 'Entidad (eje x)',
   graph_top_nbar = 'Top N',
-  active_users = 'Usuarios activos',
-  p_active_users = 'Usuarios activos (% de VP)',
-  unique_sessions = 'Sesiones únicas',
-  n_actions = 'Acciones totales',
+  n_users = 'Usuarios activos',
+  p_active_users = 'Porcentaje de usuarios activos en la VP',
+  n_sessions = 'Sesiones únicas',
+  n_actions = 'Acciones',
   title_error = 'Error',
   graph_top_clearance = 'Nivel de permisos',
   graph_time_tab = 'Desempeño',
