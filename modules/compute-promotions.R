@@ -1548,9 +1548,6 @@ computePromotionsUI <- function(id) {
         lang$compute_promotions_inputs,
         title = lang$compute_promotions_inputs_title
       ),
-      selectInput(ns('date_format'), lang$date_format, c('yyyy-mm-dd' = '%Y-%m-%d',
-                                                         'dd/mm/yyyy' = '%d/%m/%Y',
-                                                         'mm/dd/yyyy' = '%m/%d/%Y')),
       uiOutput(ns('items_ui')),
       tags$div(
         class = 'form-group',
@@ -1638,7 +1635,10 @@ computePromotionsUI <- function(id) {
           tags$div(
             class = 'inline-button-wrapper',
             uiOutput(ns('download_detail_ui'))
-          )
+          ),
+          selectInput(ns('date_format'), lang$date_format, c('yyyy-mm-dd' = '%Y-%m-%d',
+                                                             'dd/mm/yyyy' = '%d/%m/%Y',
+                                                             'mm/dd/yyyy' = '%m/%d/%Y'))
         ),
         DTOutput(ns('summary_table')) %>% withSpinner(type = 8)
       ),
