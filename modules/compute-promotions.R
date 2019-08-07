@@ -1476,13 +1476,13 @@ computePromotionsServer <- function(input, output, session, credentials) {
   })
   
   ###---------------------------------------------------------------------
-  observeEvent(input$dispersion_toggle, {
+  observeEvent(input$histogram_selection, {
     ns <- session$ns
-    if (isFALSE(input$dispersion_toggle)) {
+    if (input$histogram_selection == 'quantity') {
       output$histogram_slider <- renderUI(sliderInput(ns('quantity_histogram_bin_size'), lang$bin_size, min = 0.05, max = 0.5, value = 0.10, step = 0.05))
       output$feature_histogram <- renderPlotly(quantity_histogram())
       output$feature_histogram_table <- renderDT(server = FALSE, quantity_histogram_table())
-    } else {
+    } else if (input$histogram_selection == 'dispersion') {
       output$histogram_slider <- renderUI(sliderInput(ns('dispersion_histogram_bin_size'), lang$bin_number, min = 1, max = 20, value = 5, step = 1))
       output$feature_histogram <- renderPlotly(dispersion_histogram())
       output$feature_histogram_table <- renderDT(dispersion_histogram_table())
@@ -1764,13 +1764,18 @@ computePromotionsUI <- function(id) {
           class = 'form-group inline-inputs',
           tags$div(
             class = 'form-group',
-            title = lang$dispersion_graph_title,
-            shinyWidgets::materialSwitch(ns('dispersion_toggle'), tags$b(lang$dispersion_toggle), value = FALSE, status = 'success')
+            style = 'margin-right: 25px;',
+            selectInput(
+              ns('histogram_selection'),
+              label = lang$histogram_selection,
+              choices = c('quantity', 'dispersion') %>% 
+                set_names(c(lang$quantity_histogram, lang$dispersion_histogram))
+            )
           ),
           uiOutput(ns('output_feature_select_ui')),
           tags$div(
             class = 'form-group',
-            style = 'margin-left: 100px;',
+            style = 'margin-left: 50px;',
             uiOutput(ns('histogram_slider'))
           )
         ),
