@@ -597,6 +597,7 @@ generate_dispersion_histogram_data <- function(output_filtered_data, bins = 5) {
   
   res %>% 
     mutate(
+      total_ddv = round(total_ddv, 1),
       ddv_bin = cut(total_ddv,
                     breaks = cut_values,
                     labels = cut_labels,
