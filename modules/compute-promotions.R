@@ -1651,25 +1651,29 @@ computePromotionsUI <- function(id) {
         title = lang$tab_output_summary,
         tags$div(
           class = 'inline-inputs',
-          checkboxGroupInput(
+          selectInput(
             ns('summary_groups'),
             label = lang$summary_groups,
             choices = c('feature_name', 'cid', 'store_nbr', 'dc_nbr') %>% 
               set_names(c(lang$feature_name, lang$cid, lang$store_nbr, lang$dc)),
             selected = c('feature_name', 'cid'),
-            inline = TRUE
+            multiple = TRUE
           ),
           tags$div(
-            class = 'inline-button-wrapper',
-            uiOutput(ns('download_summary_ui'))
-          ),
-          tags$div(
-            class = 'inline-button-wrapper',
-            uiOutput(ns('download_header_ui'))
-          ),
-          tags$div(
-            class = 'inline-button-wrapper',
-            uiOutput(ns('download_detail_ui'))
+            class = 'form-group inline-inputs',
+            style = 'margin-right: 10px; margin-left: 10px;',
+            tags$div(
+              class = 'inline-button-wrapper',
+              uiOutput(ns('download_summary_ui'))
+            ),
+            tags$div(
+              class = 'inline-button-wrapper',
+              uiOutput(ns('download_header_ui'))
+            ),
+            tags$div(
+              class = 'inline-button-wrapper',
+              uiOutput(ns('download_detail_ui'))
+            )
           ),
           selectInput(ns('date_format'), lang$date_format, c('yyyy-mm-dd' = '%Y-%m-%d',
                                                              'dd/mm/yyyy' = '%d/%m/%Y',
