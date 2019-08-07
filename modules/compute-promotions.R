@@ -599,13 +599,13 @@ generate_loc_id <- function(store_nbr) {
 }
 
 ## Generar el HEADER.csv para cargar al sistema
-generate_header <- function(input_data, date_format = '%Y-%m-%d', impact_toggle = 'swap') {
+generate_header <- function(input_data, impact_toggle = 'swap') {
   input_data %>% 
     transmute(
       `*Promotion` = generate_promo_name(dept_nbr, user, feature_name),
       Description = '',
-      StartDate = format(StartDate, date_format),
-      EndDate = format(EndDate, date_format),
+      StartDate = StartDate,
+      EndDate = EndDate,
       ApprovedSw = 'TRUE',
       AdditiveSw = case_when(
         impact_toggle == 'swap' ~ 'TRUE',
@@ -623,11 +623,11 @@ generate_header <- function(input_data, date_format = '%Y-%m-%d', impact_toggle 
 }
 
 ## Generar el DETAIL.csv para cargar al sistema
-generate_detail <- function(output_data, date_format = '%Y-%m-%d') {
+generate_detail <- function(output_data) {
   output_data %>% 
     transmute(
       `*Promotion` = generate_promo_name(dept_nbr, user, feature_name),
-      `*StartDate` = format(StartDate, date_format),
+      `*StartDate` = StartDate,
       `*CID DMDUNIT NBR` = cid,
       `*DMDGroup` = '-',
       `*Loc` = generate_loc_id(store_nbr),
@@ -1495,12 +1495,12 @@ computePromotionsServer <- function(input, output, session, credentials) {
   header <- reactive({
     req(r$items)
     r$items %>% 
-      generate_header(date_format = input$date_format, impact_toggle = input$impact_toggle)
+      generate_header(impact_toggle = input$impact_toggle)
   })
   detail <- reactive({
     req(final_result())
     final_result() %>% 
-      generate_detail(date_format = input$date_format)
+      generate_detail()
   })
   ## Descargar HEADER
   output$download_header_ui <- renderUI({
@@ -1517,7 +1517,11 @@ computePromotionsServer <- function(input, output, session, credentials) {
         details = list()
       )))
      header() %>% 
-        write_excel_csv(path = file, na = '')
+       mutate(
+         StartDate = format(StartDate, input$date_format),
+         EndDate = format(EndDate, input$date_format),
+       ) %>% 
+       write_excel_csv(path = file, na = '')
     },
     contentType = 'text/csv'
   )
@@ -1549,6 +1553,9 @@ computePromotionsServer <- function(input, output, session, credentials) {
       )
       save_files(data_files = data_files, gl = gl, credentials = credentials())
       detail() %>% 
+        mutate(
+          `*StartDate` = format(`*StartDate`, input$date_format)
+        ) %>% 
         write_excel_csv(path = file, na = '')
     },
     contentType = 'text/csv'
