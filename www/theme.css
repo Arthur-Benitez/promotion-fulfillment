@@ -1,3 +1,28 @@
+
+/* Fonts */
+body,
+div,
+p,
+text,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.h1,
+.h2,
+.h3,
+.h4,
+.h5,
+.h6 {
+  font-family: "Bogle", "Helvetica Neue", "Helvetica", "Arial", sans-serif;
+}
+
+.plotly text {
+  font-family: "Bogle", "Helvetica Neue", "Helvetica", "Arial", sans-serif !important;
+}
+
 /* Fill azul Walmart */
 .skin-blue .main-header .navbar,
 .skin-blue .main-header .logo,
@@ -68,45 +93,75 @@
 }
 
 /* Botones del header */
-.header-icon, .header-icon:focus {
-  color: white;
-  background-color: #1A75CF;
-  border-color: #1A75CF;
-  margin: 0 5px;
-  font-size: 25px;
-}
-
-.header-icon:hover {
-  color: white;
-  background-color: #003896;
-  border-color: #003896;
-  margin: 0 5px;
-  font-size: 25px;
-}
-
-.header-text {
-  margin: 0 5px;
-  color: white;
-  font-size: 30px;
-}
-
-#header-icons {
+.nav .header-icons {
   display: flex;
 }
 
+.header-icon,
+.header-icon:active,
+.header-icon:active:focus,
+.header-icon:hover,
+.header-icon:focus {
+  color: white;
+  padding: 10px 13px 3px 13px;
+  font-size: 25px;
+}
+
+.header-icon,
+.header-icon:focus {
+  background-color: #1A75CF;
+  border-color: #1A75CF;
+}
+
+.header-icon:hover {
+  background-color: #003896;
+  border-color: #003896;
+}
+
+.header-icon:active,
+.header-icon:active:hover,
+.header-icon:active:focus {
+  background-color: #6CABE7;
+  border-color: #6CABE7;
+}
+
+.header-text {
+  width: 50px;
+  padding-top: 6px;
+  color: white;
+  font-size: 30px;
+  text-align: center;
+}
+
 /* Botones de controles */
-.input-icon, .input-icon:active, .input-icon:focus, .input-icon:visited {
+.input-icon,
+.input-icon:active,
+.input-icon:focus,
+.input-icon:visited {
+  margin: 0;
+  padding: 12px 12px 0 12px;
+  font-size: 35px;
+}
+
+.input-icon,
+.input-icon:focus,
+.input-icon:visited {
   color: #003896;
   background-color: #00000000;
   border-color: #00000000;
-  margin: 0;
-  font-size: 35px;
 }
 
 .input-icon:hover {
   color: white;
   background-color: #003896;
   border-color: #003896;
+}
+
+.input-icon:active,
+.input-icon:active:focus {
+  color: white;
+  background-color: #6CABE7;
+  border-color: #6CABE7;
 }
 
 .material-switch > input[type="checkbox"]:checked + label::before {
@@ -127,11 +182,11 @@
 
 table.dataTable thead tr th {
   color: white;
-  background-color: #003896;
+  background-color: #1A75CF;
 }
 
 table.dataTable thead tr td {
-  background-color: #1A75CF;
+  background-color: #6CABE7;
 }
 
 /* Gráficas */
@@ -148,6 +203,61 @@ table.dataTable thead tr td {
   margin-bottom: 10px;
   box-sizing: content-box;
 }
+
+/* Custom modals */
+.modal-lg {
+  width: 70%;
+}
+
+.modal-body button[data-dismiss="modal"],
+.modal-body button[data-dismiss="modal"]:active,
+.modal-body button[data-dismiss="modal"]:focus {
+  position: absolute;
+  top: -25px;
+  right: -25px;
+  border-radius: 60px;
+  font-size: 30px;
+  line-height: 20px;
+  text-align: center;
+  width: 50px;
+  height: 50px;
+  color: white;
+}
+
+.modal-body button[data-dismiss="modal"] {
+  background-color: #1A75CF;
+  border-color: #1A75CF;
+}
+
+.modal-body button[data-dismiss="modal"]:active,
+.modal-body button[data-dismiss="modal"]:active:hover {
+  background-color: #6CABE7;
+  border-color: #6CABE7;
+}
+
+.modal-body button[data-dismiss="modal"]:hover {
+  background-color: #003896;
+  border-color: #003896;
+}
+
+.modal-body button[data-dismiss="modal"]:focus {
+  outline: 0;
+}
+
+.modal-tabbox {
+  overflow: auto;
+}
+
+.modal-tabbox p,
+.modal-tabbox li {
+  font-size: 18px;
+}
+
+/* Icons */
+.text-icon {
+  color: #003896;
+}
+
 
 /* Loading de gráfica de ventas */
 #compute_promotions-grafica_ventas + .shiny-output-error-validation {
@@ -172,17 +282,17 @@ table.dataTable thead tr td {
 #app-name-container {
   width: 60%;
   float: right;
-  font-family: "Bree Serif", "Coiny", serif;
   text-align: left;
 }
 
 #app-name {
   color: white;
+  font-family: "Bogle", "Helvetica", sans-serif;
   font-style: normal;
-  font-weight: normal;
-  font-size: 24px;
+  font-weight: bold;
+  font-size: 22px;
   float: none;
-  margin-bottom: 1.5%;
+  margin: 7px 0 0 0;
   line-height: 100%;
 }
 

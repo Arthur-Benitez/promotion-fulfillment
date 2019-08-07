@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<h2>Cálculo de impacto</h2>
+<p>Las opciones de la sección "Impacto" controlan cómo se estima el impacto de cargar las estrategias calculadas por la herramienta.</p>
+<ul>
+  <li><b>SSPres comparativo:</b> Controla el safety "base" contra el cuál se comparará (i.e. antes de cargar la nueva estrategia).</li>
+  <ul>
+    <li><em>Comparar vs SSPres futuro:</em> Comparar contra el SSPres promedio que está cargado en la ventana StartDate - EndDate.</li>
+    <li><em>Comparar vs SSPres actual:</em> Comparar contra el SSPres cargado y efectivo <em>al día de hoy</em>. Si hay algo cargado cuya fecha de efectividad está en el futuro, no se verá reflejado en la herramienta.</li>
+    <li><em>No comparar:</em> Asume que no habrá ninguna estrategia de SSPres cargada durante el periodo efectivo de la nueva estrategia, por lo que se omite el SSPres actual en la competencia del SS Ganador. Si eliges esta opción, es indistinto lo que elijas en la opción de "Acción SSPres".</li>
+  </ul>
+  <li><b>Acción SSPres:</b> Controla cómo se agrega la nueva estrategia al sistema.</li>
+  <ul>
+    <li><em>Sumar:</em> Calcula el impacto sumando la estrategia calculada por Promo Fulfillment al SSPres seleccionado en la opción "SSPres comparativo". Sirve para simular una estrategia con la bandera de additive en TRUE.</li>
+    <li><em>Sustituir:</em> Calcula el impacto sustituyendo el SSPres seleccionado en "SSPres comparativo" con el calculado por Promo Fulfillment. Esto simula que la nueva estrategia será más prioritaria que lo que está cargado actualmente y que las opciones de additive están en FALSE. Nota: La herramienta siempre saca las estrategias con additive en TRUE, así que para que realmente ocurra una sustitución, deberás quitar las estrategias obsoletas de GRS manualmente.</li>
+  </ul>
+</ul>
+<p><i class="fas fa-info-circle text-icon"></i> Ten en cuenta que <em>únicamente se aproxima el impacto en el safety</em>, pero el impacto total en el inventario puede ser completamente diferente (ej. debido a cambios en el forecast, en las ventas, etc).</p>

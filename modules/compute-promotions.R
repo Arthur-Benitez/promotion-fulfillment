@@ -484,19 +484,19 @@ summarise_data <- function(data, group = c('feature_name', 'cid')) {
   ## Checks
   stopifnot(is.null(group) || all(group %in% c('feature_name', 'store_nbr', 'cid', 'dc_nbr')))
   ## Cambios a combinaciones específicas
-  if ('cid' %in% group) {
-    group <- c(group, 'old_nbr', 'primary_desc')
-  }
-  if ('dc_nbr' %in% group) {
-    group <- c(group, 'dc_name')
-  }
+  extra_groups <- list(
+    'cid' = c('old_nbr', 'primary_desc'),
+    'dc_nbr' = c('dc_name'),
+    'store_nbr' = c('store_name')
+  )
+  group <- c(group, unlist(extra_groups[intersect(names(extra_groups), group)]))
   if (is.null(group)) {
     group <- 'feature_name'
     data <- data %>% 
       mutate(feature_name = 'Total')
   }
   ## Grupos de tabla de salida
-  group_order <- c('feature_name', 'store_nbr', 'cid', 'old_nbr', 'primary_desc', 'dc_nbr', 'dc_name')
+  group_order <- c('feature_name', 'store_nbr', 'store_name', 'cid', 'old_nbr', 'primary_desc', 'dc_nbr', 'dc_name')
   grp <- group_order[group_order %in% group]
   ## Variables numéricas de tabla de salida
   vv <- c('avg_dly_sales', 'avg_dly_forecast', 'min_feature_qty', 'max_feature_qty', 'total_cost', 'total_impact_cost', 'total_qty', 'total_impact_qty', 'total_ddv', 'total_impact_ddv', 'total_vnpk', 'total_impact_vnpk')
@@ -524,7 +524,7 @@ summarise_data <- function(data, group = c('feature_name', 'cid')) {
       total_vnpk = sum(vnpk_fin, na.rm = TRUE),
       total_impact_vnpk = sum(impact_vnpk, na.rm = TRUE)
     ) %>% 
-    ungroup() %>% 
+    group_by(!!!syms(grp)) %>% # Agrupar para guardar la info de los grupos afuera y fijar las columnas correctamente
     arrange(!!!syms(grp)) %>% 
     select(!!!syms(grp), !!!syms(val_vars))
   
@@ -664,7 +664,7 @@ generate_sample_input <- function(calendar_day) {
 computePromotionsServer <- function(input, output, session, credentials) {
   
   ## Calendario para validar inputs
-  calendar_day <- read_tsv('data/calendar-day.tsv')
+  calendar_day <- read_tsv('data/calendar-day.tsv', col_types = 'nD')
   
   ## Valores reactivos para usar en observadores
   r <- reactiveValues(
@@ -784,7 +784,6 @@ computePromotionsServer <- function(input, output, session, credentials) {
   })
   observe({
     req(r$items_file, input$date_format)
-    req(r$is_open || gl$app_deployment_environment == 'prod')
     flog.info(toJSON(list(
       session_info = msg_cred(credentials()),
       message = 'PARSING INPUT FILE',
@@ -874,11 +873,10 @@ computePromotionsServer <- function(input, output, session, credentials) {
   
   output$input_table <- renderDT({
     shiny::validate(
-      shiny::need(r$is_open || gl$app_deployment_environment == 'prod', lang$need_auth) %then%
         shiny::need(!is.null(r$items_file), lang$need_items_file) %then%
         shiny::need(!is.null(r$items), lang$need_valid_input)
     )
-    r$items %>% 
+    r$items[intersect(names(r$items), gl$cols$name[gl$cols$is_input])] %>%
       generate_basic_datatable(gl$cols, scrollX = TRUE, scrollY = ifelse(input$graph_toggle, '150px', '500px'))
   })
   
@@ -1086,6 +1084,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
   rr <- reactiveVal(0)
   tik <- reactiveVal(NULL)
   observeEvent(input$run, {
+    req(r$is_open || gl$app_deployment_environment == 'prod')
     if (is.null(tik()) || as.numeric(difftime(Sys.time(), tik(), units = 'secs')) >= 30) {
       tik(Sys.time())
       ns <- session$ns
@@ -1266,7 +1265,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
           extensions = c('FixedColumns', 'KeyTable'),
           filter = 'top',
           options = list(
-            fixedColumns = list(leftColumns = 5),
+            fixedColumns = list(leftColumns = length(group_vars(.)) + 1),
             keys = TRUE,
             scrollX = TRUE,
             scrollY = '500px',
@@ -1433,18 +1432,51 @@ computePromotionsServer <- function(input, output, session, credentials) {
   )
   
   ## Mostrar instrucciones
-  eval(parse(file = 'html/instructions-table.R', encoding = 'UTF-8'))
-  output$instructions_table <- renderTable({
-    instructions_table
-  })
   observeEvent(input$show_instructions, {
+    flog.info(toJSON(list(
+      session_info = msg_cred(credentials()),
+      message = 'SHOWING INSTRUCTIONS',
+      details = list()
+    )))
+    glossary_table <- gl$cols %>% 
+      arrange(pretty_name) %>% 
+      select(pretty_name, description, is_input, is_constant_by_feature, name) %>% 
+      mutate_at(
+        vars(is_input, is_constant_by_feature),
+        ~fct_explicit_na(factor(ifelse(., lang$yes, lang$no)), '-')
+      ) %>% 
+      rename_all(~paste0('var_', .))
     showModal(modalDialog(
       size = 'l',
       easyClose = TRUE,
-      title = 'Instrucciones',
-      includeHTML('html/instructions.html'),
-      uiOutput(session$ns('instructions_table')),
-      footer = modalButton(lang$ok)
+      title = NULL,
+      tags$div(
+        class = 'modal-tabbox',
+        tags$h1('Instrucciones'),
+        tabBox(
+          width = 12,
+          tabPanel(
+            title = 'Uso básico',
+            includeHTML('html/instructions-basic-usage.html')
+          ),
+          tabPanel(
+            title = lang$compute_promotions_computation_parameters,
+            includeHTML('html/instructions-computation.html')
+          ),
+          tabPanel(
+            title = lang$compute_promotions_impact_parameters,
+            includeHTML('html/instructions-impact.html')
+          ),
+          tabPanel(
+            title = 'Glosario de columnas',
+            renderDT({ 
+              generate_basic_datatable(glossary_table, gl$cols)
+            })
+          )
+        )
+      ),
+      modalButton(NULL, icon = icon('times')),
+      footer = NULL
     ))
   }, ignoreInit = TRUE)
   
@@ -1591,7 +1623,7 @@ computePromotionsUI <- function(id) {
         selectInput(
           ns('impact_toggle'),
           label = lang$impact_toggle,
-          choices = c('swap', 'add') %>% 
+          choices = c('add', 'swap') %>% 
             set_names(lang$impact_toggle_names)
         )
       )

@@ -516,14 +516,7 @@ logoutUI <- function(id) {
 logoutServer <- function(input, output, session, user_auth, active, is_running) {
   output$ui <- renderUI({
     ns <- session$ns
-    tags$div(
-      id = 'header-icons',
-      tags$div(
-        title = lang$logout_timeout_info,
-        class = 'header-text',
-        textOutput(ns('counter'))
-      )
-    )
+    textOutput(ns('counter'))
   })
   ## Contador de tiempo hasta logout automático
   counter_sec <- 60
@@ -537,7 +530,8 @@ logoutServer <- function(input, output, session, user_auth, active, is_running) 
     rv$tic <- Sys.time()
   })
   ## Se restan un contador cada counter_sec
-  timer <- reactiveTimer(1000)
+  time_check_interval <- ifelse(gl$is_dev, 60000, 1000)
+  timer <- reactiveTimer(time_check_interval)
   observeEvent(timer(), {
     rv$remaining <- counter_max - as.numeric(difftime(Sys.time(), rv$tic, units = 'secs'))
     if (rv$remaining <= 0) {
