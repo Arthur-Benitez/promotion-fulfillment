@@ -592,8 +592,7 @@ generate_dispersion_histogram_data <- function(output_filtered_data, bins = 5) {
     cut_values[-1],
     sep = ' - '
   ) %>% 
-    replace(list = length(.), sprintf('+%s', 2 * max_ddv)) %>% 
-    paste('DDV')
+    replace(list = length(.), sprintf('+%s', 2 * max_ddv))
   
   res %>% 
     mutate(
@@ -1404,7 +1403,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
         add_text(y = ~label_y, text = ~label, name = NULL) %>% 
         plotly::layout(
           title = 'Dispersión de Inventario',
-          xaxis = list(title = 'Rango de días de venta por tienda'),
+          xaxis = list(title = 'Rango de días de venta por tienda (DDV)'),
           yaxis = list(title = 'Número de tiendas', separators = '.,'),
           showlegend = FALSE
         )
