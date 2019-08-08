@@ -1775,7 +1775,7 @@ computePromotionsUI <- function(id) {
           uiOutput(ns('output_feature_select_ui')),
           tags$div(
             class = 'form-group',
-            style = 'margin-left: 50px;',
+            style = 'margin-left: 30px;',
             uiOutput(ns('histogram_slider'))
           )
         ),
