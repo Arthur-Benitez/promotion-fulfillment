@@ -919,6 +919,14 @@ computePromotionsServer <- function(input, output, session, credentials) {
         ns('agg_grafica_ventas'),
         lang$agg_grafica_ventas,
         choices = c('avg', 'sum') %>% set_names(lang$agg_grafica_ventas_names)
+      ),
+      tags$div(
+        selectInput(
+          ns('sales_summary_groups'),
+          label = lang$sales_summary_groups,
+          choices = c('old_nbr', 'feature_name') %>% 
+            set_names(c(lang$old_nbr, lang$feature_name)),
+        ) 
       )
     )
   })
