@@ -556,7 +556,8 @@ generate_quantity_histogram_data <- function(output_filtered_data, bin_size = 0.
                                      labels = cut_labels,
                                      include.lowest = TRUE),
       temp_cost = total_cost, # Creadas para evitar name clashes en el summarise
-      temp_qty = total_qty
+      temp_qty = total_qty,
+      temp_avg_store_dly_pos_or_fcst = coalesce(avg_dly_sales, avg_dly_forecast)
     ) %>% 
     group_by(perc_max_feature_qty_bin) %>% 
     summarise(
@@ -569,7 +570,8 @@ generate_quantity_histogram_data <- function(output_filtered_data, bin_size = 0.
       avg_store_dly_pos_or_fcst = mean(coalesce(avg_dly_sales, avg_dly_forecast)),
       min_feature_qty = mean(min_feature_qty),
       max_feature_qty = mean(max_feature_qty),
-      total_ddv = sum(temp_qty) / sum(coalesce(avg_dly_sales, avg_dly_forecast))
+      total_ddv = sum(temp_qty) / sum(coalesce(avg_dly_sales, avg_dly_forecast)),
+      max_ddv = sum(max_ddv * temp_avg_store_dly_pos_or_fcst) / sum(temp_avg_store_dly_pos_or_fcst)
     ) %>% 
     ungroup() %>% 
     mutate(
