@@ -69,7 +69,7 @@ lang <- list(
   compute_promotions_impact_parameters = 'Impacto',
   compute_promotions_impact_parameters_title = 'Parámetros que afectan el cálculo de impacto.',
   date_format = 'Formato de fechas',
-  grafica_ventas = 'Promoción - Formato - Old_nbr',
+  grafica_ventas = 'Combinación a visualizar',
   no_info = 'SIN INFORMACIÓN',
   input_grafica_ventas_title = 'Mostrar gráfica informativa de ventas y forecast.',
   agg_grafica_ventas = 'Sumarización',
