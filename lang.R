@@ -74,6 +74,7 @@ lang <- list(
   input_grafica_ventas_title = 'Mostrar gráfica informativa de ventas y forecast.',
   agg_grafica_ventas = 'Sumarización',
   agg_grafica_ventas_names = c('avg' = 'Promedio por tienda', 'sum' = 'Total'),
+  sales_summary_groups = 'Nivel de la gráfica',
   graph_toggle = 'Gráfica de ventas/forecast',
   items = 'Items',
   browse = 'Archivo...',
