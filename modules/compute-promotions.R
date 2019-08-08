@@ -515,7 +515,7 @@ summarise_data <- function(data, group = c('feature_name', 'cid')) {
       avg_dly_forecast = ifelse(any(fcst_or_sales == 'F'), sum(avg_dly_pos_or_fcst[fcst_or_sales=='F'], na.rm = TRUE), NA_real_),
       min_feature_qty = mean(min_feature_qty, na.rm = TRUE),
       max_feature_qty = mean(max_feature_qty, na.rm = TRUE),
-      max_ddv = mean(max_ddv, na.rm = TRUE),
+      max_ddv = sum(max_ddv * avg_dly_pos_or_fcst, na.rm = TRUE) / sum(avg_dly_pos_or_fcst, na.rm = TRUE),
       total_cost = sum(store_cost, na.rm = TRUE),
       total_impact_cost = sum(impact_cost, na.rm = TRUE),
       total_qty = sum(feature_qty_fin, na.rm = TRUE),
