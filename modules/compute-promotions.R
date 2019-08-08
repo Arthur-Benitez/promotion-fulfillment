@@ -894,39 +894,68 @@ computePromotionsServer <- function(input, output, session, credentials) {
   observeEvent(graph_table(), {
     r$is_running <- FALSE
   })
+  
+  output$input_resumen_grafica <- renderUI({
+    req(r$items)
+    req(is.data.frame(graph_table()))
+    req(isTRUE(input$graph_toggle))
+    ns <- session$ns
+    tags$div(
+      style = 'margin-left: 20px; margin-right: 20px',
+      selectInput(
+        ns('sales_summary_groups'),
+        label = lang$sales_summary_groups,
+        choices = c('old_nbr', 'feature_name') %>% 
+          set_names(c(lang$old_nbr, lang$feature_name)),
+      ) 
+    )
+  })
+  
+  graph_choices <- reactiveVal()
+  observeEvent(input$sales_summary_groups, {
+    req(r$items)
+    req(is.data.frame(graph_table()))
+    req(isTRUE(input$graph_toggle))
+    ns <- session$ns
+    if (input$sales_summary_groups == 'old_nbr') {
+      info <- graph_table() %>%
+        distinct_at(c('old_nbr', 'negocio', 'primary_desc'))
+      r$items %>% 
+        left_join(info, by = c('old_nbr', 'negocio')) %>% 
+        transmute(
+          name = paste0(feature_name, ' - ',negocio, ' - ', ifelse(is.na(primary_desc), lang$no_info, primary_desc), ' (', old_nbr, ')'),
+          combinacion = paste(feature_name, '::', old_nbr, '-', negocio)
+        ) %>%
+        distinct() %>% 
+        deframe() %>% 
+        graph_choices()
+    } else {
+      r$items %>% 
+        transmute(
+          name = feature_name,
+          combinacion = feature_name
+        ) %>%
+        distinct() %>% 
+        deframe() %>% 
+        graph_choices()
+    }
+  })
+  
   output$input_grafica_ventas <- renderUI({
     req(r$items)
     req(is.data.frame(graph_table()))
     req(isTRUE(input$graph_toggle))
     ns <- session$ns
-    info <- graph_table() %>%
-      distinct_at(c('old_nbr', 'negocio', 'primary_desc'))
-    choices <- r$items %>% 
-      left_join(info, by = c('old_nbr', 'negocio')) %>% 
-      transmute(
-        name = paste0(feature_name, ' - ',negocio, ' - ', ifelse(is.na(primary_desc), lang$no_info, primary_desc), ' (', old_nbr, ')'),
-        combinacion = paste(feature_name, '::', old_nbr, '-', negocio)
-      ) %>%
-      distinct() %>% 
-      deframe()
     tags$div(
       class = 'inline-inputs',
       tags$div(
         style = 'margin-right: 20px',
-        selectInput(ns('input_grafica_ventas'), lang$grafica_ventas, choices = choices, width = '500px')
+        selectInput(ns('input_grafica_ventas'), lang$grafica_ventas, choices = graph_choices(), width = '500px')
       ),
       selectInput(
         ns('agg_grafica_ventas'),
         lang$agg_grafica_ventas,
         choices = c('avg', 'sum') %>% set_names(lang$agg_grafica_ventas_names)
-      ),
-      tags$div(
-        selectInput(
-          ns('sales_summary_groups'),
-          label = lang$sales_summary_groups,
-          choices = c('old_nbr', 'feature_name') %>% 
-            set_names(c(lang$old_nbr, lang$feature_name)),
-        ) 
       )
     )
   })
@@ -1093,7 +1122,11 @@ computePromotionsServer <- function(input, output, session, credentials) {
     req(isTRUE(input$graph_toggle))
     ns <- session$ns
     tagList(
-      uiOutput(ns('input_grafica_ventas')),
+      tags$div(
+        class = 'inline-inputs',
+        uiOutput(ns('input_resumen_grafica')),
+        uiOutput(ns('input_grafica_ventas'))
+      ),
       plotlyOutput(ns('grafica_ventas'), height = gl$plotly_height) %>% withSpinner(type = 8)
     )
   })
