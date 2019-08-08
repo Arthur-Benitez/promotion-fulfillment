@@ -6,7 +6,7 @@ negocio	character	TRUE	TRUE	character		Negocio	"Formato de negocio (BAE, BODEGA,
 old_nbr	numeric	FALSE	TRUE	character		Artículo (old_nbr)	Número de artículo de HOST (old_nbr en Teradata).
 min_feature_qty	numeric	TRUE	TRUE	comma	0	Mínimo de exhibición	"Mínimas piezas totales en el display (entre todos los artículos). Su efecto depende de la opción seleccionada en ""Lógica mínimo""."
 max_feature_qty	numeric	TRUE	TRUE	comma	0	Máximo de exhibición	Máximas piezas totales en el display (entre todos los artículos).
-max_ddv	numeric	FALSE	TRUE	comma	0	Máximo de DDV	Tope máximo de días de venta por artículo.
+max_ddv	numeric	FALSE	TRUE	comma	1	Máximo de DDV	Tope máximo de días de venta por artículo.
 semana_ini	numeric	TRUE	TRUE	character		Semana inicial cálculo	"Semana Walmart inicial para calcular forecast o ventas (debe ser a pasado si fcst_or_sales = ""S"" y a futuro si es = ""F"")."
 semana_fin	numeric	TRUE	TRUE	character		Semana final cálculo	"Semana Walmart final para calcular forecast o ventas (debe ser a pasado si fcst_or_sales = ""S"" y a futuro si es = ""F"")."
 fcst_or_sales	character	TRUE	TRUE	character		¿Forecast o ventas?	"""F"" para usar forecast y ""S"" para usar ventas."
