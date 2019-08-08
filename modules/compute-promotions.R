@@ -588,13 +588,13 @@ generate_dispersion_histogram_data <- function(output_filtered_data, bins = 5) {
     summarise_data(group = c('feature_name', 'store_nbr'))
   
   max_ddv <- mean(res$max_ddv)
-  cut_values <- round(c(seq(0, 2 * max_ddv, length.out = bins), Inf))
+  cut_values <- round(c(seq(0, max_ddv, length.out = bins - 1), 2 * max_ddv, Inf))
   cut_labels <- paste(
     head(cut_values, -1),
     cut_values[-1],
     sep = ' - '
   ) %>% 
-    replace(list = length(.), sprintf('+%s', 2 * max_ddv))
+    replace(list = length(.), sprintf('+%s', round(2 * max_ddv)))
   
   res %>% 
     mutate(
@@ -1477,7 +1477,6 @@ computePromotionsServer <- function(input, output, session, credentials) {
     })
   })
   
-  ###---------------------------------------------------------------------
   observeEvent(input$histogram_selection, {
     ns <- session$ns
     if (input$histogram_selection == 'quantity') {
@@ -1490,7 +1489,6 @@ computePromotionsServer <- function(input, output, session, credentials) {
       output$feature_histogram_table <- renderDT(dispersion_histogram_table())
     }
   })
-  ###--------------------------------------------------------------------------------
   
   ## Reset con botón
   observeEvent(input$reset, {
