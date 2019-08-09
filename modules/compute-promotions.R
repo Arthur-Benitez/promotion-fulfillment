@@ -425,7 +425,7 @@ perform_computations <- function(data, data_ss = NULL, min_feature_qty_toggle = 
   data <- data %>%
     mutate_at(new_columns, list(~replace_na(., 0)))
   
-  if (is.null(data_ss)) {
+  if (is.null(data_ss) || nrow(data_ss) == 0) {
     data <- data %>%
       mutate(
         sspress = 0,
@@ -440,19 +440,20 @@ perform_computations <- function(data, data_ss = NULL, min_feature_qty_toggle = 
         ss_ganador = 0
       )
   } else {
-    data <- data %>% 
-      left_join(data_ss, by = c("feature_name", "store_nbr", "negocio", "old_nbr", "item_nbr"))
-    
-    if (sspres_benchmark_toggle == 'none') {
-      data$comp_sspress <- 0
-    } else if (sspres_benchmark_toggle == 'current') {
-      data$comp_sspress <- data$sspress
-    } else if (sspres_benchmark_toggle == 'future') {
-      # Aún no existe la columna
-      # data$comp_sspress <- data$sspress_future
-      data$comp_sspress <- data$sspress
-    }
+    data <- data %>%
+      left_join(data_ss, by = c("feature_name", "store_nbr", "negocio", "old_nbr", "item_nbr")) 
   }
+  
+  if (sspres_benchmark_toggle == 'none') {
+    data$comp_sspress <- 0
+  } else if (sspres_benchmark_toggle == 'current') {
+    data$comp_sspress <- data$sspress
+  } else if (sspres_benchmark_toggle == 'future') {
+    # Aún no existe la columna
+    # data$comp_sspress <- data$sspress_future
+    data$comp_sspress <- data$sspress
+  }
+  
   data <- data %>%
     replace_na(list(ganador = "Unknown", max_ss = 999999999)) %>%
     mutate_at(vars(contains("ss")), list(~round(replace_na(., 0), digits = 0))) %>%
