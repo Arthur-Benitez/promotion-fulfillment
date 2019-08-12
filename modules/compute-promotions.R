@@ -46,16 +46,19 @@ parse_input <- function(input_file, gl, calendar_day, date_format = '%Y-%m-%d') 
   tryCatch({
     column_info <- gl$cols[gl$cols$is_input, ]
     nms <- names(readxl::read_excel(input_file, sheet = 1, n_max = 0))
-    if (!all(column_info$name %in% nms)) {
-      return(sprintf('Las siguientes columnas faltan en el archivo de entrada: %s', paste(setdiff(column_info$name, nms), collapse = ', ')))
+    if (!all(column_info$pretty_name %in% nms)) {
+      return(sprintf('Las siguientes columnas faltan en el archivo de entrada: %s', paste(setdiff(column_info$pretty_name, nms), collapse = ', ')))
     }
+    nms <- remap_names(column_info, columns = nms, target_col = 'name', inverse = TRUE)
     col_types <- generate_cols_spec(column_info, nms)
     x <- read_excel(
       path = input_file,
       sheet = 1,
       col_names = TRUE,
       col_types = col_types$excel_type
-      ) %>% 
+      )
+    names(x) <- remap_names(column_info, columns = nms, target_col = 'name', inverse = TRUE)
+    x <- x %>% 
       .[column_info$name] %>% 
       mutate_at(
         col_types$name[col_types$type %in% c('date')],

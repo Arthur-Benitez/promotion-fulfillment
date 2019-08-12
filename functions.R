@@ -57,8 +57,12 @@ sql_query <- function(ch = NULL, connector = NULL, query, stringsAsFactors = FAL
 }
 
 ## Remap column names
-remap_names <- function(column_info, columns, target_col = c('pretty_name', 'description')) {
-  maybe_extract(columns, deframe(column_info[c('name', target_col[1])]))
+remap_names <- function(column_info, columns, target_col = c('pretty_name', 'description'), inverse = FALSE) {
+  if (inverse) {
+    maybe_extract(columns, deframe(column_info[c('pretty_name', target_col[1])]))
+  } else {
+    maybe_extract(columns, deframe(column_info[c('name', target_col[1])])) 
+  }
 }
 
 ## Get columns with a given format
