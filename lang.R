@@ -127,6 +127,8 @@ lang <- list(
   cid = 'Artículo',
   old_nbr = 'Artículo',
   feature_name = 'Promoción',
+  business = 'Negocio',
+  dep = 'Depto',
   ## Usage Stats
   usage_stats = 'Utilización',
   refresh = 'Refrescar logs',
