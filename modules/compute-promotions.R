@@ -639,7 +639,7 @@ generate_dispersion_histogram_data <- function(output_filtered_data, bins = 5) {
 
 ## Generar el nombre de la promo para GRS
 generate_promo_name <- function(dept_nbr, user, feature_name) {
-  sprintf('MX_D%d_CM_%s_%s', dept_nbr, toupper(user), feature_name)
+  sprintf('MX_D%d_PF_%s_%s', dept_nbr, toupper(user), feature_name)
 }
 
 ## Generar el id de tienda en formato para GRS
