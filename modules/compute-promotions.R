@@ -913,26 +913,28 @@ computePromotionsServer <- function(input, output, session, credentials) {
     )
   })
   
+  graph_choices <- reactiveVal()
   output$input_grafica_ventas <- renderUI({
     req(r$items)
     req(is.data.frame(graph_table()))
     req(isTRUE(input$graph_toggle))
     ns <- session$ns
     if (length(input$sales_summary_groups) == 0) {
-      graph_choices <- 'Todos'
+      graph_choices('Todos')
     } else {
-      graph_choices <- graph_table() %>% 
+      graph_table() %>% 
         right_join(r$items, by = c('old_nbr', 'negocio')) %>% 
         select(input$sales_summary_groups) %>% 
         apply(1, paste, collapse = '-') %>% 
         unique() %>% 
-        sort()
+        sort() %>% 
+        graph_choices()
     }
     tags$div(
       class = 'inline-inputs',
       tags$div(
         style = 'margin-right: 20px',
-        selectInput(ns('input_grafica_ventas'), lang$grafica_ventas, choices = graph_choices, width = '500px')
+        selectInput(ns('input_grafica_ventas'), lang$grafica_ventas, choices = graph_choices(), width = '500px')
       ),
       selectInput(
         ns('agg_grafica_ventas'),
@@ -957,7 +959,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
         shiny::need(!is.null(r$items) && isTRUE(input$graph_toggle), '') %then%
         shiny::need(!is.null(graph_table()), lang$plotting) %then%
         shiny::need(is.data.frame(graph_table()), lang$need_query_result) %then%
-        shiny::need(input$input_grafica_ventas, '')
+        shiny::need(input$input_grafica_ventas %in% graph_choices(), '')
     )
     flog.info(toJSON(list(
       session_info = msg_cred(credentials()),
