@@ -979,7 +979,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
       summarise(
         type = unique(type),
         n_stores = sum(n_stores, na.rm = TRUE),
-        sell_price = mean(sell_price, na.rm = TRUE),
+        sell_price = sum(sell_price * wkly_qty, na.rm = TRUE) / sum(wkly_qty, na.rm = TRUE),
         wkly_qty = sum(wkly_qty, na.rm = TRUE)
       ) %>%
       ungroup() %>%
