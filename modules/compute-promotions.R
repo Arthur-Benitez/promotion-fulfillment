@@ -690,7 +690,7 @@ generate_detail <- function(output_data) {
 }
 
 ## Generar input de ejemplo que siempre funcione
-generate_sample_input <- function(calendar_day) {
+generate_sample_input <- function(calendar_day, column_info) {
   fcst_wks <- calendar_day %>% 
     filter(date >= Sys.Date() + 0 & date <= Sys.Date() + 28) %>% 
     pull(wm_yr_wk) %>%
@@ -699,7 +699,7 @@ generate_sample_input <- function(calendar_day) {
     filter(date >= Sys.Date() - 90 & date <= Sys.Date() - 60) %>% 
     pull(wm_yr_wk) %>%
     range()
-  tibble(
+  info <- tibble(
     feature_name = c('MARUCHAN', 'MARUCHAN', 'MARUCHAN', 'MARUCHAN', 'MARUCHAN_MINI', 'MARUCHAN_MINI'),
     user = 'm1234xy',
     dept_nbr = 95,
@@ -716,6 +716,8 @@ generate_sample_input <- function(calendar_day) {
     EndDate = c(rep(Sys.Date() + 35, 4), rep(Sys.Date() + 49, 2)),
     Priority = 12
   )
+  names(info) <- remap_names(column_info, names(info), 'pretty_name')
+  return(info)
 }
 
 # Server ------------------------------------------------------------------
@@ -1559,7 +1561,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
   output$download_template <- downloadHandler(
     filename = 'promo-fulfillment-template.xlsx',
     content = function(file) {
-      x <- generate_sample_input(calendar_day)
+      x <- generate_sample_input(calendar_day, gl$cols)
       openxlsx::write.xlsx(x, file = file, sheetName = "pf-template", append = FALSE, row.names = FALSE)
     },
     # Excel content type
