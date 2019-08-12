@@ -905,8 +905,10 @@ computePromotionsServer <- function(input, output, session, credentials) {
       selectInput(
         ns('sales_summary_groups'),
         label = lang$sales_summary_groups,
-        choices = c('old_nbr', 'feature_name') %>% 
-          set_names(c(lang$old_nbr, lang$feature_name))
+        choices = c('feature_name', 'old_nbr') %>% 
+          set_names(c(lang$feature_name, lang$old_nbr)),
+        multiple = TRUE,
+        selected = c('feature_name')
       )
     )
   })
