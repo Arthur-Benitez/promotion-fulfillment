@@ -913,35 +913,26 @@ computePromotionsServer <- function(input, output, session, credentials) {
     )
   })
   
-  graph_choices <- reactiveVal()
-  observeEvent(input$sales_summary_groups, {
-    req(r$items)
-    req(is.data.frame(graph_table()))
-    req(isTRUE(input$graph_toggle))
-    ns <- session$ns
-    if (length(input$sales_summary_groups) == 0) {
-      graph_choices('Todos')
-    } else {
-      graph_table() %>% 
-        right_join(r$items, by = c('old_nbr', 'negocio')) %>% 
-        select(input$sales_summary_groups) %>% 
-        apply(1, paste, collapse = '-') %>% 
-        unique() %>% 
-        sort() %>% 
-        graph_choices()
-    }
-  })
-  
   output$input_grafica_ventas <- renderUI({
     req(r$items)
     req(is.data.frame(graph_table()))
     req(isTRUE(input$graph_toggle))
     ns <- session$ns
+    if (length(input$sales_summary_groups) == 0) {
+      graph_choices <- 'Todos'
+    } else {
+      graph_choices <- graph_table() %>% 
+        right_join(r$items, by = c('old_nbr', 'negocio')) %>% 
+        select(input$sales_summary_groups) %>% 
+        apply(1, paste, collapse = '-') %>% 
+        unique() %>% 
+        sort()
+    }
     tags$div(
       class = 'inline-inputs',
       tags$div(
         style = 'margin-right: 20px',
-        selectInput(ns('input_grafica_ventas'), lang$grafica_ventas, choices = graph_choices(), width = '500px')
+        selectInput(ns('input_grafica_ventas'), lang$grafica_ventas, choices = graph_choices, width = '500px')
       ),
       selectInput(
         ns('agg_grafica_ventas'),
