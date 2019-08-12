@@ -906,8 +906,8 @@ computePromotionsServer <- function(input, output, session, credentials) {
         ns('sales_summary_groups'),
         label = lang$sales_summary_groups,
         choices = c('old_nbr', 'feature_name') %>% 
-          set_names(c(paste(lang$feature_name, lang$old_nbr, sep = ' - '), lang$feature_name)),
-      ) 
+          set_names(c(lang$old_nbr, lang$feature_name))
+      )
     )
   })
   
@@ -917,26 +917,15 @@ computePromotionsServer <- function(input, output, session, credentials) {
     req(is.data.frame(graph_table()))
     req(isTRUE(input$graph_toggle))
     ns <- session$ns
-    if (input$sales_summary_groups == 'old_nbr') {
-      info <- graph_table() %>%
-        distinct_at(c('old_nbr', 'negocio', 'primary_desc'))
-      r$items %>% 
-        left_join(info, by = c('old_nbr', 'negocio')) %>% 
-        transmute(
-          name = paste0(feature_name, ' - ',negocio, ' - ', ifelse(is.na(primary_desc), lang$no_info, primary_desc), ' (', old_nbr, ')'),
-          combinacion = paste(feature_name, '::', old_nbr, '-', negocio)
-        ) %>%
-        distinct() %>% 
-        deframe() %>% 
-        graph_choices()
+    if (length(input$sales_summary_groups) == 0) {
+      graph_choices('Todos')
     } else {
-      r$items %>% 
-        transmute(
-          name = feature_name,
-          combinacion = feature_name
-        ) %>%
-        distinct() %>% 
-        deframe() %>% 
+      graph_table() %>% 
+        right_join(r$items, by = c('old_nbr', 'negocio')) %>% 
+        select(input$sales_summary_groups) %>% 
+        apply(1, paste, collapse = '-') %>% 
+        unique() %>% 
+        sort() %>% 
         graph_choices()
     }
   })
@@ -982,32 +971,33 @@ computePromotionsServer <- function(input, output, session, credentials) {
       message = 'GENERATING SALES GRAPH',
       details = list()
     )))
-    if (input$sales_summary_groups == 'old_nbr') {
-      df <- graph_table() %>% 
-        filter(paste(old_nbr, '-', negocio) == str_replace(input$input_grafica_ventas, ".+ :: ", '')) %>% 
-        na.omit()
+    df <- graph_table() %>% 
+      right_join(r$items, by = c('old_nbr', 'negocio'))
+    if (length(input$sales_summary_groups) == 0) {
+      df$filtro <- 'Todos'
     } else {
-      df <- graph_table() %>% 
-        right_join(r$items, by = c('old_nbr', 'negocio')) %>% 
-        filter(feature_name == input$input_grafica_ventas) %>% 
-        na.omit() %>% 
-        group_by(wm_yr_wk, date) %>% 
-        summarise(
-          type = unique(type),
-          n_stores = sum(n_stores, na.rm = TRUE),
-          sell_price = mean(sell_price, na.rm = TRUE),
-          wkly_qty = sum(wkly_qty, na.rm = TRUE)
-        ) %>%
-        ungroup() %>%
-        select(
-          wm_yr_wk,
-          date,
-          type,
-          n_stores,
-          sell_price,
-          wkly_qty
-        )
+      df$filtro <- df[input$sales_summary_groups] %>% 
+        apply(1, paste, collapse = '-')
     }
+    df <- df %>% 
+      filter(filtro == input$input_grafica_ventas) %>% 
+      na.omit() %>% 
+      group_by(wm_yr_wk, date) %>% 
+      summarise(
+        type = unique(type),
+        n_stores = sum(n_stores, na.rm = TRUE),
+        sell_price = mean(sell_price, na.rm = TRUE),
+        wkly_qty = sum(wkly_qty, na.rm = TRUE)
+      ) %>%
+      ungroup() %>%
+      select(
+        wm_yr_wk,
+        date,
+        type,
+        n_stores,
+        sell_price,
+        wkly_qty
+      )
     
     if (nrow(df) == 0) {
       plot_ly() %>%
