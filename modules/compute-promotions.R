@@ -1499,7 +1499,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
       output$feature_histogram <- renderPlotly(quantity_histogram())
       output$feature_histogram_table <- renderDT(server = FALSE, quantity_histogram_table())
     } else if (input$histogram_selection == 'dispersion') {
-      output$histogram_slider <- renderUI(sliderInput(ns('dispersion_histogram_bin_size'), lang$bin_number, min = 1, max = 20, value = 5, step = 1))
+      output$histogram_slider <- renderUI(sliderInput(ns('dispersion_histogram_bin_size'), lang$bin_number, min = 2, max = 20, value = 5, step = 1))
       output$feature_histogram <- renderPlotly(dispersion_histogram())
       output$feature_histogram_table <- renderDT(dispersion_histogram_table())
     }
