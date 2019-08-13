@@ -49,16 +49,17 @@ parse_input <- function(input_file, gl, calendar_day, date_format = '%Y-%m-%d') 
     if (!all(column_info$pretty_name %in% nms)) {
       return(sprintf('Las siguientes columnas faltan en el archivo de entrada: %s', paste(setdiff(column_info$pretty_name, nms), collapse = ', ')))
     }
-    nms <- remap_names(column_info, columns = nms, target_col = 'name', inverse = TRUE)
+    previous_nms <- nms
+    nms <- remap_names(column_info, columns = nms, target_col = 'name', inverse = TRUE) %>% 
+      setNames(previous_nms)
     col_types <- generate_cols_spec(column_info, nms)
     x <- read_excel(
       path = input_file,
       sheet = 1,
       col_names = TRUE,
       col_types = col_types$excel_type
-      )
-    names(x) <- remap_names(column_info, columns = nms, target_col = 'name', inverse = TRUE)
-    x <- x %>% 
+      ) %>% 
+      plyr::rename(nms) %>%  
       .[column_info$name] %>% 
       mutate_at(
         col_types$name[col_types$type %in% c('date')],
