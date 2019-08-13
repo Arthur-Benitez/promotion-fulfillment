@@ -1716,7 +1716,7 @@ computePromotionsUI <- function(id) {
       ),
       uiOutput(ns('items_ui')),
       tags$div(
-        class = 'form-group',
+        class = 'form-group input-icon-container',
         actionButton(ns('show_instructions'), label = '', title = lang$show_instructions, icon = icon('question-circle'), class = 'input-icon'),
         downloadButton(ns('download_template'), label = '', title = lang$download_template, icon = icon('download'), class = 'input-icon'),
         actionButton(ns('run'), label = '', title = lang$run, icon = icon('play'), class = 'input-icon'),

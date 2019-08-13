@@ -134,13 +134,19 @@ h6,
 }
 
 /* Botones de controles */
+.input-icon-container {
+  display: flex;
+  justify-content: space-around;
+}
+
 .input-icon,
 .input-icon:active,
 .input-icon:focus,
 .input-icon:visited {
   margin: 0;
-  padding: 12px 12px 0 12px;
+  padding: 6px;
   font-size: 35px;
+  line-height: 0;
 }
 
 .input-icon,
