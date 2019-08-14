@@ -4,7 +4,7 @@
 
 ## Generar espeficicación de columnas para readr
 generate_cols_spec <- function(column_info, columns) {
-  types <- remap_names(column_info = column_info, columns = columns, target_col = 'type')
+  types <- remap_names(columns = columns, column_info = column_info, to_col = 'type')
   excel_types <- case_when(
     types %in% c('numeric', 'date', 'datetime') ~ types,
     types %in% c('character') ~ 'text',
@@ -50,7 +50,7 @@ parse_input <- function(input_file, gl, calendar_day, date_format = '%Y-%m-%d') 
       return(sprintf('Las siguientes columnas faltan en el archivo de entrada: %s', paste(setdiff(column_info$pretty_name, nms), collapse = ', ')))
     }
     previous_nms <- nms
-    nms <- remap_names(column_info, columns = nms, target_col = 'name', inverse = TRUE) %>% 
+    nms <- remap_names(columns = nms, column_info, from_col = 'pretty_name', to_col = 'name') %>% 
       setNames(previous_nms)
     col_types <- generate_cols_spec(column_info, nms)
     x <- read_excel(
@@ -720,7 +720,7 @@ generate_sample_input <- function(calendar_day, column_info) {
     EndDate = c(rep(Sys.Date() + 35, 4), rep(Sys.Date() + 49, 2)),
     Priority = 12
   )
-  names(info) <- remap_names(column_info, names(info), 'pretty_name')
+  names(info) <- remap_names(names(info), column_info, to_col = 'pretty_name')
   return(info)
 }
 
@@ -1304,8 +1304,8 @@ computePromotionsServer <- function(input, output, session, credentials) {
             scrollY = '500px',
             pageLength = 100
           ),
-          colnames = remap_names(gl$cols, names(.), 'pretty_name'),
-          callback = build_callback(remap_names(gl$cols, names(.), 'description'))
+          colnames = remap_names(names(.), gl$cols, to_col = 'pretty_name'),
+          callback = build_callback(remap_names(names(.), gl$cols, to_col = 'description'))
         ) %>%
         format_columns(gl$cols)
     }, error = function(e){
@@ -1336,8 +1336,8 @@ computePromotionsServer <- function(input, output, session, credentials) {
             scrollY = '500px',
             pageLength = 100
           ),
-          colnames = remap_names(gl$cols, names(.), 'pretty_name'),
-          callback = build_callback(remap_names(gl$cols, names(.), 'description'))
+          colnames = remap_names(names(.), gl$cols, to_col = 'pretty_name'),
+          callback = build_callback(remap_names(names(.), gl$cols, to_col = 'description'))
         ) %>%
         format_columns(gl$cols)
     }, error = function(e){
@@ -1453,8 +1453,8 @@ computePromotionsServer <- function(input, output, session, credentials) {
             scrollY = '200px',
             pageLength = 20
           ),
-          colnames = remap_names(gl$cols, names(.), 'pretty_name'),
-          callback = build_callback(remap_names(gl$cols, names(.), 'description'))
+          colnames = remap_names(names(.), gl$cols, to_col = 'pretty_name'),
+          callback = build_callback(remap_names(names(.), gl$cols, to_col = 'description'))
         ) %>%
         format_columns(gl$cols)
     }, error = function(e){
@@ -1484,8 +1484,8 @@ computePromotionsServer <- function(input, output, session, credentials) {
             scrollY = '200px',
             pageLength = 20
           ),
-          colnames = remap_names(gl$cols, names(.), 'pretty_name'),
-          callback = build_callback(remap_names(gl$cols, names(.), 'description'))
+          colnames = remap_names(names(.), gl$cols, to_col = 'pretty_name'),
+          callback = build_callback(remap_names(names(.), gl$cols, to_col = 'description'))
         ) %>%
         format_columns(gl$cols)
     }, error = function(e){
