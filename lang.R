@@ -68,7 +68,7 @@ lang <- list(
   compute_promotions_computation_parameters_title = 'Parámetros que afectan el cálculo de las exhibiciones.',
   compute_promotions_impact_parameters = 'Impacto',
   compute_promotions_impact_parameters_title = 'Parámetros que afectan el cálculo de impacto.',
-  date_format = 'Formato de fechas',
+  date_format = 'Formato de fechas en los archivos descargados',
   grafica_ventas = 'Promoción - Formato - Old_nbr',
   no_info = 'SIN INFORMACIÓN',
   input_grafica_ventas_title = 'Mostrar gráfica informativa de ventas y forecast.',
