@@ -947,26 +947,52 @@ computePromotionsServer <- function(input, output, session, credentials) {
   observeEvent(graph_table(), {
     r$is_running <- FALSE
   })
+  
+  output$input_resumen_grafica <- renderUI({
+    req(r$items)
+    req(is.data.frame(graph_table()))
+    req(isTRUE(input$graph_toggle))
+    ns <- session$ns
+    tags$div(
+      style = 'margin-left: 20px; margin-right: 20px',
+      selectInput(
+        ns('sales_summary_groups'),
+        label = lang$sales_summary_groups,
+        choices = c('feature_name', 'old_nbr', 'negocio', 'dept_nbr') %>% 
+          set_names(c(lang$feature_name, lang$old_nbr, lang$business, lang$departamento)),
+        multiple = TRUE,
+        selected = c('feature_name')
+      )
+    )
+  })
+  
+  graph_choices <- reactiveVal()
   output$input_grafica_ventas <- renderUI({
     req(r$items)
     req(is.data.frame(graph_table()))
     req(isTRUE(input$graph_toggle))
     ns <- session$ns
-    info <- graph_table() %>%
-      distinct_at(c('old_nbr', 'negocio', 'primary_desc'))
-    choices <- r$items %>% 
-      left_join(info, by = c('old_nbr', 'negocio')) %>% 
-      transmute(
-        name = paste0(feature_name, ' - ',negocio, ' - ', ifelse(is.na(primary_desc), lang$no_info, primary_desc), ' (', old_nbr, ')'),
-        combinacion = paste(feature_name, '::', old_nbr, '-', negocio)
-      ) %>%
-      distinct() %>% 
-      deframe()
+    if (length(input$sales_summary_groups) == 0) {
+      graph_choices('Todos')
+    } else {
+      if ('old_nbr' %in% input$sales_summary_groups) {
+        choice_columns <- c(input$sales_summary_groups, 'primary_desc')
+      } else {
+        choice_columns <- input$sales_summary_groups
+      }
+      graph_table() %>% 
+        right_join(r$items, by = c('old_nbr', 'negocio')) %>% 
+        select(choice_columns) %>% 
+        apply(1, paste, collapse = '-') %>% 
+        unique() %>% 
+        sort() %>% 
+        graph_choices()
+    }
     tags$div(
       class = 'inline-inputs',
       tags$div(
         style = 'margin-right: 20px',
-        selectInput(ns('input_grafica_ventas'), lang$grafica_ventas, choices = choices, width = '500px')
+        selectInput(ns('input_grafica_ventas'), lang$grafica_ventas, choices = graph_choices(), width = '600px')
       ),
       selectInput(
         ns('agg_grafica_ventas'),
@@ -991,17 +1017,47 @@ computePromotionsServer <- function(input, output, session, credentials) {
         shiny::need(!is.null(r$items) && isTRUE(input$graph_toggle), '') %then%
         shiny::need(!is.null(graph_table()), lang$plotting) %then%
         shiny::need(is.data.frame(graph_table()), lang$need_query_result) %then%
-        shiny::need(input$input_grafica_ventas, '')
+        shiny::need(input$input_grafica_ventas %in% graph_choices(), '')
     )
     flog.info(toJSON(list(
       session_info = msg_cred(credentials()),
       message = 'GENERATING SALES GRAPH',
       details = list()
     )))
-    
     df <- graph_table() %>% 
-      filter(paste(old_nbr, '-', negocio) == str_replace(input$input_grafica_ventas, ".+ :: ", '')) %>% 
-      na.omit()
+      right_join(r$items, by = c('old_nbr', 'negocio'))
+    if (length(input$sales_summary_groups) == 0) {
+      df$filtro <- 'Todos'
+    } else {
+      if ('old_nbr' %in% input$sales_summary_groups) {
+        filter_columns <- c(input$sales_summary_groups, 'primary_desc')
+      } else {
+        filter_columns <- input$sales_summary_groups
+      }
+      df$filtro <- df[filter_columns] %>% 
+        apply(1, paste, collapse = '-')
+    }
+    df <- df %>% 
+      filter(filtro == input$input_grafica_ventas) %>% 
+      mutate(avg_store_wkly_qty = wkly_qty / n_stores) %>% 
+      na.omit() %>% 
+      group_by(wm_yr_wk, date) %>% 
+      summarise(
+        type = unique(type),
+        avg_store_wkly_qty = sum(avg_store_wkly_qty, na.rm = TRUE),
+        sell_price = sum(sell_price * wkly_qty, na.rm = TRUE) / sum(wkly_qty, na.rm = TRUE),
+        wkly_qty = sum(wkly_qty, na.rm = TRUE)
+      ) %>%
+      ungroup() %>%
+      select(
+        wm_yr_wk,
+        date,
+        type,
+        avg_store_wkly_qty,
+        sell_price,
+        wkly_qty
+      )
+    
     if (nrow(df) == 0) {
       plot_ly() %>%
         add_text(x = 0, y = 0, text = lang$item_error, textfont = list(size = 40)) %>%
@@ -1030,9 +1086,9 @@ computePromotionsServer <- function(input, output, session, credentials) {
                       forecast) %>% 
         mutate(
           wkly_qty = case_when(
-            input$agg_grafica_ventas == 'avg' ~ wkly_qty / n_stores,
+            input$agg_grafica_ventas == 'avg' ~ avg_store_wkly_qty,
             input$agg_grafica_ventas == 'sum' ~ wkly_qty,
-            TRUE ~ wkly_qty / n_stores
+            TRUE ~ avg_store_wkly_qty
           ),
           dly_qty = wkly_qty / 7
         ) %>% 
@@ -1138,7 +1194,11 @@ computePromotionsServer <- function(input, output, session, credentials) {
     req(isTRUE(input$graph_toggle))
     ns <- session$ns
     tagList(
-      uiOutput(ns('input_grafica_ventas')),
+      tags$div(
+        class = 'inline-inputs',
+        uiOutput(ns('input_resumen_grafica')),
+        uiOutput(ns('input_grafica_ventas'))
+      ),
       plotlyOutput(ns('grafica_ventas'), height = gl$plotly_height) %>% withSpinner(type = 8)
     )
   })
