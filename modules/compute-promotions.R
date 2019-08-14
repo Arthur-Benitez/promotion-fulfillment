@@ -49,9 +49,7 @@ parse_input <- function(input_file, gl, calendar_day, date_format = '%Y-%m-%d') 
     if (!all(column_info$pretty_name %in% nms)) {
       return(sprintf('Las siguientes columnas faltan en el archivo de entrada: %s', paste(setdiff(column_info$pretty_name, nms), collapse = ', ')))
     }
-    previous_nms <- nms
-    nms <- remap_names(columns = nms, column_info, from_col = 'pretty_name', to_col = 'name') %>% 
-      setNames(previous_nms)
+    nms <- remap_names(columns = nms, column_info, from_col = 'pretty_name', to_col = 'name')
     col_types <- generate_cols_spec(column_info, nms)
     x <- read_excel(
       path = input_file,
@@ -59,7 +57,7 @@ parse_input <- function(input_file, gl, calendar_day, date_format = '%Y-%m-%d') 
       col_names = TRUE,
       col_types = col_types$excel_type
       ) %>% 
-      plyr::rename(nms) %>%  
+      magrittr::set_names(nms) %>%  
       .[column_info$name] %>% 
       mutate_at(
         col_types$name[col_types$type %in% c('date')],
