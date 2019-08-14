@@ -976,11 +976,12 @@ computePromotionsServer <- function(input, output, session, credentials) {
     }
     df <- df %>% 
       filter(filtro == input$input_grafica_ventas) %>% 
+      mutate(avg_store_wkly_qty = wkly_qty / n_stores) %>% 
       na.omit() %>% 
       group_by(wm_yr_wk, date) %>% 
       summarise(
         type = unique(type),
-        n_stores = sum(n_stores, na.rm = TRUE),
+        avg_store_wkly_qty = sum(avg_store_wkly_qty, na.rm = TRUE),
         sell_price = sum(sell_price * wkly_qty, na.rm = TRUE) / sum(wkly_qty, na.rm = TRUE),
         wkly_qty = sum(wkly_qty, na.rm = TRUE)
       ) %>%
@@ -989,7 +990,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
         wm_yr_wk,
         date,
         type,
-        n_stores,
+        avg_store_wkly_qty,
         sell_price,
         wkly_qty
       )
@@ -1022,9 +1023,9 @@ computePromotionsServer <- function(input, output, session, credentials) {
                       forecast) %>% 
         mutate(
           wkly_qty = case_when(
-            input$agg_grafica_ventas == 'avg' ~ wkly_qty / n_stores,
+            input$agg_grafica_ventas == 'avg' ~ avg_store_wkly_qty,
             input$agg_grafica_ventas == 'sum' ~ wkly_qty,
-            TRUE ~ wkly_qty / n_stores
+            TRUE ~ avg_store_wkly_qty
           ),
           dly_qty = wkly_qty / 7
         ) %>% 
