@@ -4,7 +4,7 @@
 
 ## Generar espeficicación de columnas para readr
 generate_cols_spec <- function(column_info, columns) {
-  types <- remap_names(column_info = column_info, columns = columns, target_col = 'type')
+  types <- remap_names(columns = columns, column_info = column_info, to_col = 'type')
   excel_types <- case_when(
     types %in% c('numeric', 'date', 'datetime') ~ types,
     types %in% c('character') ~ 'text',
@@ -46,9 +46,10 @@ parse_input <- function(input_file, gl, calendar_day, date_format = '%Y-%m-%d') 
   tryCatch({
     column_info <- gl$cols[gl$cols$is_input, ]
     nms <- names(readxl::read_excel(input_file, sheet = 1, n_max = 0))
-    if (!all(column_info$name %in% nms)) {
-      return(sprintf('Las siguientes columnas faltan en el archivo de entrada: %s', paste(setdiff(column_info$name, nms), collapse = ', ')))
+    if (!all(column_info$pretty_name %in% nms)) {
+      return(sprintf('Las siguientes columnas faltan en el archivo de entrada: %s', paste(setdiff(column_info$pretty_name, nms), collapse = ', ')))
     }
+    nms <- remap_names(columns = nms, column_info, from_col = 'pretty_name', to_col = 'name')
     col_types <- generate_cols_spec(column_info, nms)
     x <- read_excel(
       path = input_file,
@@ -56,6 +57,7 @@ parse_input <- function(input_file, gl, calendar_day, date_format = '%Y-%m-%d') 
       col_names = TRUE,
       col_types = col_types$excel_type
       ) %>% 
+      magrittr::set_names(nms) %>%  
       .[column_info$name] %>% 
       mutate_at(
         col_types$name[col_types$type %in% c('date')],
@@ -639,7 +641,7 @@ generate_dispersion_histogram_data <- function(output_filtered_data, bins = 5) {
 
 ## Generar el nombre de la promo para GRS
 generate_promo_name <- function(dept_nbr, user, feature_name) {
-  sprintf('MX_D%d_CM_%s_%s', dept_nbr, toupper(user), feature_name)
+  sprintf('MX_D%d_PF_%s_%s', dept_nbr, toupper(user), feature_name)
 }
 
 ## Generar el id de tienda en formato para GRS
@@ -690,7 +692,7 @@ generate_detail <- function(output_data) {
 }
 
 ## Generar input de ejemplo que siempre funcione
-generate_sample_input <- function(calendar_day) {
+generate_sample_input <- function(calendar_day, column_info) {
   fcst_wks <- calendar_day %>% 
     filter(date >= Sys.Date() + 0 & date <= Sys.Date() + 28) %>% 
     pull(wm_yr_wk) %>%
@@ -699,7 +701,7 @@ generate_sample_input <- function(calendar_day) {
     filter(date >= Sys.Date() - 90 & date <= Sys.Date() - 60) %>% 
     pull(wm_yr_wk) %>%
     range()
-  tibble(
+  info <- tibble(
     feature_name = c('MARUCHAN', 'MARUCHAN', 'MARUCHAN', 'MARUCHAN', 'MARUCHAN_MINI', 'MARUCHAN_MINI'),
     user = 'm1234xy',
     dept_nbr = 95,
@@ -716,6 +718,8 @@ generate_sample_input <- function(calendar_day) {
     EndDate = c(rep(Sys.Date() + 35, 4), rep(Sys.Date() + 49, 2)),
     Priority = 12
   )
+  names(info) <- remap_names(names(info), column_info, to_col = 'pretty_name')
+  return(info)
 }
 
 # Server ------------------------------------------------------------------
@@ -1298,8 +1302,8 @@ computePromotionsServer <- function(input, output, session, credentials) {
             scrollY = '500px',
             pageLength = 100
           ),
-          colnames = remap_names(gl$cols, names(.), 'pretty_name'),
-          callback = build_callback(remap_names(gl$cols, names(.), 'description'))
+          colnames = remap_names(names(.), gl$cols, to_col = 'pretty_name'),
+          callback = build_callback(remap_names(names(.), gl$cols, to_col = 'description'))
         ) %>%
         format_columns(gl$cols)
     }, error = function(e){
@@ -1330,8 +1334,8 @@ computePromotionsServer <- function(input, output, session, credentials) {
             scrollY = '500px',
             pageLength = 100
           ),
-          colnames = remap_names(gl$cols, names(.), 'pretty_name'),
-          callback = build_callback(remap_names(gl$cols, names(.), 'description'))
+          colnames = remap_names(names(.), gl$cols, to_col = 'pretty_name'),
+          callback = build_callback(remap_names(names(.), gl$cols, to_col = 'description'))
         ) %>%
         format_columns(gl$cols)
     }, error = function(e){
@@ -1447,8 +1451,8 @@ computePromotionsServer <- function(input, output, session, credentials) {
             scrollY = '200px',
             pageLength = 20
           ),
-          colnames = remap_names(gl$cols, names(.), 'pretty_name'),
-          callback = build_callback(remap_names(gl$cols, names(.), 'description'))
+          colnames = remap_names(names(.), gl$cols, to_col = 'pretty_name'),
+          callback = build_callback(remap_names(names(.), gl$cols, to_col = 'description'))
         ) %>%
         format_columns(gl$cols)
     }, error = function(e){
@@ -1478,8 +1482,8 @@ computePromotionsServer <- function(input, output, session, credentials) {
             scrollY = '200px',
             pageLength = 20
           ),
-          colnames = remap_names(gl$cols, names(.), 'pretty_name'),
-          callback = build_callback(remap_names(gl$cols, names(.), 'description'))
+          colnames = remap_names(names(.), gl$cols, to_col = 'pretty_name'),
+          callback = build_callback(remap_names(names(.), gl$cols, to_col = 'description'))
         ) %>%
         format_columns(gl$cols)
     }, error = function(e){
@@ -1494,7 +1498,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
       output$feature_histogram <- renderPlotly(quantity_histogram())
       output$feature_histogram_table <- renderDT(server = FALSE, quantity_histogram_table())
     } else if (input$histogram_selection == 'dispersion') {
-      output$histogram_slider <- renderUI(sliderInput(ns('dispersion_histogram_bin_size'), lang$bin_number, min = 1, max = 20, value = 5, step = 1))
+      output$histogram_slider <- renderUI(sliderInput(ns('dispersion_histogram_bin_size'), lang$bin_number, min = 2, max = 20, value = 5, step = 1))
       output$feature_histogram <- renderPlotly(dispersion_histogram())
       output$feature_histogram_table <- renderDT(dispersion_histogram_table())
     }
@@ -1559,7 +1563,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
   output$download_template <- downloadHandler(
     filename = 'promo-fulfillment-template.xlsx',
     content = function(file) {
-      x <- generate_sample_input(calendar_day)
+      x <- generate_sample_input(calendar_day, gl$cols)
       openxlsx::write.xlsx(x, file = file, sheetName = "pf-template", append = FALSE, row.names = FALSE)
     },
     # Excel content type
