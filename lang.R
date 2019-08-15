@@ -1,7 +1,10 @@
+require(purrr)
 
 lang <- list(
   ## login
   user = 'Usuario',
+  vp = 'Vicepresidencia',
+  all = 'Todos',
   password = 'Contraseña',
   role = 'Permisos',
   recover_password = 'Recuperar contraseña',
@@ -42,7 +45,7 @@ lang <- list(
   password_update = 'Actualizar contraseña',
   user_management = 'Administrar usuarios',
   button = 'Aplicar',
-  run = 'Correr',
+  run = 'Generar exhibiciones',
   reset = 'Reset',
   ok = 'Aceptar',
   cancel = 'Cancelar',
@@ -55,6 +58,7 @@ lang <- list(
   months = 'Meses',
   years = 'Años',
   help_title = 'Ayuda',
+  user_level_icon = '¡Hola %s!',
   ## Compute Promotions
   compute_promotions_inputs = 'Inputs',
   compute_promotions_inputs_title = 'Controles principales. Para más ayuda haz click en "(?) Instrucciones".',
@@ -76,8 +80,8 @@ lang <- list(
   download_summary = 'Resumen',
   download_header = 'HEADER',
   download_detail = 'DETAIL',
-  download_template = 'Formato',
-  show_instructions = 'Instrucciones',
+  download_template = 'Descargar formato',
+  show_instructions = 'Mostrar instrucciones',
   tab_input = 'Entradas',
   tab_output_histogram = 'Alcance',
   tab_output_summary = 'Resultados',
@@ -122,10 +126,28 @@ lang <- list(
   feature_name = 'Promoción',
   ## Usage Stats
   usage_stats = 'Utilización',
-  refresh = 'Refrescar',
-  split_by_clearance = 'Separar por nivel de permisos',
-  unique_users = 'Usuarios únicos',
-  unique_sessions = 'Sesiones únicas'
+  refresh = 'Refrescar logs',
+  update_user_info = 'Refrescar info de usuarios',
+  kpi = 'KPI',
+  message = 'Evento',
+  graph_daily_tab = 'Tendencia',
+  graph_daily_x = 'Eje temporal (eje x)',
+  graph_daily_split = 'Separar (color)',
+  graph_top_tab = 'Top',
+  graph_top_split = 'Separar (color)',
+  graph_top_x = 'Entidad (eje x)',
+  graph_top_nbar = 'Top N',
+  active_users = 'Usuarios activos',
+  p_active_users = 'Usuarios activos (% de VP)',
+  unique_sessions = 'Sesiones únicas',
+  n_actions = 'Acciones totales',
+  title_error = 'Error',
+  graph_top_clearance = 'Nivel de permisos',
+  graph_time_tab = 'Desempeño',
+  graph_time_title = 'Tiempo de ejecución en segundos',
+  graph_time_event = 'Evento',
+  graph_time_event_names = c('Query', 'Gráfica de ventas'),
+  detail_table_tab = 'Detalle'
 )
 
 lang$need_valid_input <- paste0('El archivo de items no está en el formato correcto.\n', lang$need_input_format)

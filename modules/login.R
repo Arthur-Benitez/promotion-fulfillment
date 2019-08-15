@@ -48,10 +48,13 @@ hash <- function(x) {
 
 ## Nivel de permisos de un rol
 role_clearance <- function(role, clearance_levels) {
+  if (length(role) == 0 || is.na(role)) {
+    return(Inf)
+  }
   lvls <- rep(Inf, length(role))
   idx <- role %in% names(clearance_levels)
   lvls[idx] <- clearance_levels[role[idx]]
-  min(lvls)
+  return(min(lvls))
 }
 
 ## Nivel de permisos de un usuario
@@ -510,7 +513,7 @@ logoutUI <- function(id) {
 }
 
 ## Server
-logoutServer <- function(input, output, session, user_auth, active) {
+logoutServer <- function(input, output, session, user_auth, active, is_running) {
   output$ui <- renderUI({
     ns <- session$ns
     tags$div(
@@ -526,17 +529,18 @@ logoutServer <- function(input, output, session, user_auth, active) {
   counter_sec <- 60
   counter_max <- 60 * 20
   rv <- reactiveValues(
-    counter = counter_max
+    tic = Sys.time(),
+    remaining = 0
   )
   ## El contador se resetea si se hace login, logout, run, reset o login Teradata
-  observeEvent(user_auth() + active() + input$button, {
-    rv$counter <- counter_max
+  observeEvent(user_auth() + active() + input$button + is_running(), {
+    rv$tic <- Sys.time()
   })
   ## Se restan un contador cada counter_sec
   timer <- reactiveTimer(1000)
   observeEvent(timer(), {
-    rv$counter <- rv$counter - 1
-    if (rv$counter <= 0) {
+    rv$remaining <- counter_max - as.numeric(difftime(Sys.time(), rv$tic, units = 'secs'))
+    if (rv$remaining <= 0) {
       shinyalert(
         title = lang$auto_logout_title,
         type = 'info'
@@ -545,8 +549,16 @@ logoutServer <- function(input, output, session, user_auth, active) {
     }
   })
   output$counter <- renderText({
-    s <- ifelse(rv$counter < counter_sec, '"', "'")
-    sprintf("%d%s", rv$counter %/% ifelse(rv$counter < counter_sec, 1, counter_sec), s)
+    s <- ifelse(rv$remaining < counter_sec, '"', "'")
+    sprintf(
+      "%d%s",
+      ifelse(
+        rv$remaining < counter_sec,
+        rv$remaining %/% 1,
+        rv$remaining %/% counter_sec
+      ),
+      s
+    )
   })
   shiny::reactive({input$button})
 }
