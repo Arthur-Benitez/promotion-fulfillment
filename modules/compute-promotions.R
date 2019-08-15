@@ -975,14 +975,12 @@ computePromotionsServer <- function(input, output, session, credentials) {
     if (length(input$sales_summary_groups) == 0) {
       graph_choices('Todos')
     } else {
-      if ('old_nbr' %in% input$sales_summary_groups) {
-        choice_columns <- c(input$sales_summary_groups, 'primary_desc')
-      } else {
-        choice_columns <- input$sales_summary_groups
-      }
       graph_table() %>% 
         right_join(r$items, by = c('old_nbr', 'negocio')) %>% 
-        select(choice_columns) %>% 
+        mutate(
+          old_nbr = paste0(primary_desc, ' (', old_nbr, ')')
+        ) %>% 
+        select(input$sales_summary_groups) %>% 
         apply(1, paste, collapse = '-') %>% 
         unique() %>% 
         sort() %>% 
@@ -1025,16 +1023,14 @@ computePromotionsServer <- function(input, output, session, credentials) {
       details = list()
     )))
     df <- graph_table() %>% 
-      right_join(r$items, by = c('old_nbr', 'negocio'))
+      right_join(r$items, by = c('old_nbr', 'negocio')) %>% 
+      mutate(
+        old_nbr = paste0(primary_desc, ' (', old_nbr, ')')
+      )
     if (length(input$sales_summary_groups) == 0) {
       df$filtro <- 'Todos'
     } else {
-      if ('old_nbr' %in% input$sales_summary_groups) {
-        filter_columns <- c(input$sales_summary_groups, 'primary_desc')
-      } else {
-        filter_columns <- input$sales_summary_groups
-      }
-      df$filtro <- df[filter_columns] %>% 
+      df$filtro <- df[input$sales_summary_groups] %>% 
         apply(1, paste, collapse = '-')
     }
     df <- df %>% 
