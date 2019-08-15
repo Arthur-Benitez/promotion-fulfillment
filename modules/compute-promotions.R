@@ -961,7 +961,8 @@ computePromotionsServer <- function(input, output, session, credentials) {
         choices = c('feature_name', 'old_nbr', 'negocio', 'dept_nbr') %>% 
           set_names(c(lang$feature_name, lang$old_nbr, lang$business, lang$departamento)),
         multiple = TRUE,
-        selected = c('feature_name')
+        selected = c('feature_name'),
+        width = '100%'
       )
     )
   })
@@ -987,15 +988,24 @@ computePromotionsServer <- function(input, output, session, credentials) {
         graph_choices()
     }
     tags$div(
+      id = 'graph_detail_inputs',
       class = 'inline-inputs',
-      tags$div(
-        style = 'margin-right: 20px',
-        selectInput(ns('input_grafica_ventas'), lang$grafica_ventas, choices = graph_choices(), width = '600px')
-      ),
       selectInput(
-        ns('agg_grafica_ventas'),
-        lang$agg_grafica_ventas,
-        choices = c('avg', 'sum') %>% set_names(lang$agg_grafica_ventas_names)
+        ns('input_grafica_ventas'),
+        lang$grafica_ventas,
+        choices = graph_choices(),
+        width = '75%'
+      ),
+      tags$div(
+        id = 'graph_agg_input',
+        style = 'margin-left: 20px; margin-right: 20px',
+        selectInput(
+          ns('agg_grafica_ventas'),
+          lang$agg_grafica_ventas,
+          choices = c('avg', 'sum') %>% 
+            set_names(lang$agg_grafica_ventas_names),
+          width = '100%'
+        )
       )
     )
   })
@@ -1191,7 +1201,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
     ns <- session$ns
     tagList(
       tags$div(
-        class = 'inline-inputs',
+        id = 'graph_inputs',
         uiOutput(ns('input_resumen_grafica')),
         uiOutput(ns('input_grafica_ventas'))
       ),

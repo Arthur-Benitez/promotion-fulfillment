@@ -318,3 +318,24 @@ table.dataTable thead tr td {
 #notification-buttons .shiny-input-container {
   margin: 10px;
 }
+
+#graph_inputs {
+  width: 100%;
+  display: inline-flex;
+}
+
+#compute_promotions-input_resumen_grafica {
+  width: 30%;
+}
+
+#compute_promotions-input_grafica_ventas {
+  width: 70%;
+}
+
+#graph_detail_inputs {
+  width: 100%;
+}
+
+#graph_agg_input {
+  width: 25%;
+}
