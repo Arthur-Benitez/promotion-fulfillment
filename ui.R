@@ -21,7 +21,8 @@ header <- dashboardHeader(
       title = lang$help_title,
       actionButton('help', '', icon = icon('question-circle'), class = 'header-icon')
     ),
-    uiOutput('logout_counter')
+    uiOutput('logout_counter'),
+    uiOutput('user_level_icon')
   )
 )
 

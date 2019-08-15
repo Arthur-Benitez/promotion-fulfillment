@@ -114,8 +114,8 @@ gl <- list(
       'dev'
     }
   },
-  app_version = '1.2.5',
-  app_version_date = '2019-07-25',
+  app_version = '1.3.3',
+  app_version_date = '2019-08-09',
   ## Compute promotions
   cols = tribble(
     ~name, ~type, ~is_constant_by_feature,
@@ -160,6 +160,7 @@ gl <- list(
     'sub_tipo'
   )
 )
+gl$is_dev <- gl$app_deployment_environment == 'dev'
 gl$app_version_text <- sprintf('Versión %s (%s)', gl$app_version, gl$app_version_date)
 gl$feature_const_cols <- gl$cols$name[gl$cols$is_constant_by_feature]
 
@@ -174,5 +175,12 @@ gl$clearance_levels <- c(
   'owner' = 0,
   'admin' = 1,
   'basic' = 2
+)
+
+gl$clearance_pal <- c(
+  all = rgb(0, 56, 150, maxColorValue = 255),
+  owner = rgb(26, 117, 207, maxColorValue = 255),
+  admin = rgb(253, 187, 48, maxColorValue = 255),
+  basic = rgb(51, 115, 33, maxColorValue = 255)
 )
 
