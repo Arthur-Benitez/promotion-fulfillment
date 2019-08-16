@@ -957,17 +957,14 @@ computePromotionsServer <- function(input, output, session, credentials) {
     req(is.data.frame(graph_table()))
     req(isTRUE(input$graph_toggle))
     ns <- session$ns
-    tags$div(
-      style = 'width: 100%;',
-      selectInput(
-        ns('sales_summary_groups'),
-        label = lang$sales_summary_groups,
-        choices = c('feature_name', 'old_nbr', 'negocio', 'dept_nbr') %>% 
-          set_names(c(lang$feature_name, lang$old_nbr, lang$business, lang$departamento)),
-        multiple = TRUE,
-        selected = c('feature_name'),
-        width = '100%'
-      )
+    selectInput(
+      ns('sales_summary_groups'),
+      label = lang$sales_summary_groups,
+      choices = c('feature_name', 'old_nbr', 'negocio', 'dept_nbr') %>% 
+        set_names(c(lang$feature_name, lang$old_nbr, lang$business, lang$departamento)),
+      multiple = TRUE,
+      selected = c('feature_name'),
+      width = '100%'
     )
   })
   
@@ -991,15 +988,11 @@ computePromotionsServer <- function(input, output, session, credentials) {
         sort() %>% 
         graph_choices()
     }
-    tags$div(
-      class = 'inline-inputs',
-      style = 'width: 100%;',
-      selectInput(
-        ns('input_grafica_ventas'),
-        lang$grafica_ventas,
-        choices = graph_choices(),
-        width = '100%'
-      )
+    selectInput(
+      ns('input_grafica_ventas'),
+      lang$grafica_ventas,
+      choices = graph_choices(),
+      width = '100%'
     )
   })
   
@@ -1008,15 +1001,12 @@ computePromotionsServer <- function(input, output, session, credentials) {
     req(is.data.frame(graph_table()))
     req(isTRUE(input$graph_toggle))
     ns <- session$ns
-    tags$div(
-      style = 'width: 100%;',
-      selectInput(
-        ns('agg_grafica_ventas'),
-        lang$agg_grafica_ventas,
-        choices = c('avg', 'sum') %>% 
-          set_names(lang$agg_grafica_ventas_names),
-        width = '100%'
-      )
+    selectInput(
+      ns('agg_grafica_ventas'),
+      lang$agg_grafica_ventas,
+      choices = c('avg', 'sum') %>% 
+        set_names(lang$agg_grafica_ventas_names),
+      width = '100%'
     )
   })
   
