@@ -339,3 +339,7 @@ table.dataTable thead tr td {
 #graph_agg_input {
   width: 25%;
 }
+
+#compute_promotions-dispersion_histogram_bin_size {
+  margin-left: 20px;
+}
