@@ -11,8 +11,8 @@ max_ddv	numeric	FALSE	TRUE	comma	1	Máximo de DDV	Tope máximo de días de venta
 semana_ini	numeric	TRUE	TRUE	character		Semana inicial cálculo	"Semana Walmart inicial para calcular forecast o ventas (debe ser a pasado si fcst_or_sales = ""S"" y a futuro si es = ""F"")."
 semana_fin	numeric	TRUE	TRUE	character		Semana final cálculo	"Semana Walmart final para calcular forecast o ventas (debe ser a pasado si fcst_or_sales = ""S"" y a futuro si es = ""F"")."
 fcst_or_sales	character	TRUE	TRUE	character		¿Forecast o ventas?	"""F"" para usar forecast y ""S"" para usar ventas."
-StartDate	date	TRUE	TRUE	date		StartDate	Fecha de inicio de efectividad de la promo. Hay que especificar el formato de la fecha al subir el archivo.
-EndDate	date	TRUE	TRUE	date		EndDate	Fecha de fin de efectividad de la promo. Hay que especificar el formato de la fecha al subir el archivo.
+StartDate	date	TRUE	TRUE	date		Promo StartDate	Fecha de inicio de efectividad de la promo. Hay que especificar el formato de la fecha al subir el archivo.
+EndDate	date	TRUE	TRUE	date		Promo EndDate	Fecha de fin de efectividad de la promo. Hay que especificar el formato de la fecha al subir el archivo.
 Priority	numeric	TRUE	TRUE	comma	0	Priority	Prioridad de la estrategia en el sistema.
 timestamp	datetime		FALSE	datetime		Timestamp	Timestamp
 cid	numeric		FALSE	character		CID	CID = repl_group_nbr en Teradata
@@ -39,7 +39,7 @@ store_name	character		FALSE	character		Nombre de la tienda	Nombre de la tienda (
 dc_nbr	numeric		FALSE	character		Número de CEDIS	Determinante del CEDIS al que está alineada la combinación.
 dc_name	character		FALSE	character		Nombre de CEDIS	Nombre del CEDIS al que está alineada la combinación.
 avg_dly_pos_or_fcst	numeric		FALSE	comma	2	Forecast o ventas promedio	"Forecast promedio si la bandera de forecast o ventas está en ""F"", y ventas promedio si está en ""S""."
-feature_perc_pos_or_fcst	numeric		FALSE	percent	1	Porcentaje de la exhibición	Porcentaje de la exhibición asignado al artículo.
+feature_perc_pos_or_fcst	numeric		FALSE	percent	1	Porcentaje de participación en la exhibición	Porcentaje de la exhibición asignado al artículo.
 feature_qty_req_min	numeric		FALSE	comma	1	Piezas mínimas del artículo	= Porcentaje de la exhibición * Mínimo de exhibición
 feature_qty_req	numeric		FALSE	comma	1	Sugerencia inicial (piezas)	= Porcentaje de la exhibición * Máximo de exhibición
 feature_ddv_req	numeric		FALSE	comma	1	Sugerencia inicial (DDV)	= Sugerencia inicial (piezas) / Forecast o ventas promedio
@@ -73,13 +73,13 @@ sub_tipo	numeric		FALSE	character		Sub tipo	Sub tipo.
 category_nbr	numeric		FALSE	character		Categoría	Categoría (primeros dos dígitos de la fineline).
 store_cost	numeric		FALSE	comma	2	Costo total	Costo total de la estrategia sin tomar en cuenta otros safeties (i.e. compra máxima).
 vnpk_fin	numeric		FALSE	comma	1	VNPK totales	Vendor packs totales de la estrategia sin tomar en cuenta otros safeties.
-sspress	numeric		FALSE	comma	1	SSPres	SSPres vigente al momento de la consulta.
-sspress_fut	numeric		FALSE	comma	1	SSPres futuro	SSPres promedio cargado en el periodo especificado por el usuario (i.e. entre StartDate y EndDate).
+sspress	numeric		FALSE	comma	1	SSPres actual	SSPres vigente al momento de la consulta.
+sspress_fut	numeric		FALSE	comma	1	SSPres futuro	SSPres promedio cargado en el periodo especificado por el usuario (i.e. entre Promo StartDate y Promo EndDate).
 base_press	numeric		FALSE	comma	1	Base Presentation	Base Presentation vigente al momento de la consulta.
 sspress_tot	numeric		FALSE	comma	1	SSPres + Base Presentation	SSPres + Base Presentation
 sspress_fut_tot	numeric		FALSE	comma	1	SSPres futuro + Base Presentation	SSPres + Base Presentation futuro
-sscov	numeric		FALSE	comma	1	SSCov	SSCov promedio en piezas en el periodo StartDate a EndDate
-sstemp	numeric		FALSE	comma	1	SSTemp	SSTemp promedio en piezas en el periodo StartDate a EndDate
+sscov	numeric		FALSE	comma	1	SSCov	SSCov promedio en piezas en el periodo Promo StartDate a Promo EndDate
+sstemp	numeric		FALSE	comma	1	SSTemp	SSTemp promedio en piezas en el periodo Promo StartDate a Promo EndDate
 sscov_tot	numeric		FALSE	comma	1	SSCov + SSTemp	SSCov + SSTemp
 min_ss	numeric		FALSE	comma	1	MinSS	MinSS vigente al momento de la consulta.
 max_ss	numeric		FALSE	comma	1	MaxSS	MaxSS vigente al momento de la consulta.
