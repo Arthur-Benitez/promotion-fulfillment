@@ -1201,7 +1201,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
     ns <- session$ns
     tagList(
       tags$div(
-        style = 'width: 100%; display: inline-flex;',
+        style = 'width: 100%; display: inline-flex; justify-content: space-around;',
         uiOutput(ns('sales_summary_groups')),
         uiOutput(ns('input_grafica_ventas')),
         uiOutput(ns('agg_grafica_ventas'))
