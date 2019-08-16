@@ -321,8 +321,6 @@ table.dataTable thead tr td {
 
 #compute_promotions-sales_summary_groups {
   width: 26%;
-  margin-left: 20px;
-  margin-right: 20px; 
 }
 
 #compute_promotions-input_grafica_ventas {
@@ -331,8 +329,6 @@ table.dataTable thead tr td {
 
 #compute_promotions-agg_grafica_ventas {
   width: 14%;
-  margin-left: 20px;
-  margin-right: 20px;
 }
 
 #compute_promotions-dispersion_histogram_bin_size {
