@@ -319,25 +319,20 @@ table.dataTable thead tr td {
   margin: 10px;
 }
 
-#graph_inputs {
-  width: 100%;
-  display: inline-flex;
-}
-
-#compute_promotions-input_resumen_grafica {
-  width: 30%;
+#compute_promotions-sales_summary_groups {
+  width: 26%;
+  margin-left: 20px;
+  margin-right: 20px; 
 }
 
 #compute_promotions-input_grafica_ventas {
-  width: 70%;
+  width: 53%;
 }
 
-#graph_detail_inputs {
-  width: 100%;
-}
-
-#graph_agg_input {
-  width: 25%;
+#compute_promotions-agg_grafica_ventas {
+  width: 14%;
+  margin-left: 20px;
+  margin-right: 20px;
 }
 
 #compute_promotions-dispersion_histogram_bin_size {
