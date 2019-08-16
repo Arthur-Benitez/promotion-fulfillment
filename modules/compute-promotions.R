@@ -595,7 +595,7 @@ generate_quantity_histogram_data <- function(output_filtered_data, bin_size = 0.
 }
 
 ## Tabla de histograma
-generate_dispersion_histogram_data <- function(output_filtered_data, bins_type = 'fixed') {
+generate_dispersion_histogram_data <- function(output_filtered_data, bins_type = 'fixed', bins = 12) {
   res <- output_filtered_data %>% 
     summarise_data(group = c('feature_name', 'store_nbr'))
   
@@ -603,7 +603,7 @@ generate_dispersion_histogram_data <- function(output_filtered_data, bins_type =
   if (bins_type == 'fixed') {
     cut_values <- c(0, 3, 7, 14, 21, 28, 35, 50, 75, 100, 150, 250, 350, 450, Inf)
   } else {
-    cut_values <- round(c(seq(0, max_ddv, length.out = 11), 2 * max_ddv, Inf))  
+    cut_values <- round(c(seq(0, max_ddv, length.out = bins - 1), 2 * max_ddv, Inf))  
   }
   cut_labels <- paste(
     head(cut_values, -1),
@@ -1440,7 +1440,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
   })
   dispersion_histogram_data <- reactive({
     req(final_results_filt())
-    generate_dispersion_histogram_data(final_results_filt(), bins_type = input$dispersion_bin_selection)
+    generate_dispersion_histogram_data(final_results_filt(), bins_type = input$dispersion_bin_selection, bins = input$dispersion_histogram_bin_size)
   })
   
   ## Histograma de alcance
@@ -1561,6 +1561,17 @@ computePromotionsServer <- function(input, output, session, credentials) {
     })
   })
   
+  output$dispersion_histogram_bin_size <- renderUI({
+    req(input$dispersion_bin_selection == 'calculated')
+    ns <- session$ns
+    sliderInput(
+      ns('dispersion_histogram_bin_size'),
+      lang$bin_number,
+      min = 2, max = 20, value = 12, step = 1,
+      width = '250'
+    )
+  })
+  
   observeEvent(input$histogram_selection, {
     ns <- session$ns
     if (input$histogram_selection == 'quantity') {
@@ -1570,11 +1581,16 @@ computePromotionsServer <- function(input, output, session, credentials) {
     } else if (input$histogram_selection == 'dispersion') {
       # output$histogram_slider <- renderUI(sliderInput(ns('dispersion_histogram_bin_size'), lang$bin_number, min = 2, max = 20, value = 5, step = 1))
       output$histogram_input <- renderUI(
-        selectInput(
-          ns('dispersion_bin_selection'),
-          label = lang$dispersion_bin_selection,
-          choices = c('fixed', 'calculated') %>% 
-            set_names(c(lang$dispersion_fixed_bins, lang$dispersion_calculated_bins))
+        tags$div(
+          class = 'form-group inline-inputs',
+          selectInput(
+            ns('dispersion_bin_selection'),
+            label = lang$dispersion_bin_selection,
+            choices = c('fixed', 'calculated') %>% 
+              set_names(c(lang$dispersion_fixed_bins, lang$dispersion_calculated_bins)),
+            width = '200px'
+          ),
+          uiOutput(ns('dispersion_histogram_bin_size'))
         )
       )
       output$feature_histogram <- renderPlotly(dispersion_histogram())
