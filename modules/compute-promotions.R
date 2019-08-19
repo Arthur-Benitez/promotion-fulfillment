@@ -1201,7 +1201,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
     ns <- session$ns
     tagList(
       tags$div(
-        style = 'width: 100%; display: inline-flex; justify-content: space-around;',
+        class = 'evenly-spaced-inputs',
         uiOutput(ns('sales_summary_groups_input'), style = 'width: 26%;'),
         uiOutput(ns('sales_graph_selector_input'), style = 'width: 53%;'),
         uiOutput(ns('sales_graph_agg_input'), style = 'width: 14%;')
@@ -1810,7 +1810,7 @@ computePromotionsUI <- function(id) {
       ),
       uiOutput(ns('items_ui')),
       tags$div(
-        class = 'form-group input-icon-container',
+        class = 'form-group evenly-spaced-inputs',
         actionButton(ns('show_instructions'), label = '', title = lang$show_instructions, icon = icon('question-circle'), class = 'input-icon'),
         downloadButton(ns('download_template'), label = '', title = lang$download_template, icon = icon('download'), class = 'input-icon'),
         actionButton(ns('run'), label = '', title = lang$run, icon = icon('play'), class = 'input-icon'),
