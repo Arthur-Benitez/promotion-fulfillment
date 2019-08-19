@@ -134,7 +134,8 @@ h6,
 }
 
 /* Botones de controles */
-.input-icon-container {
+.evenly-spaced-inputs {
+  width: 100%;
   display: flex;
   justify-content: space-around;
 }
