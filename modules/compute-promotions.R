@@ -1033,7 +1033,11 @@ computePromotionsServer <- function(input, output, session, credentials) {
       details = list()
     )))
     df <- graph_table() %>% 
-      right_join(r$items, by = c('old_nbr', 'negocio')) %>% 
+      right_join(
+        y = r$items[c('old_nbr', 'negocio', 'dept_nbr', intersect('feature_name', input$sales_summary_groups))],
+        by = c('old_nbr', 'negocio')
+      ) %>% 
+      unique() %>% 
       mutate(
         old_nbr = paste0(primary_desc, ' (', old_nbr, ')')
       )
