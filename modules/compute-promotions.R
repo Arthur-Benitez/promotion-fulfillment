@@ -952,7 +952,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
     r$is_running <- FALSE
   })
   
-  output$sales_summary_groups <- renderUI({
+  output$sales_summary_groups_input <- renderUI({
     req(r$items)
     req(is.data.frame(graph_table()))
     req(isTRUE(input$graph_toggle))
@@ -969,7 +969,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
   })
   
   graph_choices <- reactiveVal()
-  output$input_grafica_ventas <- renderUI({
+  output$sales_graph_selector_input <- renderUI({
     req(r$items)
     req(is.data.frame(graph_table()))
     req(isTRUE(input$graph_toggle))
@@ -989,23 +989,23 @@ computePromotionsServer <- function(input, output, session, credentials) {
         graph_choices()
     }
     selectInput(
-      ns('input_grafica_ventas'),
+      ns('sales_graph_selector'),
       lang$grafica_ventas,
       choices = graph_choices(),
       width = '100%'
     )
   })
   
-  output$agg_grafica_ventas <- renderUI({
+  output$sales_graph_agg_input <- renderUI({
     req(r$items)
     req(is.data.frame(graph_table()))
     req(isTRUE(input$graph_toggle))
     ns <- session$ns
     selectInput(
-      ns('agg_grafica_ventas'),
-      lang$agg_grafica_ventas,
+      ns('sales_graph_agg'),
+      lang$sales_graph_agg,
       choices = c('avg', 'sum') %>% 
-        set_names(lang$agg_grafica_ventas_names),
+        set_names(lang$sales_graph_agg_names),
       width = '100%'
     )
   })
@@ -1025,7 +1025,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
         shiny::need(!is.null(r$items) && isTRUE(input$graph_toggle), '') %then%
         shiny::need(!is.null(graph_table()), lang$plotting) %then%
         shiny::need(is.data.frame(graph_table()), lang$need_query_result) %then%
-        shiny::need(input$input_grafica_ventas %in% graph_choices(), '')
+        shiny::need(input$sales_graph_selector %in% graph_choices(), '')
     )
     flog.info(toJSON(list(
       session_info = msg_cred(credentials()),
@@ -1044,7 +1044,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
         apply(1, paste, collapse = '-')
     }
     df <- df %>% 
-      filter(filtro == input$input_grafica_ventas) %>% 
+      filter(filtro == input$sales_graph_selector) %>% 
       mutate(avg_store_wkly_qty = wkly_qty / n_stores) %>% 
       na.omit() %>% 
       group_by(wm_yr_wk, date) %>% 
@@ -1092,8 +1092,8 @@ computePromotionsServer <- function(input, output, session, credentials) {
                       forecast) %>% 
         mutate(
           wkly_qty = case_when(
-            input$agg_grafica_ventas == 'avg' ~ avg_store_wkly_qty,
-            input$agg_grafica_ventas == 'sum' ~ wkly_qty,
+            input$sales_graph_agg == 'avg' ~ avg_store_wkly_qty,
+            input$sales_graph_agg == 'sum' ~ wkly_qty,
             TRUE ~ avg_store_wkly_qty
           ),
           dly_qty = wkly_qty / 7
@@ -1163,7 +1163,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
         ) %>% 
         layout(
           title = list(
-            text = sprintf("Ventas semanales en piezas (%s)", lang$agg_grafica_ventas_names[input$agg_grafica_ventas])
+            text = sprintf("Ventas semanales en piezas (%s)", lang$sales_graph_agg_names[input$sales_graph_agg])
             #x = 0.07
           ),
           xaxis = list(
@@ -1202,9 +1202,9 @@ computePromotionsServer <- function(input, output, session, credentials) {
     tagList(
       tags$div(
         style = 'width: 100%; display: inline-flex; justify-content: space-around;',
-        uiOutput(ns('sales_summary_groups')),
-        uiOutput(ns('input_grafica_ventas')),
-        uiOutput(ns('agg_grafica_ventas'))
+        uiOutput(ns('sales_summary_groups_input'), style = 'width: 26%;'),
+        uiOutput(ns('sales_graph_selector_input'), style = 'width: 53%;'),
+        uiOutput(ns('sales_graph_agg_input'), style = 'width: 14%;')
       ),
       plotlyOutput(ns('grafica_ventas'), height = gl$plotly_height) %>% withSpinner(type = 8)
     )
@@ -1576,7 +1576,6 @@ computePromotionsServer <- function(input, output, session, credentials) {
       output$feature_histogram <- renderPlotly(quantity_histogram())
       output$feature_histogram_table <- renderDT(server = FALSE, quantity_histogram_table())
     } else if (input$histogram_selection == 'dispersion') {
-      # output$histogram_slider <- renderUI(sliderInput(ns('dispersion_histogram_bin_size'), lang$bin_number, min = 2, max = 20, value = 5, step = 1))
       output$histogram_input <- renderUI(
         tags$div(
           class = 'form-group inline-inputs',
@@ -1587,7 +1586,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
               set_names(c(lang$dispersion_fixed_bins, lang$dispersion_calculated_bins)),
             width = '200px'
           ),
-          uiOutput(ns('dispersion_histogram_bin_size'))
+          uiOutput(ns('dispersion_histogram_bin_size'), style = 'margin-left: 20px;')
         )
       )
       output$feature_histogram <- renderPlotly(dispersion_histogram())
@@ -1819,7 +1818,7 @@ computePromotionsUI <- function(id) {
       ),
       tags$div(
         class = 'form-group',
-        title = lang$input_grafica_ventas_title,
+        title = lang$sales_graph_selector_title,
         shinyWidgets::materialSwitch(ns('graph_toggle'), tags$b(lang$graph_toggle), value = FALSE, status = 'info')
       ),
       h3(
