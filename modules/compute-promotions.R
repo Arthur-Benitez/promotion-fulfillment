@@ -1808,6 +1808,17 @@ computePromotionsServer <- function(input, output, session, credentials) {
     contentType = 'text/csv'
   )
   
+  output$impact_toggle_ui <- renderUI({
+    req(input$sspres_benchmark_toggle != 'none')
+    ns <- session$ns
+    selectInput(
+      ns('impact_toggle'),
+      label = lang$impact_toggle,
+      choices = c('add', 'swap') %>% 
+        set_names(lang$impact_toggle_names)
+    )
+  })
+  
   ## Regresar conexión dev para que se use en otros módulos
   reactive(reactiveValuesToList(r))
 }
@@ -1882,12 +1893,7 @@ computePromotionsUI <- function(id) {
       ),
       tags$div(
         title = lang$impact_toggle_title,
-        selectInput(
-          ns('impact_toggle'),
-          label = lang$impact_toggle,
-          choices = c('add', 'swap') %>% 
-            set_names(lang$impact_toggle_names)
-        )
+        uiOutput(ns('impact_toggle_ui'))
       )
     ),
     tabBox(
