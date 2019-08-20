@@ -131,7 +131,7 @@ lang <- list(
   ## Variables
   dc = 'CEDIS',
   store_nbr = 'Tienda',
-  cid = 'Artículo',
+  cid = 'CID',
   old_nbr = 'Artículo',
   feature_name = 'Promoción',
   business = 'Negocio',

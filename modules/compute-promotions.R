@@ -960,8 +960,8 @@ computePromotionsServer <- function(input, output, session, credentials) {
     selectInput(
       ns('sales_summary_groups'),
       label = lang$sales_summary_groups,
-      choices = c('feature_name', 'old_nbr', 'negocio', 'dept_nbr') %>% 
-        set_names(c(lang$feature_name, lang$old_nbr, lang$business, lang$departamento)),
+      choices = c('feature_name', 'old_nbr', 'negocio', 'dept_nbr', 'cid') %>% 
+        set_names(c(lang$feature_name, lang$old_nbr, lang$business, lang$departamento, lang$cid)),
       multiple = TRUE,
       selected = c('feature_name'),
       width = '100%'
@@ -977,12 +977,28 @@ computePromotionsServer <- function(input, output, session, credentials) {
     if (length(input$sales_summary_groups) == 0) {
       graph_choices('Todos')
     } else {
-      graph_table() %>% 
+      table <- graph_table()
+      if ('cid' %in% input$sales_summary_groups) {
+        table <- table %>% 
+          group_by(cid) %>% 
+          mutate(
+            primary_desc = first(primary_desc)
+          ) %>% 
+          ungroup()
+      }
+      group_cols <- input$sales_summary_groups %>% 
+        replace(input$sales_summary_groups == 'old_nbr', 'old_nbr_desc')
+      if (!('old_nbr' %in% input$sales_summary_groups)) {
+        group_cols <- group_cols %>% 
+          replace(group_cols == 'cid', 'cid_desc')
+      }
+      table %>% 
         right_join(r$items, by = c('old_nbr', 'negocio')) %>% 
         mutate(
-          old_nbr = paste0(primary_desc, ' (', old_nbr, ')')
+          old_nbr_desc = paste0(primary_desc, ' (', old_nbr, ')'),
+          cid_desc = paste0(primary_desc, ' (', cid, ')')
         ) %>% 
-        select(input$sales_summary_groups) %>% 
+        select(group_cols) %>% 
         apply(1, paste, collapse = '-') %>% 
         unique() %>% 
         sort() %>% 
@@ -1032,15 +1048,28 @@ computePromotionsServer <- function(input, output, session, credentials) {
       message = 'GENERATING SALES GRAPH',
       details = list()
     )))
-    df <- graph_table() %>% 
+    df <- graph_table()
+    df <- df %>% 
       right_join(r$items, by = c('old_nbr', 'negocio')) %>% 
+      group_by(cid) %>% 
       mutate(
-        old_nbr = paste0(primary_desc, ' (', old_nbr, ')')
+        primary_desc = first(primary_desc)
+      ) %>%
+      ungroup() %>% 
+      mutate(
+        old_nbr_desc = paste0(primary_desc, ' (', old_nbr, ')'),
+        cid_desc = paste0(primary_desc, ' (', cid, ')')
       )
-    if (length(input$sales_summary_groups) == 0) {
+    group_cols <- input$sales_summary_groups %>%
+      replace(input$sales_summary_groups == 'old_nbr', 'old_nbr_desc')
+    if (!('old_nbr' %in% input$sales_summary_groups)) {
+      group_cols <- group_cols %>%
+        replace(group_cols == 'cid', 'cid_desc')
+    }
+    if (length(group_cols) == 0) {
       df$filtro <- 'Todos'
     } else {
-      df$filtro <- df[input$sales_summary_groups] %>% 
+      df$filtro <- df[group_cols] %>% 
         apply(1, paste, collapse = '-')
     }
     df <- df %>% 
@@ -1202,8 +1231,8 @@ computePromotionsServer <- function(input, output, session, credentials) {
     tagList(
       tags$div(
         class = 'evenly-spaced-inputs',
-        uiOutput(ns('sales_summary_groups_input'), style = 'width: 26%;'),
-        uiOutput(ns('sales_graph_selector_input'), style = 'width: 53%;'),
+        uiOutput(ns('sales_summary_groups_input'), style = 'width: 29%;'),
+        uiOutput(ns('sales_graph_selector_input'), style = 'width: 50%;'),
         uiOutput(ns('sales_graph_agg_input'), style = 'width: 14%;')
       ),
       plotlyOutput(ns('grafica_ventas'), height = gl$plotly_height) %>% withSpinner(type = 8)
