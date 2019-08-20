@@ -545,7 +545,7 @@ summarise_data <- function(data, group = c('feature_name', 'cid')) {
 }
 
 ## Tabla de histograma
-generate_quantity_histogram_data <- function(output_filtered_data, bin_size = 0.2) {
+generate_quantity_histogram_data <- function(output_filtered_data, bins = 10) {
   res <- output_filtered_data %>% 
     summarise_data(group = c('feature_name', 'store_nbr')) %>% 
     ungroup() %>% 
@@ -553,16 +553,15 @@ generate_quantity_histogram_data <- function(output_filtered_data, bin_size = 0.
       perc_max_feature_qty = round(total_qty / max_feature_qty, 5)
     )
   
-  max_bin <- bin_size * ceiling(max(res$perc_max_feature_qty) / bin_size)
-  cut_values <- seq(0, max(max_bin, 0), by = bin_size)
+  cut_values <- seq(0, 1, length.out = bins + 1)
   cut_labels <- paste(
     scales::percent(head(cut_values, -1), accuracy = 1),
     scales::percent(cut_values[-1], accuracy = 1),
     sep = ' - '
   )
-  
   res %>% 
     mutate(
+      perc_max_feature_qty = pmin(1, perc_max_feature_qty),
       perc_max_feature_qty_bin = cut(perc_max_feature_qty,
                                      breaks = cut_values,
                                      labels = cut_labels,
@@ -1462,11 +1461,11 @@ computePromotionsServer <- function(input, output, session, credentials) {
   })
   quantity_histogram_data <- reactive({
     req(final_results_filt())
-    generate_quantity_histogram_data(final_results_filt(), bin_size = input$quantity_histogram_bin_size)
+    generate_quantity_histogram_data(final_results_filt(), bins = input$quantity_histogram_bin_number)
   })
   dispersion_histogram_data <- reactive({
     req(final_results_filt())
-    generate_dispersion_histogram_data(final_results_filt(), bins_type = input$dispersion_bin_selection, bins = input$dispersion_histogram_bin_size)
+    generate_dispersion_histogram_data(final_results_filt(), bins_type = input$dispersion_bin_selection, bins = input$dispersion_histogram_bin_number)
   })
   
   ## Histograma de alcance
@@ -1587,11 +1586,11 @@ computePromotionsServer <- function(input, output, session, credentials) {
     })
   })
   
-  output$dispersion_histogram_bin_size <- renderUI({
+  output$dispersion_histogram_bin_number_ui <- renderUI({
     req(input$dispersion_bin_selection == 'calculated')
     ns <- session$ns
     sliderInput(
-      ns('dispersion_histogram_bin_size'),
+      ns('dispersion_histogram_bin_number'),
       lang$bin_number,
       min = 2, max = 20, value = 12, step = 1,
       width = '250'
@@ -1601,7 +1600,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
   observeEvent(input$histogram_selection, {
     ns <- session$ns
     if (input$histogram_selection == 'quantity') {
-      output$histogram_input <- renderUI(sliderInput(ns('quantity_histogram_bin_size'), lang$bin_size, min = 0.05, max = 0.5, value = 0.10, step = 0.05))
+      output$histogram_input <- renderUI(sliderInput(ns('quantity_histogram_bin_number'), lang$bin_number, min = 2, max = 20, value = 10, step = 1))
       output$feature_histogram <- renderPlotly(quantity_histogram())
       output$feature_histogram_table <- renderDT(server = FALSE, quantity_histogram_table())
     } else if (input$histogram_selection == 'dispersion') {
@@ -1615,7 +1614,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
               set_names(c(lang$dispersion_fixed_bins, lang$dispersion_calculated_bins)),
             width = '200px'
           ),
-          uiOutput(ns('dispersion_histogram_bin_size'), style = 'margin-left: 20px;')
+          uiOutput(ns('dispersion_histogram_bin_number_ui'), style = 'margin-left: 20px;')
         )
       )
       output$feature_histogram <- renderPlotly(dispersion_histogram())
