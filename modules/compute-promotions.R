@@ -1652,7 +1652,12 @@ computePromotionsServer <- function(input, output, session, credentials) {
         message = 'DOWNLOADING COMPUTATIONS FILE',
         details = list()
       )))
-      write_excel_csv(final_result(), path = file, na = '')
+      write_excel_csv(
+        final_result() %>% 
+          magrittr::set_names(remap_names(names(.), column_info = gl$cols)),
+        path = file,
+        na = ''
+      )
     },
     contentType = 'text/csv'
   )
@@ -1673,7 +1678,12 @@ computePromotionsServer <- function(input, output, session, credentials) {
         message = 'DOWNLOADING SUMMARY FILE',
         details = list()
       )))
-      write_excel_csv(summary_table(), path = file, na = '')
+      write_excel_csv(
+        summary_table() %>% 
+          magrittr::set_names(remap_names(names(.), column_info = gl$cols)),
+        path = file,
+        na = ''
+      )
     },
     contentType = 'text/csv'
   )
