@@ -133,6 +133,7 @@ gl <- list(
     'OTRO'
   ),
   max_input_rows = 100,
+  max_output_rows = 100000,
   max_input_queries = 10,
   plotly_height = 300
 )
