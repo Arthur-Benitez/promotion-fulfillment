@@ -9,10 +9,6 @@ shinyServer(function(input, output, session){
   log_dir <- paste0(gl$app_deployment_environment, '/log/')
   init_log(log_dir)
   
-  output$logout_counter <- renderUI({
-    logoutUI('logout')
-  })
-  
   output$user_level_icon <- renderUI({
     req(credentials()$user_auth)
     icn_name <- switch(

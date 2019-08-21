@@ -3,18 +3,18 @@
 # Funciones ---------------------------------------------------------------
 
 ## Generar espeficicación de columnas para readr
-generate_cols_spec <- function(columns, types, date_format = '%Y-%m-%d') {
-  cs <- cols(.default = col_character())
-  for (i in seq_along(columns)) {
-    cs$cols[[columns[i]]] <- switch(
-      types[i],
-      'integer' = col_integer(),
-      'numeric' = col_double(),
-      'character' = col_character(),
-      'date' = col_date(format = date_format)
-    )
-  }
-  cs
+generate_cols_spec <- function(column_info, columns) {
+  types <- remap_names(columns = columns, column_info = column_info, to_col = 'type')
+  excel_types <- case_when(
+    types %in% c('numeric', 'date', 'datetime') ~ types,
+    types %in% c('character') ~ 'text',
+    TRUE ~ 'text'
+  )
+  tibble(
+    name = columns,
+    type = types,
+    excel_type = excel_types
+  )
 }
 
 ## Decide que alerta mostrar
@@ -40,17 +40,29 @@ alert_param <- function(good_features, empty_features, timestamp) {
 
 ## Leer entrada
 parse_input <- function(input_file, gl, calendar_day, date_format = '%Y-%m-%d') {
+  if (tools::file_ext(input_file) != 'xlsx') {
+    return('¡Cuidado! De ahora en adelante, el template de carga debe estar en formato de Excel (.xlsx). Te sugerimos que descarges el formato ejemplo de nuevo.')
+  }
   tryCatch({
-    nms <- names(read_csv(input_file, n_max = 0))
-    if (!all(gl$cols$name %in% nms)) {
-      return(sprintf('Las siguientes columnas faltan en el archivo de entrada: %s', paste(setdiff(gl$cols$name, nms), collapse = ', ')))
+    column_info <- gl$cols[gl$cols$is_input, ]
+    nms <- names(readxl::read_excel(input_file, sheet = 1, n_max = 0))
+    if (!all(column_info$pretty_name %in% nms)) {
+      return(sprintf('Las siguientes columnas faltan en el archivo de entrada: %s', paste(setdiff(column_info$pretty_name, nms), collapse = ', ')))
     }
-    x <- read_csv(
-      file = input_file,
+    nms <- remap_names(columns = nms, column_info, from_col = 'pretty_name', to_col = 'name')
+    col_types <- generate_cols_spec(column_info, nms)
+    x <- read_excel(
+      path = input_file,
+      sheet = 1,
       col_names = TRUE,
-      col_types = generate_cols_spec(gl$cols$name, gl$cols$type, date_format = date_format)
-    ) %>% 
-      .[gl$cols$name] %>% 
+      col_types = col_types$excel_type
+      ) %>% 
+      magrittr::set_names(nms) %>%  
+      .[column_info$name] %>% 
+      mutate_at(
+        col_types$name[col_types$type %in% c('date')],
+        as.Date
+      ) %>% 
       mutate(
         fcst_or_sales = toupper(fcst_or_sales),
         display_key = paste(dept_nbr, old_nbr, negocio, sep = '.'),
@@ -70,11 +82,12 @@ parse_input <- function(input_file, gl, calendar_day, date_format = '%Y-%m-%d') 
 
 ## Validar inputs
 validate_input <- function(data, gl, calendar_day) {
+  column_info <- gl$cols[gl$cols$is_input, ]
   if (
     ## Condiciones básicas
     !is.data.frame(data) ||
     nrow(data) == 0 ||
-    length(setdiff(gl$cols$name, names(data))) > 0
+    length(setdiff(column_info$name, names(data))) > 0
   ) {
     return(FALSE)
   } else {
@@ -87,7 +100,7 @@ validate_input <- function(data, gl, calendar_day) {
       cond <- tribble(
         ~message, ~passed,
         ## Checar que no haya valores faltantes
-        'No puede haber valores faltantes (blanks). Esto se debe comúnmente a que la fecha está en un formato incorrecto',
+        'No puede haber valores faltantes (blanks). Esto se debe comúnmente a que la fecha está almacenada como texto en Excel. Asegúrate de que Excel reconozca las fechas.',
         !anyNA(data),
         ## Checar que feature_name sea de longitid <= 22 caracteres (para que en total sean <= 40 para GRS)
         'feature_name no puede tener más de 22 caracteres',
@@ -429,8 +442,10 @@ perform_computations <- function(data, data_ss = NULL, min_feature_qty_toggle = 
     data <- data %>%
       mutate(
         sspress = 0,
+        sspress_fut = 0,
         base_press = 0,
         sspress_tot = 0,
+        sspress_fut_tot = 0,
         sscov = 0,
         sstemp = 0,
         sscov_tot = 0,
@@ -441,7 +456,7 @@ perform_computations <- function(data, data_ss = NULL, min_feature_qty_toggle = 
       )
   } else {
     data <- data %>%
-      left_join(data_ss, by = c("feature_name", "store_nbr", "negocio", "old_nbr", "item_nbr")) 
+      left_join(data_ss, by = c("feature_name", "store_nbr", "negocio", "old_nbr", "item_nbr"))
   }
   
   if (sspres_benchmark_toggle == 'none') {
@@ -449,9 +464,7 @@ perform_computations <- function(data, data_ss = NULL, min_feature_qty_toggle = 
   } else if (sspres_benchmark_toggle == 'current') {
     data$comp_sspress <- data$sspress
   } else if (sspres_benchmark_toggle == 'future') {
-    # Aún no existe la columna
-    # data$comp_sspress <- data$sspress_future
-    data$comp_sspress <- data$sspress
+    data$comp_sspress <- data$sspress_fut
   }
   
   data <- data %>%
@@ -483,22 +496,22 @@ summarise_data <- function(data, group = c('feature_name', 'cid')) {
   ## Checks
   stopifnot(is.null(group) || all(group %in% c('feature_name', 'store_nbr', 'cid', 'dc_nbr')))
   ## Cambios a combinaciones específicas
-  if ('cid' %in% group) {
-    group <- c(group, 'old_nbr', 'primary_desc')
-  }
-  if ('dc_nbr' %in% group) {
-    group <- c(group, 'dc_name')
-  }
+  extra_groups <- list(
+    'cid' = c('old_nbr', 'primary_desc'),
+    'dc_nbr' = c('dc_name'),
+    'store_nbr' = c('store_name')
+  )
+  group <- c(group, unlist(extra_groups[intersect(names(extra_groups), group)]))
   if (is.null(group)) {
     group <- 'feature_name'
     data <- data %>% 
       mutate(feature_name = 'Total')
   }
   ## Grupos de tabla de salida
-  group_order <- c('feature_name', 'store_nbr', 'cid', 'old_nbr', 'primary_desc', 'dc_nbr', 'dc_name')
+  group_order <- c('feature_name', 'store_nbr', 'store_name', 'cid', 'old_nbr', 'primary_desc', 'dc_nbr', 'dc_name')
   grp <- group_order[group_order %in% group]
   ## Variables numéricas de tabla de salida
-  vv <- c('avg_dly_sales', 'avg_dly_forecast', 'min_feature_qty', 'max_feature_qty', 'total_cost', 'total_impact_cost', 'total_qty', 'total_impact_qty', 'total_ddv', 'total_impact_ddv', 'total_vnpk', 'total_impact_vnpk')
+  vv <- c('avg_dly_sales', 'avg_dly_forecast', 'min_feature_qty', 'max_feature_qty', 'max_ddv', 'total_cost', 'total_impact_cost', 'total_qty', 'total_impact_qty', 'total_ddv', 'total_impact_ddv', 'total_vnpk', 'total_impact_vnpk')
   if ('store_nbr' %in% grp) {
     val_vars <- vv
   } else {
@@ -514,6 +527,7 @@ summarise_data <- function(data, group = c('feature_name', 'cid')) {
       avg_dly_forecast = ifelse(any(fcst_or_sales == 'F'), sum(avg_dly_pos_or_fcst[fcst_or_sales=='F'], na.rm = TRUE), NA_real_),
       min_feature_qty = mean(min_feature_qty, na.rm = TRUE),
       max_feature_qty = mean(max_feature_qty, na.rm = TRUE),
+      max_ddv = sum(max_ddv * avg_dly_pos_or_fcst, na.rm = TRUE) / sum(avg_dly_pos_or_fcst, na.rm = TRUE),
       total_cost = sum(store_cost, na.rm = TRUE),
       total_impact_cost = sum(impact_cost, na.rm = TRUE),
       total_qty = sum(feature_qty_fin, na.rm = TRUE),
@@ -523,7 +537,7 @@ summarise_data <- function(data, group = c('feature_name', 'cid')) {
       total_vnpk = sum(vnpk_fin, na.rm = TRUE),
       total_impact_vnpk = sum(impact_vnpk, na.rm = TRUE)
     ) %>% 
-    ungroup() %>% 
+    group_by(!!!syms(grp)) %>% # Agrupar para guardar la info de los grupos afuera y fijar las columnas correctamente
     arrange(!!!syms(grp)) %>% 
     select(!!!syms(grp), !!!syms(val_vars))
   
@@ -531,7 +545,7 @@ summarise_data <- function(data, group = c('feature_name', 'cid')) {
 }
 
 ## Tabla de histograma
-generate_histogram_data <- function(output_filtered_data, bin_size = 0.2) {
+generate_quantity_histogram_data <- function(output_filtered_data, bin_size = 0.2) {
   res <- output_filtered_data %>% 
     summarise_data(group = c('feature_name', 'store_nbr')) %>% 
     ungroup() %>% 
@@ -554,7 +568,8 @@ generate_histogram_data <- function(output_filtered_data, bin_size = 0.2) {
                                      labels = cut_labels,
                                      include.lowest = TRUE),
       temp_cost = total_cost, # Creadas para evitar name clashes en el summarise
-      temp_qty = total_qty
+      temp_qty = total_qty,
+      temp_avg_store_dly_pos_or_fcst = coalesce(avg_dly_sales, avg_dly_forecast)
     ) %>% 
     group_by(perc_max_feature_qty_bin) %>% 
     summarise(
@@ -564,10 +579,11 @@ generate_histogram_data <- function(output_filtered_data, bin_size = 0.2) {
       total_qty = sum(temp_qty),
       avg_store_qty = mean(temp_qty),
       fcst_or_sales = ifelse(any(is.na(avg_dly_sales)), "F", "S"),
-      avg_store_dly_pos_or_fcst = mean(coalesce(avg_dly_sales, avg_dly_forecast)),
+      avg_store_dly_pos_or_fcst = mean(temp_avg_store_dly_pos_or_fcst),
       min_feature_qty = mean(min_feature_qty),
       max_feature_qty = mean(max_feature_qty),
-      total_ddv = sum(temp_qty) / sum(coalesce(avg_dly_sales, avg_dly_forecast))
+      total_ddv = sum(temp_qty) / sum(temp_avg_store_dly_pos_or_fcst),
+      max_ddv = sum(max_ddv * temp_avg_store_dly_pos_or_fcst) / sum(temp_avg_store_dly_pos_or_fcst)
     ) %>% 
     ungroup() %>% 
     mutate(
@@ -578,9 +594,58 @@ generate_histogram_data <- function(output_filtered_data, bin_size = 0.2) {
     select(perc_max_feature_qty_bin, n_stores, p_stores, everything())
 }
 
+## Tabla de histograma
+generate_dispersion_histogram_data <- function(output_filtered_data, bins_type = 'fixed', bins = 12) {
+  res <- output_filtered_data %>% 
+    summarise_data(group = c('feature_name', 'store_nbr'))
+  
+  max_ddv <- mean(res$max_ddv)
+  if (bins_type == 'fixed') {
+    cut_values <- c(0, 3, 7, 14, 21, 28, 35, 50, 75, 100, 150, 250, 350, 450, Inf)
+  } else {
+    cut_values <- round(c(seq(0, max_ddv, length.out = bins - 1), 2 * max_ddv, Inf))  
+  }
+  cut_labels <- paste(
+    head(cut_values, -1),
+    cut_values[-1],
+    sep = ' - '
+  ) %>% 
+    replace(list = length(.), sprintf('+%s', round(cut_values[length(cut_values)-1])))
+  
+  res %>% 
+    mutate(
+      total_ddv = round(total_ddv, 1),
+      ddv_bin = cut(total_ddv,
+                    breaks = cut_values,
+                    labels = cut_labels,
+                    include.lowest = TRUE),
+      temp_cost = total_cost, # Creadas para evitar name clashes en el summarise
+      temp_qty = total_qty
+    ) %>% 
+    group_by(ddv_bin) %>% 
+    summarise(
+      n_stores = n(),
+      total_cost = sum(temp_cost),
+      avg_store_cost = mean(temp_cost),
+      total_qty = sum(temp_qty),
+      avg_store_qty = mean(temp_qty),
+      fcst_or_sales = ifelse(any(is.na(avg_dly_sales)), "F", "S"),
+      avg_store_dly_pos_or_fcst = mean(coalesce(avg_dly_sales, avg_dly_forecast)),
+      min_feature_qty = mean(min_feature_qty),
+      max_feature_qty = mean(max_feature_qty)
+    ) %>% 
+    ungroup() %>% 
+    mutate(
+      p_stores = n_stores / sum(n_stores)
+    ) %>% 
+    right_join(tibble(ddv_bin = factor(cut_labels, levels = cut_labels)), by = 'ddv_bin') %>% 
+    replace(., is.na(.), 0) %>% 
+    select(ddv_bin, n_stores, p_stores, everything())
+}
+
 ## Generar el nombre de la promo para GRS
 generate_promo_name <- function(dept_nbr, user, feature_name) {
-  sprintf('MX_D%d_CM_%s_%s', dept_nbr, toupper(user), feature_name)
+  sprintf('MX_D%d_PF_%s_%s', dept_nbr, toupper(user), feature_name)
 }
 
 ## Generar el id de tienda en formato para GRS
@@ -589,13 +654,13 @@ generate_loc_id <- function(store_nbr) {
 }
 
 ## Generar el HEADER.csv para cargar al sistema
-generate_header <- function(input_data, date_format = '%Y-%m-%d', impact_toggle = 'swap') {
+generate_header <- function(input_data, impact_toggle = 'swap') {
   input_data %>% 
     transmute(
       `*Promotion` = generate_promo_name(dept_nbr, user, feature_name),
       Description = '',
-      StartDate = format(StartDate, date_format),
-      EndDate = format(EndDate, date_format),
+      StartDate = StartDate,
+      EndDate = EndDate,
       ApprovedSw = 'TRUE',
       AdditiveSw = case_when(
         impact_toggle == 'swap' ~ 'TRUE',
@@ -613,11 +678,11 @@ generate_header <- function(input_data, date_format = '%Y-%m-%d', impact_toggle 
 }
 
 ## Generar el DETAIL.csv para cargar al sistema
-generate_detail <- function(output_data, date_format = '%Y-%m-%d') {
+generate_detail <- function(output_data) {
   output_data %>% 
     transmute(
       `*Promotion` = generate_promo_name(dept_nbr, user, feature_name),
-      `*StartDate` = format(StartDate, date_format),
+      `*StartDate` = StartDate,
       `*CID DMDUNIT NBR` = cid,
       `*DMDGroup` = '-',
       `*Loc` = generate_loc_id(store_nbr),
@@ -631,7 +696,7 @@ generate_detail <- function(output_data, date_format = '%Y-%m-%d') {
 }
 
 ## Generar input de ejemplo que siempre funcione
-generate_sample_input <- function(calendar_day) {
+generate_sample_input <- function(calendar_day, column_info) {
   fcst_wks <- calendar_day %>% 
     filter(date >= Sys.Date() + 0 & date <= Sys.Date() + 28) %>% 
     pull(wm_yr_wk) %>%
@@ -640,12 +705,13 @@ generate_sample_input <- function(calendar_day) {
     filter(date >= Sys.Date() - 90 & date <= Sys.Date() - 60) %>% 
     pull(wm_yr_wk) %>%
     range()
-  tibble(
+  info <- tibble(
     feature_name = c('MARUCHAN', 'MARUCHAN', 'MARUCHAN', 'MARUCHAN', 'MARUCHAN_MINI', 'MARUCHAN_MINI'),
     user = 'm1234xy',
     dept_nbr = 95,
     negocio = 'BAE',
     old_nbr = c(9506783, 9506804, 9574857, 9506748, 9574857, 9506748),
+    primary_desc_temp = c('MARUCHAN CAMARON', 'MARUCHAN CMRONCHILE', 'MARUCHAN CMRONHBNER', 'MARUCHAN POLLO', 'MARUCHAN CMRONHBNER', 'MARUCHAN POLLO'),
     min_feature_qty = c(600, 600, 600, 600, 300, 300),
     max_feature_qty = c(3000, 3000, 3000, 3000, 2000, 2000),
     max_ddv = 30,
@@ -656,6 +722,8 @@ generate_sample_input <- function(calendar_day) {
     EndDate = c(rep(Sys.Date() + 35, 4), rep(Sys.Date() + 49, 2)),
     Priority = 12
   )
+  names(info) <- remap_names(names(info), column_info, to_col = 'pretty_name')
+  return(info)
 }
 
 # Server ------------------------------------------------------------------
@@ -663,7 +731,7 @@ generate_sample_input <- function(calendar_day) {
 computePromotionsServer <- function(input, output, session, credentials) {
   
   ## Calendario para validar inputs
-  calendar_day <- read_tsv('data/calendar-day.tsv')
+  calendar_day <- read_tsv('data/calendar-day.tsv', col_types = 'nD')
   
   ## Valores reactivos para usar en observadores
   r <- reactiveValues(
@@ -783,7 +851,6 @@ computePromotionsServer <- function(input, output, session, credentials) {
   })
   observe({
     req(r$items_file, input$date_format)
-    req(r$is_open || gl$app_deployment_environment == 'prod')
     flog.info(toJSON(list(
       session_info = msg_cred(credentials()),
       message = 'PARSING INPUT FILE',
@@ -873,58 +940,73 @@ computePromotionsServer <- function(input, output, session, credentials) {
   
   output$input_table <- renderDT({
     shiny::validate(
-      shiny::need(r$is_open || gl$app_deployment_environment == 'prod', lang$need_auth) %then%
         shiny::need(!is.null(r$items_file), lang$need_items_file) %then%
         shiny::need(!is.null(r$items), lang$need_valid_input)
     )
-    r$items %>% 
-      mutate_at(intersect(gl$output_character_cols, names(.)), as.character) %>%
-      datatable(
-        filter = 'top',
-        options = list(
-          scrollX = TRUE,
-          scrollY = ifelse(input$graph_toggle, '150px', '600px'),
-          pageLength = 100
-        )
-      )
-  })
-  
-  output$hr <- renderUI({
-    req(r$items)
-    req(isTRUE(input$graph_toggle))
-    tags$hr()
+    r$items[intersect(names(r$items), gl$cols$name[gl$cols$is_input])] %>%
+      generate_basic_datatable(gl$cols, scrollX = TRUE, scrollY = ifelse(input$graph_toggle, '150px', '500px'))
   })
   
   ## Apagar bandera r$is_running
   observeEvent(graph_table(), {
     r$is_running <- FALSE
   })
-  output$input_grafica_ventas <- renderUI({
+  
+  output$sales_summary_groups_input <- renderUI({
     req(r$items)
     req(is.data.frame(graph_table()))
     req(isTRUE(input$graph_toggle))
     ns <- session$ns
-    info <- graph_table() %>%
-      distinct_at(c('old_nbr', 'negocio', 'primary_desc'))
-    choices <- r$items %>% 
-      left_join(info, by = c('old_nbr', 'negocio')) %>% 
-      transmute(
-        name = paste0(feature_name, ' - ',negocio, ' - ', ifelse(is.na(primary_desc), lang$no_info, primary_desc), ' (', old_nbr, ')'),
-        combinacion = paste(feature_name, '::', old_nbr, '-', negocio)
-      ) %>%
-      distinct() %>% 
-      deframe()
-    tags$div(
-      class = 'inline-inputs',
-      tags$div(
-        style = 'margin-right: 20px',
-        selectInput(ns('input_grafica_ventas'), lang$grafica_ventas, choices = choices, width = '500px')
-      ),
-      selectInput(
-        ns('agg_grafica_ventas'),
-        lang$agg_grafica_ventas,
-        choices = c('avg', 'sum') %>% set_names(lang$agg_grafica_ventas_names)
-      )
+    selectInput(
+      ns('sales_summary_groups'),
+      label = lang$sales_summary_groups,
+      choices = c('feature_name', 'old_nbr', 'negocio', 'dept_nbr') %>% 
+        set_names(c(lang$feature_name, lang$old_nbr, lang$business, lang$departamento)),
+      multiple = TRUE,
+      selected = c('feature_name'),
+      width = '100%'
+    )
+  })
+  
+  graph_choices <- reactiveVal()
+  output$sales_graph_selector_input <- renderUI({
+    req(r$items)
+    req(is.data.frame(graph_table()))
+    req(isTRUE(input$graph_toggle))
+    ns <- session$ns
+    if (length(input$sales_summary_groups) == 0) {
+      graph_choices('Todos')
+    } else {
+      graph_table() %>% 
+        right_join(r$items, by = c('old_nbr', 'negocio')) %>% 
+        mutate(
+          old_nbr = paste0(primary_desc, ' (', old_nbr, ')')
+        ) %>% 
+        select(input$sales_summary_groups) %>% 
+        apply(1, paste, collapse = '-') %>% 
+        unique() %>% 
+        sort() %>% 
+        graph_choices()
+    }
+    selectInput(
+      ns('sales_graph_selector'),
+      lang$grafica_ventas,
+      choices = graph_choices(),
+      width = '100%'
+    )
+  })
+  
+  output$sales_graph_agg_input <- renderUI({
+    req(r$items)
+    req(is.data.frame(graph_table()))
+    req(isTRUE(input$graph_toggle))
+    ns <- session$ns
+    selectInput(
+      ns('sales_graph_agg'),
+      lang$sales_graph_agg,
+      choices = c('avg', 'sum') %>% 
+        set_names(lang$sales_graph_agg_names),
+      width = '100%'
     )
   })
   
@@ -943,17 +1025,49 @@ computePromotionsServer <- function(input, output, session, credentials) {
         shiny::need(!is.null(r$items) && isTRUE(input$graph_toggle), '') %then%
         shiny::need(!is.null(graph_table()), lang$plotting) %then%
         shiny::need(is.data.frame(graph_table()), lang$need_query_result) %then%
-        shiny::need(input$input_grafica_ventas, '')
+        shiny::need(input$sales_graph_selector %in% graph_choices(), '')
     )
     flog.info(toJSON(list(
       session_info = msg_cred(credentials()),
       message = 'GENERATING SALES GRAPH',
       details = list()
     )))
-    
     df <- graph_table() %>% 
-      filter(paste(old_nbr, '-', negocio) == str_replace(input$input_grafica_ventas, ".+ :: ", '')) %>% 
-      na.omit()
+      right_join(
+        y = r$items[c('old_nbr', 'negocio', 'dept_nbr', intersect('feature_name', input$sales_summary_groups))],
+        by = c('old_nbr', 'negocio')
+      ) %>% 
+      unique() %>% 
+      mutate(
+        old_nbr = paste0(primary_desc, ' (', old_nbr, ')')
+      )
+    if (length(input$sales_summary_groups) == 0) {
+      df$filtro <- 'Todos'
+    } else {
+      df$filtro <- df[input$sales_summary_groups] %>% 
+        apply(1, paste, collapse = '-')
+    }
+    df <- df %>% 
+      filter(filtro == input$sales_graph_selector) %>% 
+      mutate(avg_store_wkly_qty = wkly_qty / n_stores) %>% 
+      na.omit() %>% 
+      group_by(wm_yr_wk, date) %>% 
+      summarise(
+        type = unique(type),
+        avg_store_wkly_qty = sum(avg_store_wkly_qty, na.rm = TRUE),
+        sell_price = sum(sell_price * wkly_qty, na.rm = TRUE) / sum(wkly_qty, na.rm = TRUE),
+        wkly_qty = sum(wkly_qty, na.rm = TRUE)
+      ) %>%
+      ungroup() %>%
+      select(
+        wm_yr_wk,
+        date,
+        type,
+        avg_store_wkly_qty,
+        sell_price,
+        wkly_qty
+      )
+    
     if (nrow(df) == 0) {
       plot_ly() %>%
         add_text(x = 0, y = 0, text = lang$item_error, textfont = list(size = 40)) %>%
@@ -982,9 +1096,9 @@ computePromotionsServer <- function(input, output, session, credentials) {
                       forecast) %>% 
         mutate(
           wkly_qty = case_when(
-            input$agg_grafica_ventas == 'avg' ~ wkly_qty / n_stores,
-            input$agg_grafica_ventas == 'sum' ~ wkly_qty,
-            TRUE ~ wkly_qty / n_stores
+            input$sales_graph_agg == 'avg' ~ avg_store_wkly_qty,
+            input$sales_graph_agg == 'sum' ~ wkly_qty,
+            TRUE ~ avg_store_wkly_qty
           ),
           dly_qty = wkly_qty / 7
         ) %>% 
@@ -1053,7 +1167,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
         ) %>% 
         layout(
           title = list(
-            text = sprintf("Ventas semanales en piezas (%s)", lang$agg_grafica_ventas_names[input$agg_grafica_ventas])
+            text = sprintf("Ventas semanales en piezas (%s)", lang$sales_graph_agg_names[input$sales_graph_agg])
             #x = 0.07
           ),
           xaxis = list(
@@ -1085,10 +1199,26 @@ computePromotionsServer <- function(input, output, session, credentials) {
         )
     }
   })
+  
+  output$grafica_ventas_completa <- renderUI({
+    req(isTRUE(input$graph_toggle))
+    ns <- session$ns
+    tagList(
+      tags$div(
+        class = 'evenly-spaced-inputs',
+        uiOutput(ns('sales_summary_groups_input'), style = 'width: 26%;'),
+        uiOutput(ns('sales_graph_selector_input'), style = 'width: 53%;'),
+        uiOutput(ns('sales_graph_agg_input'), style = 'width: 14%;')
+      ),
+      plotlyOutput(ns('grafica_ventas'), height = gl$plotly_height) %>% withSpinner(type = 8)
+    )
+  })
+  
   ## Seleccionar pestaña de output para que se vea el loader
   rr <- reactiveVal(0)
   tik <- reactiveVal(NULL)
   observeEvent(input$run, {
+    req(r$is_open || gl$app_deployment_environment == 'prod')
     if (is.null(tik()) || as.numeric(difftime(Sys.time(), tik(), units = 'secs')) >= 30) {
       tik(Sys.time())
       ns <- session$ns
@@ -1211,7 +1341,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
       shiny::need(is.data.frame(final_result()), lang$need_final_result)
   })
   need_histogram_ready <- reactive({
-    shiny::need(!is.null(histogram_data()), lang$need_final_result) %then%
+    shiny::need(!is.null(quantity_histogram_data()) || !is.null(dispersion_histogram_data()), lang$need_final_result) %then%
       shiny::need(nchar(input$output_feature_select) > 0, lang$need_select_feature)
   })
   
@@ -1223,10 +1353,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
     )
     tryCatch({
       percent_columns <- c('feature_perc_pos_or_fcst')
-      decimal_columns <- c('avg_dly_pos_or_fcst', 'feature_qty_req_min',	'feature_qty_req', 'feature_ddv_req', 'feature_qty_pre', 'feature_ddv_pre', 'feature_qty_pre_tot', 'feature_ddv_fin', 'feature_qty_fin', 'display_key', 'store_cost', 'vnpk_fin', 'cost')
       final_result() %>%
-        mutate_at(intersect(gl$output_character_cols, names(.)), as.character) %>% 
-        mutate_at(vars(percent_columns), list(~100 * .)) %>%
         select(
           feature_name,
           old_nbr,
@@ -1235,6 +1362,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
           negocio,
           everything()
         ) %>% 
+        transform_columns(gl$cols) %>% 
         datatable(
           extensions = c('FixedColumns', 'KeyTable'),
           filter = 'top',
@@ -1244,10 +1372,11 @@ computePromotionsServer <- function(input, output, session, credentials) {
             scrollX = TRUE,
             scrollY = '500px',
             pageLength = 100
-          )
+          ),
+          colnames = remap_names(names(.), gl$cols, to_col = 'pretty_name'),
+          callback = build_callback(remap_names(names(.), gl$cols, to_col = 'description'))
         ) %>%
-        formatCurrency(columns = decimal_columns, digits = 1, currency = '') %>%
-        formatCurrency(columns = percent_columns, digits = 1, currency = '%', before = FALSE)
+        format_columns(gl$cols)
     }, error = function(e){
       NULL
     })
@@ -1265,19 +1394,21 @@ computePromotionsServer <- function(input, output, session, credentials) {
     )
     tryCatch({
       summary_table() %>% 
-        mutate_at(intersect(gl$output_character_cols, names(.)), as.character) %>% 
+        transform_columns(gl$cols) %>% 
         datatable(
           extensions = c('FixedColumns', 'KeyTable'),
           filter = 'top',
           options = list(
-            fixedColumns = list(leftColumns = 5),
+            fixedColumns = list(leftColumns = length(group_vars(.)) + 1),
             keys = TRUE,
             scrollX = TRUE,
             scrollY = '500px',
             pageLength = 100
-          )
+          ),
+          colnames = remap_names(names(.), gl$cols, to_col = 'pretty_name'),
+          callback = build_callback(remap_names(names(.), gl$cols, to_col = 'description'))
         ) %>%
-        formatCurrency(columns = str_subset(names(summary_table()), '^(total|avg)_'), digits = 1, currency = '')
+        format_columns(gl$cols)
     }, error = function(e){
       NULL
     })
@@ -1304,13 +1435,17 @@ computePromotionsServer <- function(input, output, session, credentials) {
     final_result() %>% 
       filter(feature_name == input$output_feature_select)
   })
-  histogram_data <- reactive({
+  quantity_histogram_data <- reactive({
     req(final_results_filt())
-    generate_histogram_data(final_results_filt(), bin_size = input$feature_histogram_bin_size)
+    generate_quantity_histogram_data(final_results_filt(), bin_size = input$quantity_histogram_bin_size)
+  })
+  dispersion_histogram_data <- reactive({
+    req(final_results_filt())
+    generate_dispersion_histogram_data(final_results_filt(), bins_type = input$dispersion_bin_selection, bins = input$dispersion_histogram_bin_size)
   })
   
   ## Histograma de alcance
-  output$feature_histogram <- renderPlotly({
+  quantity_histogram <- reactive({
     shiny::validate(
       need_input_ready() %then%
         need_query_ready() %then%
@@ -1318,7 +1453,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
     )
     tryCatch({
       mfq <- unique(final_results_filt()$max_feature_qty)
-      histogram_data() %>% 
+      quantity_histogram_data() %>% 
         mutate(
           label_y = n_stores + 0.03 * max(n_stores),
           label = scales::percent(p_stores),
@@ -1337,8 +1472,35 @@ computePromotionsServer <- function(input, output, session, credentials) {
     })
   })
   
+  dispersion_histogram <- reactive({
+    shiny::validate(
+      need_input_ready() %then%
+        need_query_ready() %then%
+        need_histogram_ready()
+    )
+    tryCatch({
+      mfq <- unique(final_results_filt()$max_feature_qty)
+      dispersion_histogram_data() %>% 
+        mutate(
+          label_y = n_stores + 0.03 * max(n_stores),
+          label = scales::percent(p_stores),
+          text = sprintf('Tiendas: %s (%s)<br>Costo total: %s<br>Costo promedio: %s<br>Cant. total: %s<br>Cant. promedio: %s<br>%s promedio: %s', scales::comma(n_stores, accuracy = 1), scales::percent(p_stores), scales::comma(total_cost, accuracy = 1), scales::comma(avg_store_cost, accuracy = 1), scales::comma(total_qty, accuracy = 1), scales::comma(avg_store_qty, accuracy = 1), ifelse(first(fcst_or_sales) == 'F', 'Forecast', 'Venta'), scales::comma(avg_store_dly_pos_or_fcst, accuracy = 1))
+        ) %>% 
+        plot_ly(x = ~ddv_bin, y = ~n_stores, text = ~text, hoverinfo = 'text', type = 'bar', name = NULL) %>% 
+        add_text(y = ~label_y, text = ~label, name = NULL) %>% 
+        plotly::layout(
+          title = 'Dispersión de Inventario',
+          xaxis = list(title = 'Rango de días de venta por tienda (DDV)'),
+          yaxis = list(title = 'Número de tiendas', separators = '.,'),
+          showlegend = FALSE
+        )
+    }, error = function(e){
+      NULL
+    })
+  })
+  
   ## Tabla de alcance (output)
-  output$feature_histogram_table <- renderDT(server = FALSE, {
+  quantity_histogram_table <- reactive({
     needs <- need_input_ready() %then%
       need_query_ready() %then%
       need_histogram_ready()
@@ -1346,11 +1508,8 @@ computePromotionsServer <- function(input, output, session, credentials) {
        shiny::need(is.null(needs), '')
     )
     tryCatch({
-      percent_columns <- c('p_stores')
-      decimal_columns <- str_subset(names(histogram_data()), '^(n|total|avg)_')
-      histogram_data() %>%
-        mutate_at(vars(percent_columns), list(~100 * .)) %>%
-        mutate_at(intersect(gl$output_character_cols, names(.)), as.character) %>% 
+      quantity_histogram_data() %>% 
+        transform_columns(gl$cols) %>% 
         datatable(
           extensions = c('Buttons', 'FixedColumns', 'KeyTable'),
           filter = 'none',
@@ -1360,15 +1519,83 @@ computePromotionsServer <- function(input, output, session, credentials) {
             fixedColumns = list(leftColumns = 2),
             keys = TRUE,
             scrollX = TRUE,
-            scrollY = '200x',
+            scrollY = '200px',
             pageLength = 20
-          )
+          ),
+          colnames = remap_names(names(.), gl$cols, to_col = 'pretty_name'),
+          callback = build_callback(remap_names(names(.), gl$cols, to_col = 'description'))
         ) %>%
-        formatCurrency(columns = decimal_columns, digits = 1, currency = '') %>%
-        formatCurrency(columns = percent_columns, digits = 1, currency = '%', before = FALSE)
+        format_columns(gl$cols)
     }, error = function(e){
       NULL
     })
+  })
+  
+  dispersion_histogram_table <- reactive({
+    needs <- need_input_ready() %then%
+      need_query_ready() %then%
+      need_histogram_ready()
+    shiny::validate(
+      shiny::need(is.null(needs), '')
+    )
+    tryCatch({
+      dispersion_histogram_data() %>% 
+        transform_columns(gl$cols) %>% 
+        datatable(
+          extensions = c('Buttons', 'FixedColumns', 'KeyTable'),
+          filter = 'none',
+          options = list(
+            dom = 'Bfrtip',
+            buttons = c('copy', 'csv', 'excel'),
+            fixedColumns = list(leftColumns = 2),
+            keys = TRUE,
+            scrollX = TRUE,
+            scrollY = '200px',
+            pageLength = 20
+          ),
+          colnames = remap_names(names(.), gl$cols, to_col = 'pretty_name'),
+          callback = build_callback(remap_names(names(.), gl$cols, to_col = 'description'))
+        ) %>%
+        format_columns(gl$cols)
+    }, error = function(e){
+      NULL
+    })
+  })
+  
+  output$dispersion_histogram_bin_size <- renderUI({
+    req(input$dispersion_bin_selection == 'calculated')
+    ns <- session$ns
+    sliderInput(
+      ns('dispersion_histogram_bin_size'),
+      lang$bin_number,
+      min = 2, max = 20, value = 12, step = 1,
+      width = '250'
+    )
+  })
+  
+  observeEvent(input$histogram_selection, {
+    ns <- session$ns
+    if (input$histogram_selection == 'quantity') {
+      output$histogram_input <- renderUI(sliderInput(ns('quantity_histogram_bin_size'), lang$bin_size, min = 0.05, max = 0.5, value = 0.10, step = 0.05))
+      output$feature_histogram <- renderPlotly(quantity_histogram())
+      output$feature_histogram_table <- renderDT(server = FALSE, quantity_histogram_table())
+    } else if (input$histogram_selection == 'dispersion') {
+      output$histogram_input <- renderUI(
+        tags$div(
+          class = 'form-group inline-inputs',
+          selectInput(
+            ns('dispersion_bin_selection'),
+            label = lang$dispersion_bin_selection,
+            choices = c('fixed', 'calculated') %>% 
+              set_names(c(lang$dispersion_fixed_bins, lang$dispersion_calculated_bins)),
+            width = '200px'
+          ),
+          uiOutput(ns('dispersion_histogram_bin_size'), style = 'margin-left: 20px;')
+        )
+      )
+      output$feature_histogram <- renderPlotly(dispersion_histogram())
+      output$feature_histogram_table <- renderDT(dispersion_histogram_table())
+    }
   })
   
   ## Reset con botón
@@ -1428,27 +1655,61 @@ computePromotionsServer <- function(input, output, session, credentials) {
   
   ## Descargar template
   output$download_template <- downloadHandler(
-    filename = 'promo-fulfillment-template.csv',
+    filename = 'promo-fulfillment-template.xlsx',
     content = function(file) {
-      x <- generate_sample_input(calendar_day)
-      write_excel_csv(x, file)
+      x <- generate_sample_input(calendar_day, gl$cols)
+      openxlsx::write.xlsx(x, file = file, sheetName = "pf-template", append = FALSE, row.names = FALSE)
     },
-    contentType = 'text/csv'
+    # Excel content type
+    contentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
   )
   
   ## Mostrar instrucciones
-  eval(parse(file = 'html/instructions-table.R', encoding = 'UTF-8'))
-  output$instructions_table <- renderTable({
-    instructions_table
-  })
   observeEvent(input$show_instructions, {
+    flog.info(toJSON(list(
+      session_info = msg_cred(credentials()),
+      message = 'SHOWING INSTRUCTIONS',
+      details = list()
+    )))
+    glossary_table <- gl$cols %>% 
+      arrange(pretty_name) %>% 
+      select(pretty_name, description, is_input, is_constant_by_feature, name) %>% 
+      mutate_at(
+        vars(is_input, is_constant_by_feature),
+        ~fct_explicit_na(factor(ifelse(., lang$yes, lang$no)), '-')
+      ) %>% 
+      rename_all(~paste0('var_', .))
     showModal(modalDialog(
       size = 'l',
       easyClose = TRUE,
-      title = 'Instrucciones',
-      includeHTML('html/instructions.html'),
-      uiOutput(session$ns('instructions_table')),
-      footer = modalButton(lang$ok)
+      title = NULL,
+      tags$div(
+        class = 'modal-tabbox',
+        tags$h1('Instrucciones'),
+        tabBox(
+          width = 12,
+          tabPanel(
+            title = 'Uso básico',
+            includeHTML('html/instructions-basic-usage.html')
+          ),
+          tabPanel(
+            title = lang$compute_promotions_computation_parameters,
+            includeHTML('html/instructions-computation.html')
+          ),
+          tabPanel(
+            title = lang$compute_promotions_impact_parameters,
+            includeHTML('html/instructions-impact.html')
+          ),
+          tabPanel(
+            title = 'Glosario de columnas',
+            renderDT({ 
+              generate_basic_datatable(glossary_table, gl$cols)
+            })
+          )
+        )
+      ),
+      modalButton(NULL, icon = icon('times')),
+      footer = NULL
     ))
   }, ignoreInit = TRUE)
   
@@ -1456,12 +1717,12 @@ computePromotionsServer <- function(input, output, session, credentials) {
   header <- reactive({
     req(r$items)
     r$items %>% 
-      generate_header(date_format = input$date_format, impact_toggle = input$impact_toggle)
+      generate_header(impact_toggle = input$impact_toggle)
   })
   detail <- reactive({
     req(final_result())
     final_result() %>% 
-      generate_detail(date_format = input$date_format)
+      generate_detail()
   })
   ## Descargar HEADER
   output$download_header_ui <- renderUI({
@@ -1478,7 +1739,11 @@ computePromotionsServer <- function(input, output, session, credentials) {
         details = list()
       )))
      header() %>% 
-        write_excel_csv(path = file, na = '')
+       mutate(
+         StartDate = format(StartDate, input$date_format),
+         EndDate = format(EndDate, input$date_format),
+       ) %>% 
+       write_excel_csv(path = file, na = '')
     },
     contentType = 'text/csv'
   )
@@ -1510,6 +1775,9 @@ computePromotionsServer <- function(input, output, session, credentials) {
       )
       save_files(data_files = data_files, gl = gl, credentials = credentials())
       detail() %>% 
+        mutate(
+          `*StartDate` = format(`*StartDate`, input$date_format)
+        ) %>% 
         write_excel_csv(path = file, na = '')
     },
     contentType = 'text/csv'
@@ -1544,12 +1812,9 @@ computePromotionsUI <- function(id) {
         lang$compute_promotions_inputs,
         title = lang$compute_promotions_inputs_title
       ),
-      selectInput(ns('date_format'), lang$date_format, c('yyyy-mm-dd' = '%Y-%m-%d',
-                                                         'dd/mm/yyyy' = '%d/%m/%Y',
-                                                         'mm/dd/yyyy' = '%m/%d/%Y')),
       uiOutput(ns('items_ui')),
       tags$div(
-        class = 'form-group',
+        class = 'form-group evenly-spaced-inputs',
         actionButton(ns('show_instructions'), label = '', title = lang$show_instructions, icon = icon('question-circle'), class = 'input-icon'),
         downloadButton(ns('download_template'), label = '', title = lang$download_template, icon = icon('download'), class = 'input-icon'),
         actionButton(ns('run'), label = '', title = lang$run, icon = icon('play'), class = 'input-icon'),
@@ -1557,7 +1822,7 @@ computePromotionsUI <- function(id) {
       ),
       tags$div(
         class = 'form-group',
-        title = lang$input_grafica_ventas_title,
+        title = lang$sales_graph_selector_title,
         shinyWidgets::materialSwitch(ns('graph_toggle'), tags$b(lang$graph_toggle), value = FALSE, status = 'info')
       ),
       h3(
@@ -1583,9 +1848,9 @@ computePromotionsUI <- function(id) {
           ns('sspres_benchmark_toggle'),
           label = lang$sspres_benchmark_toggle,
           choices = c(
-            'none',
-            'current'
-            #'future'
+            'future',
+            'current',
+            'none'
             ) %>% 
             set_names(lang$sspres_benchmark_toggle_names)
         )
@@ -1595,7 +1860,7 @@ computePromotionsUI <- function(id) {
         selectInput(
           ns('impact_toggle'),
           label = lang$impact_toggle,
-          choices = c('swap', 'add') %>% 
+          choices = c('add', 'swap') %>% 
             set_names(lang$impact_toggle_names)
         )
       )
@@ -1607,36 +1872,41 @@ computePromotionsUI <- function(id) {
       tabPanel(
         value = 'input_table',
         title = lang$tab_input,
-        DTOutput(ns('input_table')),
-        uiOutput(ns('hr')),
-        uiOutput(ns('input_grafica_ventas')),
-        plotlyOutput(ns('grafica_ventas')) %>% withSpinner(type = 8)
+        uiOutput(ns('grafica_ventas_completa')),
+        DTOutput(ns('input_table'))
       ),
       tabPanel(
         value = 'output_summary',
         title = lang$tab_output_summary,
         tags$div(
           class = 'inline-inputs',
-          checkboxGroupInput(
+          selectInput(
             ns('summary_groups'),
             label = lang$summary_groups,
             choices = c('feature_name', 'cid', 'store_nbr', 'dc_nbr') %>% 
               set_names(c(lang$feature_name, lang$cid, lang$store_nbr, lang$dc)),
             selected = c('feature_name', 'cid'),
-            inline = TRUE
+            multiple = TRUE
           ),
           tags$div(
-            class = 'inline-button-wrapper',
-            uiOutput(ns('download_summary_ui'))
+            class = 'form-group inline-inputs',
+            style = 'margin-right: 10px; margin-left: 10px;',
+            tags$div(
+              class = 'inline-button-wrapper',
+              uiOutput(ns('download_summary_ui'))
+            ),
+            tags$div(
+              class = 'inline-button-wrapper',
+              uiOutput(ns('download_header_ui'))
+            ),
+            tags$div(
+              class = 'inline-button-wrapper',
+              uiOutput(ns('download_detail_ui'))
+            )
           ),
-          tags$div(
-            class = 'inline-button-wrapper',
-            uiOutput(ns('download_header_ui'))
-          ),
-          tags$div(
-            class = 'inline-button-wrapper',
-            uiOutput(ns('download_detail_ui'))
-          )
+          selectInput(ns('date_format'), lang$date_format, c('yyyy-mm-dd' = '%Y-%m-%d',
+                                                             'dd/mm/yyyy' = '%d/%m/%Y',
+                                                             'mm/dd/yyyy' = '%m/%d/%Y'))
         ),
         DTOutput(ns('summary_table')) %>% withSpinner(type = 8)
       ),
@@ -1644,19 +1914,25 @@ computePromotionsUI <- function(id) {
         value = 'output_histogram',
         title = lang$tab_output_histogram,
         tags$div(
-          class = 'inline-inputs',
+          class = 'form-group inline-inputs',
           tags$div(
-            class = 'input-margin',
-            uiOutput(ns('output_feature_select_ui'))
+            class = 'form-group',
+            style = 'margin-right: 25px;',
+            selectInput(
+              ns('histogram_selection'),
+              label = lang$histogram_selection,
+              choices = c('quantity', 'dispersion') %>% 
+                set_names(c(lang$quantity_histogram, lang$dispersion_histogram))
+            )
           ),
+          uiOutput(ns('output_feature_select_ui')),
           tags$div(
-            class = 'input-margin',
-            sliderInput(ns('feature_histogram_bin_size'), lang$bin_size,
-                        min = 0.05, max = 0.5, value = 0.10, step = 0.05)
+            class = 'form-group',
+            style = 'margin-left: 30px;',
+            uiOutput(ns('histogram_input'))
           )
         ),
-        plotlyOutput(ns('feature_histogram')) %>% withSpinner(type = 8),
-        tags$br(),
+        plotlyOutput(ns('feature_histogram'), height = gl$plotly_height) %>% withSpinner(type = 8),
         DTOutput(ns('feature_histogram_table'))
       ),
       tabPanel(

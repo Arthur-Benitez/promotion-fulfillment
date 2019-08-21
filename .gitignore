@@ -3,6 +3,7 @@
 .RData
 .Ruserdata
 data/
+decks/
 dev/
 prod/
 examples/
