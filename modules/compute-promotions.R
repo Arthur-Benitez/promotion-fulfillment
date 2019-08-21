@@ -1796,6 +1796,15 @@ computePromotionsServer <- function(input, output, session, credentials) {
         message = 'DOWNLOADING DETAIL FILE',
         details = list()
       )))
+      if (nrow(detail()) >= gl$max_output_rows) {
+        shinyalert::shinyalert(
+          type = 'warning',
+          title = lang$warning,
+          text = sprintf('¡Cuidado! El archivo "detail" excede el límite permitido por GRS de %s renglones por carga.', scales::comma(gl$max_output_rows, accuracy = 1)),
+          closeOnClickOutside = TRUE,
+          timer = 4000
+        )
+      }
       data_files <- list(
         header = header(),
         detail = detail(),
