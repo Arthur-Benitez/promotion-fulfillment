@@ -17,6 +17,7 @@ library(shinyalert)
 library(RODBC)
 library(future)
 library(promises)
+library(openxlsx)
 
 ## Procesamiento paralelo de future
 plan(multiprocess)
@@ -114,26 +115,14 @@ gl <- list(
       'dev'
     }
   },
-  app_version = '1.3.3',
-  app_version_date = '2019-08-09',
+  app_version = '1.4.0',
+  app_version_date = '2019-08-19',
   ## Compute promotions
-  cols = tribble(
-    ~name, ~type, ~is_constant_by_feature,
-    'feature_name', 'character', FALSE, # excepción porque es la variable agrupadora en una de las validaciones
-    'user', 'character', TRUE,
-    'dept_nbr', 'numeric', TRUE,
-    'negocio', 'character', TRUE,
-    'old_nbr', 'numeric', FALSE,
-    'min_feature_qty', 'numeric', TRUE,
-    'max_feature_qty', 'numeric', TRUE,
-    'max_ddv', 'numeric', FALSE,
-    'semana_ini', 'numeric', TRUE,
-    'semana_fin', 'numeric', TRUE,
-    'fcst_or_sales', 'character', TRUE,
-    'StartDate', 'date', TRUE,
-    'EndDate', 'date', TRUE,
-    'Priority', 'numeric', TRUE
-  ),
+  cols = tryCatch({
+    read_tsv('data/column-info.txt', col_types = 'ccllcncc')
+  }, error = function(e){
+    tribble(~name, ~type, ~is_constant_by_feature, ~pretty_name, ~description)
+  }),
   negocios = c(
     'SUPERCENTER',
     'BODEGA',
@@ -145,24 +134,11 @@ gl <- list(
   ),
   max_input_rows = 100,
   max_input_queries = 10,
-  output_character_cols = c(
-    'dept_nbr',
-    'old_nbr',
-    'cid',
-    'item_nbr',
-    'fineline',
-    'semana_ini',
-    'semana_fin',
-    'store_nbr',
-    'dc_nbr',
-    'vendor9_nbr',
-    'open_status',
-    'sub_tipo'
-  )
+  plotly_height = 300
 )
 gl$is_dev <- gl$app_deployment_environment == 'dev'
 gl$app_version_text <- sprintf('Versión %s (%s)', gl$app_version, gl$app_version_date)
-gl$feature_const_cols <- gl$cols$name[gl$cols$is_constant_by_feature]
+gl$feature_const_cols <- gl$cols$name[gl$cols$is_input & gl$cols$is_constant_by_feature]
 
 ## Login & Auth
 ### Path a base de datos de usuarios
@@ -183,4 +159,5 @@ gl$clearance_pal <- c(
   admin = rgb(253, 187, 48, maxColorValue = 255),
   basic = rgb(51, 115, 33, maxColorValue = 255)
 )
+
 
