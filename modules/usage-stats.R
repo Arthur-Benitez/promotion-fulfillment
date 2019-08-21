@@ -231,7 +231,7 @@ usageStatsServer <- function(input, output, session, credentials, dev_connection
         input$graph_daily_split,
         all = '#000000',
         role = gl$clearance_pal,
-        vp = colorblind_pal()(n_distinct(x$vp)) %>%
+        vp = extended_colorblind_pal(n_distinct(x$vp)) %>%
           set_names(sort(unique(x$vp), na.last = TRUE))
       )
       lvls <- switch(
@@ -295,7 +295,7 @@ usageStatsServer <- function(input, output, session, credentials, dev_connection
       if (input$graph_top_split == 'message') {
         msgs <- df$message %>% as.factor() %>% fct_infreq() %>% levels()
         colorvar <- sym('message')
-        pal <- viridis::viridis_pal()(length(msgs)) %>% set_names(msgs)
+        pal <- extended_colorblind_pal(length(msgs)) %>% set_names(msgs)
         sort_fun <- fct_infreq
       } else if (input$graph_top_split == 'vp') {
         colorvar <- sym('vp')
