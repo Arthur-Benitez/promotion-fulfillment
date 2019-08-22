@@ -1448,7 +1448,8 @@ computePromotionsServer <- function(input, output, session, credentials) {
     selectInput(
       inputId = ns('output_feature_select'),
       label = lang$feature,
-      choices = choices
+      choices = choices,
+      width = '100%'
     )
   })
   
@@ -1593,7 +1594,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
       ns('dispersion_histogram_bin_number'),
       lang$bin_number,
       min = 2, max = 20, value = 12, step = 1,
-      width = '250'
+      width = '80%'
     )
   })
   
@@ -1606,15 +1607,15 @@ computePromotionsServer <- function(input, output, session, credentials) {
     } else if (input$histogram_selection == 'dispersion') {
       output$histogram_input <- renderUI(
         tags$div(
-          class = 'form-group inline-inputs',
+          class = 'evenly-spaced-inputs',
           selectInput(
             ns('dispersion_bin_selection'),
             label = lang$dispersion_bin_selection,
             choices = c('fixed', 'calculated') %>% 
               set_names(c(lang$dispersion_fixed_bins, lang$dispersion_calculated_bins)),
-            width = '200px'
+            width = '30%'
           ),
-          uiOutput(ns('dispersion_histogram_bin_number_ui'), style = 'margin-left: 20px;')
+          uiOutput(ns('dispersion_histogram_bin_number_ui'), style = 'margin-left: 4%;width: 70%;')
         )
       )
       output$feature_histogram <- renderPlotly(dispersion_histogram())
@@ -1964,23 +1965,16 @@ computePromotionsUI <- function(id) {
         value = 'output_histogram',
         title = lang$tab_output_histogram,
         tags$div(
-          class = 'form-group inline-inputs',
-          tags$div(
-            class = 'form-group',
-            style = 'margin-right: 25px;',
-            selectInput(
-              ns('histogram_selection'),
-              label = lang$histogram_selection,
-              choices = c('quantity', 'dispersion') %>% 
-                set_names(c(lang$quantity_histogram, lang$dispersion_histogram))
-            )
+          class = 'evenly-spaced-inputs',
+          selectInput(
+            ns('histogram_selection'),
+            label = lang$histogram_selection,
+            choices = c('quantity', 'dispersion') %>% 
+              set_names(c(lang$quantity_histogram, lang$dispersion_histogram)),
+            width = '16%'
           ),
-          uiOutput(ns('output_feature_select_ui')),
-          tags$div(
-            class = 'form-group',
-            style = 'margin-left: 30px;',
-            uiOutput(ns('histogram_input'))
-          )
+          uiOutput(ns('output_feature_select_ui'), style = 'width: 30%;'),
+          uiOutput(ns('histogram_input'), style = 'width: 50%;')
         ),
         plotlyOutput(ns('feature_histogram'), height = gl$plotly_height) %>% withSpinner(type = 8),
         DTOutput(ns('feature_histogram_table'))
