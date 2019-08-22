@@ -943,7 +943,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
         shiny::need(!is.null(r$items), lang$need_valid_input)
     )
     r$items[intersect(names(r$items), gl$cols$name[gl$cols$is_input])] %>%
-      generate_basic_datatable(gl$cols, scrollX = TRUE, scrollY = ifelse(input$graph_toggle, '25vh', '82vh'))
+      generate_basic_datatable(gl$cols, scrollX = TRUE, scrollY = ifelse(input$graph_toggle, '22vh', '78vh'))
   })
   
   ## Apagar bandera r$is_running
@@ -1394,7 +1394,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
             fixedColumns = list(leftColumns = 5),
             keys = TRUE,
             scrollX = TRUE,
-            scrollY = '70vh',
+            scrollY = '69vh',
             pageLength = 100
           ),
           colnames = remap_names(names(.), gl$cols, to_col = 'pretty_name'),
@@ -1426,7 +1426,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
             fixedColumns = list(leftColumns = length(group_vars(.)) + 1),
             keys = TRUE,
             scrollX = TRUE,
-            scrollY = '72vh',
+            scrollY = '70vh',
             pageLength = 100
           ),
           colnames = remap_names(names(.), gl$cols, to_col = 'pretty_name'),
@@ -1544,7 +1544,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
             fixedColumns = list(leftColumns = 2),
             keys = TRUE,
             scrollX = TRUE,
-            scrollY = '200px',
+            scrollY = '29vh',
             pageLength = 20
           ),
           colnames = remap_names(names(.), gl$cols, to_col = 'pretty_name'),
@@ -1575,7 +1575,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
             fixedColumns = list(leftColumns = 2),
             keys = TRUE,
             scrollX = TRUE,
-            scrollY = '32vh',
+            scrollY = '29vh',
             pageLength = 20
           ),
           colnames = remap_names(names(.), gl$cols, to_col = 'pretty_name'),
@@ -1919,7 +1919,7 @@ computePromotionsUI <- function(id) {
       id = ns('io'),
       selected = NULL,
       width = 10,
-      height = '119vh',
+      height = '114vh',
       tabPanel(
         value = 'input_table',
         title = lang$tab_input,
