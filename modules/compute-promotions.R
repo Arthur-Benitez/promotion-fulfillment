@@ -943,7 +943,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
         shiny::need(!is.null(r$items), lang$need_valid_input)
     )
     r$items[intersect(names(r$items), gl$cols$name[gl$cols$is_input])] %>%
-      generate_basic_datatable(gl$cols, scrollX = TRUE, scrollY = ifelse(input$graph_toggle, '150px', '500px'))
+      generate_basic_datatable(gl$cols, scrollX = TRUE, scrollY = ifelse(input$graph_toggle, '25vh', '82vh'))
   })
   
   ## Apagar bandera r$is_running
@@ -1426,7 +1426,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
             fixedColumns = list(leftColumns = length(group_vars(.)) + 1),
             keys = TRUE,
             scrollX = TRUE,
-            scrollY = '500px',
+            scrollY = '70vh',
             pageLength = 100
           ),
           colnames = remap_names(names(.), gl$cols, to_col = 'pretty_name'),
@@ -1918,6 +1918,7 @@ computePromotionsUI <- function(id) {
       id = ns('io'),
       selected = NULL,
       width = 10,
+      height = '119vh',
       tabPanel(
         value = 'input_table',
         title = lang$tab_input,
