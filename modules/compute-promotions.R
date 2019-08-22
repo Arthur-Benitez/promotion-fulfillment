@@ -1394,7 +1394,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
             fixedColumns = list(leftColumns = 5),
             keys = TRUE,
             scrollX = TRUE,
-            scrollY = '500px',
+            scrollY = '70vh',
             pageLength = 100
           ),
           colnames = remap_names(names(.), gl$cols, to_col = 'pretty_name'),
@@ -1426,7 +1426,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
             fixedColumns = list(leftColumns = length(group_vars(.)) + 1),
             keys = TRUE,
             scrollX = TRUE,
-            scrollY = '70vh',
+            scrollY = '72vh',
             pageLength = 100
           ),
           colnames = remap_names(names(.), gl$cols, to_col = 'pretty_name'),
@@ -1575,7 +1575,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
             fixedColumns = list(leftColumns = 2),
             keys = TRUE,
             scrollX = TRUE,
-            scrollY = '200px',
+            scrollY = '32vh',
             pageLength = 20
           ),
           colnames = remap_names(names(.), gl$cols, to_col = 'pretty_name'),
@@ -1931,6 +1931,7 @@ computePromotionsUI <- function(id) {
         title = lang$tab_output_summary,
         tags$div(
           class = 'inline-inputs',
+          style = 'height: 8%',
           selectInput(
             ns('summary_groups'),
             label = lang$summary_groups,
@@ -1966,6 +1967,7 @@ computePromotionsUI <- function(id) {
         title = lang$tab_output_histogram,
         tags$div(
           class = 'evenly-spaced-inputs',
+          style = 'height: 10%',
           selectInput(
             ns('histogram_selection'),
             label = lang$histogram_selection,
