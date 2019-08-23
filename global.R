@@ -135,7 +135,12 @@ gl <- list(
   max_input_rows = 100,
   max_output_rows = 100000,
   max_input_queries = 10,
-  plotly_height = '41vh'
+  plotly_height = '40vh',
+  table_height = list(
+    short = '30vh',
+    medium = '40vh',
+    tall = '50vh'
+  )
 )
 gl$is_dev <- gl$app_deployment_environment == 'dev'
 gl$app_version_text <- sprintf('Versión %s (%s)', gl$app_version, gl$app_version_date)

@@ -476,25 +476,25 @@ usageStatsServer <- function(input, output, session, credentials, dev_connection
       }) %>%
       arrange(desc(timestamp))
     graph_data$detail %>% 
-      generate_basic_datatable(gl$cols, scrollX = TRUE, scrollY = '500px')
+      generate_basic_datatable(gl$cols, scrollX = TRUE, scrollY = gl$table_height$tall)
   })
   
   output$daily_table <- DT::renderDataTable({
     req(graph_data$daily)
     graph_data$daily %>% 
-      generate_basic_datatable(gl$cols)
+      generate_basic_datatable(gl$cols, scrollY = gl$table_height$short)
   })
   
   output$top_table <- DT::renderDataTable({
     req(graph_data$top)
     graph_data$top %>% 
-      generate_basic_datatable(gl$cols)
+      generate_basic_datatable(gl$cols, scrollY = gl$table_height$short)
   })
   
   output$time_table <- DT::renderDataTable({
     req(graph_data$time)
     graph_data$time %>% 
-      generate_basic_datatable(gl$cols)
+      generate_basic_datatable(gl$cols, scrollY = gl$table_height$short)
   })
   
   output$download_detail <- downloadHandler(

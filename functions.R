@@ -105,7 +105,7 @@ build_callback <- function(titles) {
 }
 
 ## Generar datatable con parámetros comunes
-generate_basic_datatable <- function(x, column_info, scrollX = FALSE, scrollY = '200px') {
+generate_basic_datatable <- function(x, column_info, scrollX = FALSE, scrollY = '30vh') {
   x %>% 
     transform_columns(column_info) %>% 
     datatable(
