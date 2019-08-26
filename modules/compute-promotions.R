@@ -967,6 +967,18 @@ computePromotionsServer <- function(input, output, session, credentials) {
     )
   })
   
+  sales_graph_group_cols <- reactiveVal()
+  observeEvent(input$sales_summary_groups, ignoreNULL = FALSE, ignoreInit = TRUE, {
+    input$sales_summary_groups %>% 
+      replace(input$sales_summary_groups == 'old_nbr', 'old_nbr_desc') %>% 
+      sales_graph_group_cols()
+    if (!('old_nbr' %in% input$sales_summary_groups)) {
+      sales_graph_group_cols() %>% 
+        replace(sales_graph_group_cols() == 'cid', 'cid_desc') %>% 
+        sales_graph_group_cols()
+    }
+  })
+  
   graph_choices <- reactiveVal()
   output$sales_graph_selector_input <- renderUI({
     req(r$items)
@@ -985,19 +997,13 @@ computePromotionsServer <- function(input, output, session, credentials) {
           ) %>% 
           ungroup()
       }
-      group_cols <- input$sales_summary_groups %>% 
-        replace(input$sales_summary_groups == 'old_nbr', 'old_nbr_desc')
-      if (!('old_nbr' %in% input$sales_summary_groups)) {
-        group_cols <- group_cols %>% 
-          replace(group_cols == 'cid', 'cid_desc')
-      }
       table %>% 
         right_join(r$items, by = c('old_nbr', 'negocio')) %>% 
         mutate(
           old_nbr_desc = paste0(primary_desc, ' (', old_nbr, ')'),
           cid_desc = paste0(primary_desc, ' (', cid, ')')
         ) %>% 
-        select(group_cols) %>% 
+        select(sales_graph_group_cols()) %>% 
         apply(1, paste, collapse = '-') %>% 
         unique() %>% 
         sort() %>% 
@@ -1059,16 +1065,10 @@ computePromotionsServer <- function(input, output, session, credentials) {
         old_nbr_desc = paste0(primary_desc, ' (', old_nbr, ')'),
         cid_desc = paste0(primary_desc, ' (', cid, ')')
       )
-    group_cols <- input$sales_summary_groups %>%
-      replace(input$sales_summary_groups == 'old_nbr', 'old_nbr_desc')
-    if (!('old_nbr' %in% input$sales_summary_groups)) {
-      group_cols <- group_cols %>%
-        replace(group_cols == 'cid', 'cid_desc')
-    }
-    if (length(group_cols) == 0) {
+    if (length(sales_graph_group_cols()) == 0) {
       df$filtro <- 'Todos'
     } else {
-      df$filtro <- df[group_cols] %>% 
+      df$filtro <- df[sales_graph_group_cols()] %>% 
         apply(1, paste, collapse = '-')
     }
     df <- df %>% 
