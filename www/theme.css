@@ -44,12 +44,10 @@ h6,
 
 /* Obligar a que los páneles tengan siempre una altura razonable */
 .tab-pane {
-  height: 100%;
+  height: auto;
+  min-height: 80vh;
 }
 
-.tab-content {
-  height: 95%;
-}
 
 /* Centrar login */
 .login-panel {
