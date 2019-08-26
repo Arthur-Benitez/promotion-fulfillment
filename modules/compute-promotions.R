@@ -968,6 +968,18 @@ computePromotionsServer <- function(input, output, session, credentials) {
     )
   })
   
+  sales_graph_group_cols <- reactiveVal()
+  observeEvent(input$sales_summary_groups, ignoreNULL = FALSE, ignoreInit = TRUE, {
+    input$sales_summary_groups %>% 
+      replace(input$sales_summary_groups == 'old_nbr', 'old_nbr_desc') %>% 
+      sales_graph_group_cols()
+    if (!('old_nbr' %in% input$sales_summary_groups)) {
+      sales_graph_group_cols() %>% 
+        replace(sales_graph_group_cols() == 'cid', 'cid_desc') %>% 
+        sales_graph_group_cols()
+    }
+  })
+  
   graph_choices <- reactiveVal()
   output$sales_graph_selector_input <- renderUI({
     req(r$items)
@@ -986,19 +998,13 @@ computePromotionsServer <- function(input, output, session, credentials) {
           ) %>% 
           ungroup()
       }
-      group_cols <- input$sales_summary_groups %>% 
-        replace(input$sales_summary_groups == 'old_nbr', 'old_nbr_desc')
-      if (!('old_nbr' %in% input$sales_summary_groups)) {
-        group_cols <- group_cols %>% 
-          replace(group_cols == 'cid', 'cid_desc')
-      }
       table %>% 
         right_join(r$items, by = c('old_nbr', 'negocio')) %>% 
         mutate(
           old_nbr_desc = paste0(primary_desc, ' (', old_nbr, ')'),
           cid_desc = paste0(primary_desc, ' (', cid, ')')
         ) %>% 
-        select(group_cols) %>% 
+        select(sales_graph_group_cols()) %>% 
         apply(1, paste, collapse = '-') %>% 
         unique() %>% 
         sort() %>% 
@@ -1060,16 +1066,10 @@ computePromotionsServer <- function(input, output, session, credentials) {
         old_nbr_desc = paste0(primary_desc, ' (', old_nbr, ')'),
         cid_desc = paste0(primary_desc, ' (', cid, ')')
       )
-    group_cols <- input$sales_summary_groups %>%
-      replace(input$sales_summary_groups == 'old_nbr', 'old_nbr_desc')
-    if (!('old_nbr' %in% input$sales_summary_groups)) {
-      group_cols <- group_cols %>%
-        replace(group_cols == 'cid', 'cid_desc')
-    }
-    if (length(group_cols) == 0) {
+    if (length(sales_graph_group_cols()) == 0) {
       df$filtro <- 'Todos'
     } else {
-      df$filtro <- df[group_cols] %>% 
+      df$filtro <- df[sales_graph_group_cols()] %>% 
         apply(1, paste, collapse = '-')
     }
     df <- df %>% 
@@ -1802,7 +1802,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
         shinyalert::shinyalert(
           type = 'warning',
           title = lang$warning,
-          text = sprintf('¡Cuidado! El archivo "detail" excede el límite permitido por GRS de %s renglones por carga.', scales::comma(gl$max_output_rows, accuracy = 1)),
+          text = sprintf('El archivo "detail" excede el límite permitido por GRS de %s renglones por carga.', scales::comma(gl$max_output_rows, accuracy = 1)),
           closeOnClickOutside = TRUE,
           timer = 4000
         )
@@ -1930,7 +1930,7 @@ computePromotionsUI <- function(id) {
         value = 'output_summary',
         title = lang$tab_output_summary,
         tags$div(
-          class = 'evenly-spaced-inputs',
+          style = 'height: 8%; width: 100%; display: flex;',
           selectInput(
             ns('summary_groups'),
             label = lang$summary_groups,
@@ -1939,14 +1939,17 @@ computePromotionsUI <- function(id) {
             selected = c('feature_name', 'cid'),
             multiple = TRUE
           ),
-          selectInput(
-            ns('date_format'),
-            lang$date_format,
-            c('yyyy-mm-dd' = '%Y-%m-%d', 'dd/mm/yyyy' = '%d/%m/%Y', 'mm/dd/yyyy' = '%m/%d/%Y')
+          tags$div(
+            style = 'margin-left: 2%',
+            selectInput(
+              ns('date_format'),
+              lang$date_format,
+              c('yyyy-mm-dd' = '%Y-%m-%d', 'dd/mm/yyyy' = '%d/%m/%Y', 'mm/dd/yyyy' = '%m/%d/%Y')
+            ) 
           ),
-          uiOutput(ns('download_summary_ui'), style = 'margin-top: 2%'),
-          uiOutput(ns('download_header_ui'), style = 'margin-top: 2%'),
-          uiOutput(ns('download_detail_ui'), style = 'margin-top: 2%')
+          uiOutput(ns('download_summary_ui'), class = 'inline-button-wrapper'),
+          uiOutput(ns('download_header_ui'), class = 'inline-button-wrapper'),
+          uiOutput(ns('download_detail_ui'), class = 'inline-button-wrapper')
         ),
         DTOutput(ns('summary_table')) %>% withSpinner(type = 8)
       ),
