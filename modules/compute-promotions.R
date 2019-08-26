@@ -943,8 +943,9 @@ computePromotionsServer <- function(input, output, session, credentials) {
         shiny::need(!is.null(r$items), lang$need_valid_input)
     )
     r$items[intersect(names(r$items), gl$cols$name[gl$cols$is_input])] %>%
-      generate_basic_datatable(gl$cols, scrollX = TRUE, scrollY = ifelse(input$graph_toggle, '22vh', '78vh'))
+      generate_basic_datatable(gl$cols, scrollX = TRUE, scrollY = ifelse(input$graph_toggle, gl$table_height$short, gl$table_height$tall))
   })
+  
   
   ## Apagar bandera r$is_running
   observeEvent(graph_table(), {
@@ -1394,7 +1395,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
             fixedColumns = list(leftColumns = 5),
             keys = TRUE,
             scrollX = TRUE,
-            scrollY = '69vh',
+            scrollY = gl$table_height$medium,
             pageLength = 100
           ),
           colnames = remap_names(names(.), gl$cols, to_col = 'pretty_name'),
@@ -1426,7 +1427,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
             fixedColumns = list(leftColumns = length(group_vars(.)) + 1),
             keys = TRUE,
             scrollX = TRUE,
-            scrollY = '70vh',
+            scrollY = gl$table_height$medium,
             pageLength = 100
           ),
           colnames = remap_names(names(.), gl$cols, to_col = 'pretty_name'),
@@ -1544,7 +1545,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
             fixedColumns = list(leftColumns = 2),
             keys = TRUE,
             scrollX = TRUE,
-            scrollY = '29vh',
+            scrollY = gl$table_height$short,
             pageLength = 20
           ),
           colnames = remap_names(names(.), gl$cols, to_col = 'pretty_name'),
@@ -1575,7 +1576,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
             fixedColumns = list(leftColumns = 2),
             keys = TRUE,
             scrollX = TRUE,
-            scrollY = '29vh',
+            scrollY = gl$table_height$short,
             pageLength = 20
           ),
           colnames = remap_names(names(.), gl$cols, to_col = 'pretty_name'),
@@ -1919,7 +1920,6 @@ computePromotionsUI <- function(id) {
       id = ns('io'),
       selected = NULL,
       width = 10,
-      height = '114vh',
       tabPanel(
         value = 'input_table',
         title = lang$tab_input,
@@ -1958,7 +1958,6 @@ computePromotionsUI <- function(id) {
         title = lang$tab_output_histogram,
         tags$div(
           class = 'evenly-spaced-inputs',
-          style = 'height: 10%',
           selectInput(
             ns('histogram_selection'),
             label = lang$histogram_selection,
