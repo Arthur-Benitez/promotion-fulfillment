@@ -1930,8 +1930,7 @@ computePromotionsUI <- function(id) {
         value = 'output_summary',
         title = lang$tab_output_summary,
         tags$div(
-          class = 'evenly-spaced-inputs',
-          style = 'height: 8%',
+          style = 'height: 8%; width: 100%; display: flex;',
           selectInput(
             ns('summary_groups'),
             label = lang$summary_groups,
@@ -1940,14 +1939,17 @@ computePromotionsUI <- function(id) {
             selected = c('feature_name', 'cid'),
             multiple = TRUE
           ),
-          selectInput(
-            ns('date_format'),
-            lang$date_format,
-            c('yyyy-mm-dd' = '%Y-%m-%d', 'dd/mm/yyyy' = '%d/%m/%Y', 'mm/dd/yyyy' = '%m/%d/%Y')
+          tags$div(
+            style = 'margin-left: 2%',
+            selectInput(
+              ns('date_format'),
+              lang$date_format,
+              c('yyyy-mm-dd' = '%Y-%m-%d', 'dd/mm/yyyy' = '%d/%m/%Y', 'mm/dd/yyyy' = '%m/%d/%Y')
+            ) 
           ),
-          uiOutput(ns('download_summary_ui'), style = 'margin-top: 2%'),
-          uiOutput(ns('download_header_ui'), style = 'margin-top: 2%'),
-          uiOutput(ns('download_detail_ui'), style = 'margin-top: 2%')
+          uiOutput(ns('download_summary_ui'), class = 'inline-button-wrapper'),
+          uiOutput(ns('download_header_ui'), class = 'inline-button-wrapper'),
+          uiOutput(ns('download_detail_ui'), class = 'inline-button-wrapper')
         ),
         DTOutput(ns('summary_table')) %>% withSpinner(type = 8)
       ),
