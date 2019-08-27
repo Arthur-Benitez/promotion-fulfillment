@@ -1929,7 +1929,8 @@ computePromotionsUI <- function(id) {
         value = 'output_summary',
         title = lang$tab_output_summary,
         tags$div(
-          style = 'height: 8%; width: 100%; display: flex;',
+          class = 'inline-inputs',
+          style = 'height: 8%',
           selectInput(
             ns('summary_groups'),
             label = lang$summary_groups,
@@ -1946,9 +1947,22 @@ computePromotionsUI <- function(id) {
               c('yyyy-mm-dd' = '%Y-%m-%d', 'dd/mm/yyyy' = '%d/%m/%Y', 'mm/dd/yyyy' = '%m/%d/%Y')
             ) 
           ),
-          uiOutput(ns('download_summary_ui'), class = 'inline-button-wrapper'),
-          uiOutput(ns('download_header_ui'), class = 'inline-button-wrapper'),
-          uiOutput(ns('download_detail_ui'), class = 'inline-button-wrapper')
+          tags$div(
+            class = 'form-group inline-inputs',
+            style = 'margin-right: 10px; margin-left: 10px;',
+            tags$div(
+              class = 'inline-button-wrapper',
+              uiOutput(ns('download_summary_ui'))
+            ),
+            tags$div(
+              class = 'inline-button-wrapper',
+              uiOutput(ns('download_header_ui'))
+            ),
+            tags$div(
+              class = 'inline-button-wrapper',
+              uiOutput(ns('download_detail_ui'))
+            )
+          )
         ),
         DTOutput(ns('summary_table')) %>% withSpinner(type = 8)
       ),
