@@ -62,13 +62,18 @@ h6,
 /* Display de botones */
 .inline-inputs {
   display: inline-flex;
+  height: 60px;
   /*display: grid;
   grid-template-columns: 40% 20% 20% 20%;*/
 }
 
 .inline-button-wrapper {
-  margin-top: 2%;
-  margin-left: 2%;
+  margin-top: 25px;
+  margin-left: 20px;
+}
+
+.inline-dropdown-margin {
+  margin-left: 20px;
 }
 
 .inline-select-button-wrapper {
