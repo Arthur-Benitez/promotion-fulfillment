@@ -968,15 +968,14 @@ computePromotionsServer <- function(input, output, session, credentials) {
     )
   })
   
-  sales_graph_group_cols <- reactiveVal()
-  observeEvent(input$sales_summary_groups, ignoreNULL = FALSE, ignoreInit = TRUE, {
-    input$sales_summary_groups %>% 
-      replace(input$sales_summary_groups == 'old_nbr', 'old_nbr_desc') %>% 
-      sales_graph_group_cols()
+  sales_graph_group_cols <- reactive({
+    group_cols <- input$sales_summary_groups %>% 
+      replace(input$sales_summary_groups == 'old_nbr', 'old_nbr_desc')
     if (!('old_nbr' %in% input$sales_summary_groups)) {
-      sales_graph_group_cols() %>% 
-        replace(sales_graph_group_cols() == 'cid', 'cid_desc') %>% 
-        sales_graph_group_cols()
+      group_cols <- group_cols %>% 
+        replace(group_cols == 'cid', 'cid_desc')
+    } else {
+      group_cols
     }
   })
   
