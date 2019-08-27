@@ -1930,7 +1930,6 @@ computePromotionsUI <- function(id) {
         title = lang$tab_output_summary,
         tags$div(
           class = 'inline-inputs',
-          style = 'height: 8%',
           selectInput(
             ns('summary_groups'),
             label = lang$summary_groups,
@@ -1940,7 +1939,7 @@ computePromotionsUI <- function(id) {
             multiple = TRUE
           ),
           tags$div(
-            style = 'margin-left: 2%',
+            class = 'inline-dropdown-margin',
             selectInput(
               ns('date_format'),
               lang$date_format,
@@ -1949,7 +1948,6 @@ computePromotionsUI <- function(id) {
           ),
           tags$div(
             class = 'form-group inline-inputs',
-            style = 'margin-right: 10px; margin-left: 10px;',
             tags$div(
               class = 'inline-button-wrapper',
               uiOutput(ns('download_summary_ui'))
