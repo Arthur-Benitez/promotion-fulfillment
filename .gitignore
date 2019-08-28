@@ -10,3 +10,4 @@ examples/
 *.log
 packrat/lib*/
 www/notifications/
+www/season/
