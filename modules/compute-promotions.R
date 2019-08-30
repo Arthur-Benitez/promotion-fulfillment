@@ -486,7 +486,11 @@ perform_computations <- function(data, data_ss = NULL, min_feature_qty_toggle = 
       impact_qty = ss_winner_qty - comp_ss_winner_qty,
       impact_cost = impact_qty * cost,
       impact_ddv = impact_qty / avg_dly_pos_or_fcst,
-      impact_vnpk = impact_qty / vnpk_qty
+      impact_vnpk = impact_qty / vnpk_qty,
+      stock_qty = oh_qty + impact_qty,
+      stock_cost = stock_qty * cost,
+      stock_ddv = stock_qty / avg_dly_pos_or_fcst,
+      stock_vnpk = stock_qty / vnpk_qty
     )
   return(data)
 }
@@ -511,7 +515,7 @@ summarise_data <- function(data, group = c('feature_name', 'cid')) {
   group_order <- c('feature_name', 'store_nbr', 'store_name', 'cid', 'old_nbr', 'primary_desc', 'dc_nbr', 'dc_name')
   grp <- group_order[group_order %in% group]
   ## Variables numéricas de tabla de salida
-  vv <- c('avg_dly_sales', 'avg_dly_forecast', 'min_feature_qty', 'max_feature_qty', 'max_ddv', 'total_cost', 'total_impact_cost', 'total_qty', 'total_impact_qty', 'total_ddv', 'total_impact_ddv', 'total_vnpk', 'total_impact_vnpk')
+  vv <- c('avg_dly_sales', 'avg_dly_forecast', 'min_feature_qty', 'max_feature_qty', 'max_ddv', 'total_cost', 'total_impact_cost', 'total_stock_cost', 'total_qty', 'total_impact_qty', 'total_stock_qty', 'total_ddv', 'total_impact_ddv', 'total_stock_ddv', 'total_vnpk', 'total_impact_vnpk', 'total_stock_vnpk')
   if ('store_nbr' %in% grp) {
     val_vars <- vv
   } else {
@@ -530,12 +534,16 @@ summarise_data <- function(data, group = c('feature_name', 'cid')) {
       max_ddv = sum(max_ddv * avg_dly_pos_or_fcst, na.rm = TRUE) / sum(avg_dly_pos_or_fcst, na.rm = TRUE),
       total_cost = sum(store_cost, na.rm = TRUE),
       total_impact_cost = sum(impact_cost, na.rm = TRUE),
+      total_stock_cost = sum(stock_cost, na.rm = TRUE),
       total_qty = sum(feature_qty_fin, na.rm = TRUE),
       total_impact_qty = sum(impact_qty, na.rm = TRUE),
+      total_stock_qty = sum(stock_qty, na.rm = TRUE),
       total_ddv = sum(feature_qty_fin, na.rm = TRUE) / sum(avg_dly_pos_or_fcst, na.rm = TRUE),
       total_impact_ddv = sum(impact_qty, na.rm = TRUE) / sum(avg_dly_pos_or_fcst, na.rm = TRUE),
+      total_stock_ddv = sum(stock_qty, na.rm = TRUE) / sum(avg_dly_pos_or_fcst, na.rm = TRUE),
       total_vnpk = sum(vnpk_fin, na.rm = TRUE),
-      total_impact_vnpk = sum(impact_vnpk, na.rm = TRUE)
+      total_impact_vnpk = sum(impact_vnpk, na.rm = TRUE),
+      total_stock_vnpk = sum(stock_vnpk, na.rm = TRUE)
     ) %>% 
     group_by(!!!syms(grp)) %>% # Agrupar para guardar la info de los grupos afuera y fijar las columnas correctamente
     arrange(!!!syms(grp)) %>% 
