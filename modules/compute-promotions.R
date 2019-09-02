@@ -1605,7 +1605,16 @@ computePromotionsServer <- function(input, output, session, credentials) {
       ns('dispersion_histogram_bin_number'),
       lang$bin_number,
       min = 2, max = 20, value = 12, step = 1,
-      width = '80%'
+      width = '90%'
+    )
+  })
+  
+  output$dispersion_histogram_oh_add_ui <- renderUI({
+    req(input$histogram_selection == 'dispersion')
+    ns <- session$ns
+    tags$div(
+      title = lang$oh_add_title,
+      shinyWidgets::materialSwitch(ns('oh_add'), tags$b(lang$oh_add), value = TRUE, status = 'success')
     )
   })
   
@@ -1624,9 +1633,10 @@ computePromotionsServer <- function(input, output, session, credentials) {
             label = lang$dispersion_bin_selection,
             choices = c('fixed', 'calculated') %>% 
               set_names(c(lang$dispersion_fixed_bins, lang$dispersion_calculated_bins)),
-            width = '30%'
+            width = '25%'
           ),
-          uiOutput(ns('dispersion_histogram_bin_number_ui'), style = 'margin-left: 4%;width: 70%;')
+          uiOutput(ns('dispersion_histogram_oh_add_ui'), style = 'margin-left: 4%;width: 25%;'),
+          uiOutput(ns('dispersion_histogram_bin_number_ui'), style = 'margin-left: 4%;width: 50%;')
         )
       )
       output$feature_histogram <- renderPlotly(dispersion_histogram())
