@@ -327,3 +327,30 @@ table.dataTable thead tr td {
 #notification-buttons .shiny-input-container {
   margin: 10px;
 }
+
+/*Colores para el header de la tabla de resultado, agrupado por unidades*/
+/*Columnas en costo ($)*/
+#compute_promotions-summary_table .dataTables_scroll thead :first-child :nth-child(12),
+#compute_promotions-summary_table .dataTables_scroll thead :first-child :nth-child(13),
+#compute_promotions-summary_table .dataTables_scroll thead :first-child :nth-child(14) {
+  background-color: #eb148d;
+}
+/*Columnas en piezas*/
+#compute_promotions-summary_table .dataTables_scroll thead :first-child :nth-child(15),
+#compute_promotions-summary_table .dataTables_scroll thead :first-child :nth-child(16),
+#compute_promotions-summary_table .dataTables_scroll thead :first-child :nth-child(17) {
+  background-color: #76c043;
+}
+/*Columnas en DDV*/
+#compute_promotions-summary_table .dataTables_scroll thead :first-child :nth-child(18),
+#compute_promotions-summary_table .dataTables_scroll thead :first-child :nth-child(19),
+#compute_promotions-summary_table .dataTables_scroll thead :first-child :nth-child(20) {
+  background-color: #041e42;
+}
+/*Columnas en VNPK*/
+#compute_promotions-summary_table .dataTables_scroll thead :first-child :nth-child(21),
+#compute_promotions-summary_table .dataTables_scroll thead :first-child :nth-child(22),
+#compute_promotions-summary_table .dataTables_scroll thead :first-child :nth-child(23) {
+  background-color: #de1c24;
+}
+/*Fin de colores para el header de la tabla de resultado*/
