@@ -1619,7 +1619,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
       ns('dispersion_histogram_bin_number'),
       lang$bin_number,
       min = 2, max = 20, value = 12, step = 1,
-      width = '90%'
+      width = '100%'
     )
   })
   
@@ -1649,8 +1649,8 @@ computePromotionsServer <- function(input, output, session, credentials) {
               set_names(c(lang$dispersion_fixed_bins, lang$dispersion_calculated_bins)),
             width = '25%'
           ),
-          uiOutput(ns('dispersion_histogram_oh_add_ui'), style = 'margin-left: 4%;width: 25%;'),
-          uiOutput(ns('dispersion_histogram_bin_number_ui'), style = 'margin-left: 4%;width: 50%;')
+          uiOutput(ns('dispersion_histogram_oh_add_ui'), style = 'width: 12%;'),
+          uiOutput(ns('dispersion_histogram_bin_number_ui'), style = 'margin-left: 4%;width: 40%;')
         )
       )
       output$feature_histogram <- renderPlotly(dispersion_histogram())
