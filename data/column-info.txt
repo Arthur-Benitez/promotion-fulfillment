@@ -78,7 +78,6 @@ category_nbr	numeric		FALSE	character		Categoría	Categoría (primeros dos dígi
 store_cost	numeric		FALSE	comma	2	Costo total	Costo total de la estrategia sin tomar en cuenta otros safeties (i.e. compra máxima).
 vnpk_fin	numeric		FALSE	comma	1	VNPK totales	Vendor packs totales de la estrategia sin tomar en cuenta otros safeties.
 oh_qty	numeric		FALSE	comma	0	Piezas OH	Piezas que hay en existencia actual en las tiendas (OH).
-oh_cost	numeric		FALSE	comma	2	Costo OH	Costo de las piezas que hay en existencia actual en las tiendas (OH).
 sspress	numeric		FALSE	comma	1	SSPres actual	SSPres vigente al momento de la consulta.
 sspress_fut	numeric		FALSE	comma	1	SSPres futuro	SSPres promedio cargado en el periodo especificado por el usuario (i.e. entre Promo StartDate y Promo EndDate).
 base_press	numeric		FALSE	comma	1	Base Presentation	Base Presentation vigente al momento de la consulta.
