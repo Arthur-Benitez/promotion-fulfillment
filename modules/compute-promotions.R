@@ -602,15 +602,20 @@ generate_quantity_histogram_data <- function(output_filtered_data, bins = 10) {
 }
 
 ## Tabla de histograma
-generate_dispersion_histogram_data <- function(output_filtered_data, bins_type = 'fixed', bins = 12) {
+generate_dispersion_histogram_data <- function(output_filtered_data, bins_type = 'fixed', bins = 12, oh = TRUE) {
   res <- output_filtered_data %>% 
     summarise_data(group = c('feature_name', 'store_nbr'))
   
-  max_ddv <- mean(res$max_ddv)
   if (bins_type == 'fixed') {
     cut_values <- c(0, 3, 7, 14, 21, 28, 35, 50, 75, 100, 150, 250, 350, 450, Inf)
   } else {
-    cut_values <- round(c(seq(0, max_ddv, length.out = bins - 1), 2 * max_ddv, Inf))  
+    if (oh) {
+      max_ddv <- max(res$total_stock_ddv)
+      cut_values <- round(c(seq(0, max_ddv, length.out = bins), Inf))
+    } else {
+      max_ddv <- mean(res$max_ddv)
+      cut_values <- round(c(seq(0, max_ddv, length.out = bins - 1), 2 * max_ddv, Inf))
+    }
   }
   cut_labels <- paste(
     head(cut_values, -1),
@@ -619,16 +624,25 @@ generate_dispersion_histogram_data <- function(output_filtered_data, bins_type =
   ) %>% 
     replace(list = length(.), sprintf('+%s', round(cut_values[length(cut_values)-1])))
   
+  if (oh) {
+    res <- res %>% 
+      mutate(
+        total_stock_ddv = round(total_stock_ddv, 1),
+        ddv_bin = cut(total_stock_ddv, breaks = cut_values, labels = cut_labels, include.lowest = TRUE),
+        temp_cost = total_stock_cost,
+        temp_qty = total_stock_qty
+      )
+  } else {
+    res <- res %>% 
+      mutate(
+        total_ddv = round(total_ddv, 1),
+        ddv_bin = cut(total_ddv, breaks = cut_values, labels = cut_labels, include.lowest = TRUE),
+        temp_cost = total_cost,
+        temp_qty = total_qty
+      )
+  }
+  
   res %>% 
-    mutate(
-      total_ddv = round(total_ddv, 1),
-      ddv_bin = cut(total_ddv,
-                    breaks = cut_values,
-                    labels = cut_labels,
-                    include.lowest = TRUE),
-      temp_cost = total_cost, # Creadas para evitar name clashes en el summarise
-      temp_qty = total_qty
-    ) %>% 
     group_by(ddv_bin) %>% 
     summarise(
       n_stores = n(),
@@ -1477,7 +1491,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
   })
   dispersion_histogram_data <- reactive({
     req(final_results_filt())
-    generate_dispersion_histogram_data(final_results_filt(), bins_type = input$dispersion_bin_selection, bins = input$dispersion_histogram_bin_number)
+    generate_dispersion_histogram_data(final_results_filt(), bins_type = input$dispersion_bin_selection, bins = input$dispersion_histogram_bin_number, oh = input$oh_add)
   })
   
   ## Histograma de alcance
