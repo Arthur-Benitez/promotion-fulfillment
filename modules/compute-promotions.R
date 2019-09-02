@@ -611,7 +611,7 @@ generate_dispersion_histogram_data <- function(output_filtered_data, bins_type =
   } else {
     if (oh) {
       max_ddv <- max(res$total_stock_ddv)
-      cut_values <- round(c(seq(0, max_ddv, length.out = bins), Inf))
+      cut_values <- round(c(seq(0, max_ddv / 2, length.out = bins), Inf))
     } else {
       max_ddv <- mean(res$max_ddv)
       cut_values <- round(c(seq(0, max_ddv, length.out = bins - 1), 2 * max_ddv, Inf))
