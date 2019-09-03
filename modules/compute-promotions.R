@@ -1622,7 +1622,14 @@ computePromotionsServer <- function(input, output, session, credentials) {
     ns <- session$ns
     tags$div(
       title = lang$dispersion_histogram_stock_toggle_title,
-      shinyWidgets::materialSwitch(ns('dispersion_histogram_stock_toggle'), tags$b(lang$dispersion_histogram_stock_toggle), value = TRUE, status = 'success')
+      shinyWidgets::checkboxGroupButtons(
+        inputId = ns('dispersion_histogram_stock_toggle'),
+        label = lang$dispersion_histogram_stock_toggle, 
+        choices = c('Promoción' = 'normal', 'Promoción + OH' = 'total'),
+        selected = 'total',
+        justified = TRUE,
+        direction = 'vertical'
+      )
     )
   })
   
