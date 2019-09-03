@@ -103,14 +103,24 @@ format_columns <- function(dt, column_info) {
 }
 
 ## Build JS callback to set hover text help
-build_callback <- function(titles) {
-  JS(sprintf("
-    let tips = ['%s'];
-    let header = table.columns().header();
-    for (let i = 0; i < tips.length; i++) {
-      $(header[i]).attr('title', tips[i])
-    }
-  ", paste(c('', titles), collapse = "', '")))
+build_callback <- function(columns, column_info) {
+  descriptions <- remap_names(columns, column_info, to_col = 'description')
+  themes <- remap_names(columns, column_info, to_col = 'theme')
+
+  JS(
+    sprintf("
+      let descriptions = ['%s'];
+      let themes = ['%s'];
+      let header = table.columns().header();
+      for (let i = 0; i < descriptions.length; i++) {
+        $(header[i]).attr('title', descriptions[i]);
+        header[i].classList.add(themes[i]);
+      }
+      ", 
+      paste(c('', descriptions), collapse = "', '"),
+      paste(c('default', themes), collapse = "', '")
+    )
+  )
 }
 
 ## Generar datatable con parámetros comunes
@@ -127,7 +137,7 @@ generate_basic_datatable <- function(x, column_info, scrollX = FALSE, scrollY = 
         keys = TRUE
       ),
       colnames = remap_names(names(.), column_info, to_col = 'pretty_name'),
-      callback = build_callback(remap_names(names(.), column_info, to_col = 'description'))
+      callback = build_callback(names(.), column_info)
     ) %>%
     format_columns(column_info)
 }

@@ -486,7 +486,11 @@ perform_computations <- function(data, data_ss = NULL, min_feature_qty_toggle = 
       impact_qty = ss_winner_qty - comp_ss_winner_qty,
       impact_cost = impact_qty * cost,
       impact_ddv = impact_qty / avg_dly_pos_or_fcst,
-      impact_vnpk = impact_qty / vnpk_qty
+      impact_vnpk = impact_qty / vnpk_qty,
+      stock_qty = oh_qty + impact_qty,
+      stock_cost = stock_qty * cost,
+      stock_ddv = stock_qty / avg_dly_pos_or_fcst,
+      stock_vnpk = stock_qty / vnpk_qty
     )
   return(data)
 }
@@ -511,7 +515,7 @@ summarise_data <- function(data, group = c('feature_name', 'cid')) {
   group_order <- c('feature_name', 'store_nbr', 'store_name', 'cid', 'old_nbr', 'primary_desc', 'dc_nbr', 'dc_name')
   grp <- group_order[group_order %in% group]
   ## Variables numéricas de tabla de salida
-  vv <- c('avg_dly_sales', 'avg_dly_forecast', 'min_feature_qty', 'max_feature_qty', 'max_ddv', 'total_cost', 'total_impact_cost', 'total_qty', 'total_impact_qty', 'total_ddv', 'total_impact_ddv', 'total_vnpk', 'total_impact_vnpk')
+  vv <- c('avg_dly_sales', 'avg_dly_forecast', 'min_feature_qty', 'max_feature_qty', 'max_ddv', 'total_cost', 'total_impact_cost', 'total_stock_cost', 'total_qty', 'total_impact_qty', 'total_stock_qty', 'total_ddv', 'total_impact_ddv', 'total_stock_ddv', 'total_vnpk', 'total_impact_vnpk', 'total_stock_vnpk')
   if ('store_nbr' %in% grp) {
     val_vars <- vv
   } else {
@@ -530,12 +534,16 @@ summarise_data <- function(data, group = c('feature_name', 'cid')) {
       max_ddv = sum(max_ddv * avg_dly_pos_or_fcst, na.rm = TRUE) / sum(avg_dly_pos_or_fcst, na.rm = TRUE),
       total_cost = sum(store_cost, na.rm = TRUE),
       total_impact_cost = sum(impact_cost, na.rm = TRUE),
+      total_stock_cost = sum(stock_cost, na.rm = TRUE),
       total_qty = sum(feature_qty_fin, na.rm = TRUE),
       total_impact_qty = sum(impact_qty, na.rm = TRUE),
+      total_stock_qty = sum(stock_qty, na.rm = TRUE),
       total_ddv = sum(feature_qty_fin, na.rm = TRUE) / sum(avg_dly_pos_or_fcst, na.rm = TRUE),
       total_impact_ddv = sum(impact_qty, na.rm = TRUE) / sum(avg_dly_pos_or_fcst, na.rm = TRUE),
+      total_stock_ddv = sum(stock_qty, na.rm = TRUE) / sum(avg_dly_pos_or_fcst, na.rm = TRUE),
       total_vnpk = sum(vnpk_fin, na.rm = TRUE),
-      total_impact_vnpk = sum(impact_vnpk, na.rm = TRUE)
+      total_impact_vnpk = sum(impact_vnpk, na.rm = TRUE),
+      total_stock_vnpk = sum(stock_vnpk, na.rm = TRUE)
     ) %>% 
     group_by(!!!syms(grp)) %>% # Agrupar para guardar la info de los grupos afuera y fijar las columnas correctamente
     arrange(!!!syms(grp)) %>% 
@@ -594,16 +602,30 @@ generate_quantity_histogram_data <- function(output_filtered_data, bins = 10) {
 }
 
 ## Tabla de histograma
-generate_dispersion_histogram_data <- function(output_filtered_data, bins_type = 'fixed', bins = 12) {
+generate_dispersion_histogram_data <- function(output_filtered_data, bins_type = 'fixed', bins = 12, stock = 'total') {
   res <- output_filtered_data %>% 
     summarise_data(group = c('feature_name', 'store_nbr'))
+  promo_vars <- syms(list(ddv = 'total_ddv', qty = 'total_qty', cost = 'total_cost'))
+  total_vars <- syms(list(ddv = 'total_stock_ddv', qty = 'total_stock_qty', cost = 'total_stock_cost'))
   
-  max_ddv <- mean(res$max_ddv)
   if (bins_type == 'fixed') {
     cut_values <- c(0, 3, 7, 14, 21, 28, 35, 50, 75, 100, 150, 250, 350, 450, Inf)
   } else {
-    cut_values <- round(c(seq(0, max_ddv, length.out = bins - 1), 2 * max_ddv, Inf))  
+    if (stock == 'total') {
+      max_ddv <- max(res$total_stock_ddv)
+      cut_values <- round(c(seq(0, max_ddv / 2, length.out = bins), Inf))
+    } else {
+      max_ddv <- mean(res$max_ddv)
+      cut_values <- round(c(seq(0, max_ddv, length.out = bins - 1), 2 * max_ddv, Inf))
+    }
   }
+  
+  if (stock == 'total') {
+    temp_vars <- total_vars
+  } else {
+    temp_vars <- promo_vars
+  }
+  
   cut_labels <- paste(
     head(cut_values, -1),
     cut_values[-1],
@@ -613,13 +635,10 @@ generate_dispersion_histogram_data <- function(output_filtered_data, bins_type =
   
   res %>% 
     mutate(
-      total_ddv = round(total_ddv, 1),
-      ddv_bin = cut(total_ddv,
-                    breaks = cut_values,
-                    labels = cut_labels,
-                    include.lowest = TRUE),
-      temp_cost = total_cost, # Creadas para evitar name clashes en el summarise
-      temp_qty = total_qty
+      ddv = round(!!temp_vars$ddv, 1),
+      ddv_bin = cut(ddv,  breaks = cut_values, labels = cut_labels, include.lowest = TRUE),
+      temp_qty = !!temp_vars$qty,
+      temp_cost = !!temp_vars$cost
     ) %>% 
     group_by(ddv_bin) %>% 
     summarise(
@@ -1401,7 +1420,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
             pageLength = 100
           ),
           colnames = remap_names(names(.), gl$cols, to_col = 'pretty_name'),
-          callback = build_callback(remap_names(names(.), gl$cols, to_col = 'description'))
+          callback = build_callback(names(.), gl$cols)
         ) %>%
         format_columns(gl$cols)
     }, error = function(e){
@@ -1433,8 +1452,8 @@ computePromotionsServer <- function(input, output, session, credentials) {
             pageLength = 100
           ),
           colnames = remap_names(names(.), gl$cols, to_col = 'pretty_name'),
-          callback = build_callback(remap_names(names(.), gl$cols, to_col = 'description'))
-        ) %>%
+          callback = build_callback(names(.), gl$cols)
+        ) %>% 
         format_columns(gl$cols)
     }, error = function(e){
       NULL
@@ -1469,7 +1488,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
   })
   dispersion_histogram_data <- reactive({
     req(final_results_filt())
-    generate_dispersion_histogram_data(final_results_filt(), bins_type = input$dispersion_bin_selection, bins = input$dispersion_histogram_bin_number)
+    generate_dispersion_histogram_data(final_results_filt(), bins_type = input$dispersion_bin_selection, bins = input$dispersion_histogram_bin_number, stock = input$dispersion_histogram_stock_toggle)
   })
   
   ## Histograma de alcance
@@ -1551,7 +1570,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
             pageLength = 20
           ),
           colnames = remap_names(names(.), gl$cols, to_col = 'pretty_name'),
-          callback = build_callback(remap_names(names(.), gl$cols, to_col = 'description'))
+          callback = build_callback(names(.), gl$cols)
         ) %>%
         format_columns(gl$cols)
     }, error = function(e){
@@ -1582,7 +1601,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
             pageLength = 20
           ),
           colnames = remap_names(names(.), gl$cols, to_col = 'pretty_name'),
-          callback = build_callback(remap_names(names(.), gl$cols, to_col = 'description'))
+          callback = build_callback(names(.), gl$cols)
         ) %>%
         format_columns(gl$cols)
     }, error = function(e){
@@ -1597,7 +1616,23 @@ computePromotionsServer <- function(input, output, session, credentials) {
       ns('dispersion_histogram_bin_number'),
       lang$bin_number,
       min = 2, max = 20, value = 12, step = 1,
-      width = '80%'
+      width = '100%'
+    )
+  })
+  
+  output$dispersion_histogram_stock_toggle_ui <- renderUI({
+    req(input$histogram_selection == 'dispersion')
+    ns <- session$ns
+    tags$div(
+      title = lang$dispersion_histogram_stock_toggle_title,
+      shinyWidgets::radioGroupButtons(
+        inputId = ns('dispersion_histogram_stock_toggle'),
+        label = lang$dispersion_histogram_stock_toggle, 
+        choices = c('Promoción' = 'promo', 'Promoción + OH actual' = 'total'),
+        selected = 'total',
+        justified = TRUE,
+        direction = 'vertical'
+      )
     )
   })
   
@@ -1616,9 +1651,10 @@ computePromotionsServer <- function(input, output, session, credentials) {
             label = lang$dispersion_bin_selection,
             choices = c('fixed', 'calculated') %>% 
               set_names(c(lang$dispersion_fixed_bins, lang$dispersion_calculated_bins)),
-            width = '30%'
+            width = '23%'
           ),
-          uiOutput(ns('dispersion_histogram_bin_number_ui'), style = 'margin-left: 4%;width: 70%;')
+          uiOutput(ns('dispersion_histogram_stock_toggle_ui'), style = 'width: 28%;'),
+          uiOutput(ns('dispersion_histogram_bin_number_ui'), style = 'width: 40%;')
         )
       )
       output$feature_histogram <- renderPlotly(dispersion_histogram())
