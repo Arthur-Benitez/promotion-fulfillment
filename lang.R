@@ -98,7 +98,7 @@ lang <- list(
   dispersion_fixed_bins = 'Barras estándar',
   dispersion_calculated_bins = 'Barras móviles',
   oh_add = 'Incluir OH',
-  oh_add_title = 'Incluir el inventario OH de las tiendas en la gráfica de dispersión.',
+  oh_add_title = 'Mostrar el inventario total (OH de las tiendas + mercancía de la promoción).',
   summary_groups = 'Nivel de detalle',
   running_query = 'Ejecutando consulta...',
   running_computations = 'Realizando cálculos...',
