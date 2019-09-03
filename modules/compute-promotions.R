@@ -1628,7 +1628,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
       shinyWidgets::radioGroupButtons(
         inputId = ns('dispersion_histogram_stock_toggle'),
         label = lang$dispersion_histogram_stock_toggle, 
-        choices = c('Promoción' = 'promo', 'Promoción + OH' = 'total'),
+        choices = c('Promoción' = 'promo', 'Promoción + OH actual' = 'total'),
         selected = 'total',
         justified = TRUE,
         direction = 'vertical'
@@ -1651,9 +1651,9 @@ computePromotionsServer <- function(input, output, session, credentials) {
             label = lang$dispersion_bin_selection,
             choices = c('fixed', 'calculated') %>% 
               set_names(c(lang$dispersion_fixed_bins, lang$dispersion_calculated_bins)),
-            width = '25%'
+            width = '23%'
           ),
-          uiOutput(ns('dispersion_histogram_stock_toggle_ui'), style = 'width: 21%;'),
+          uiOutput(ns('dispersion_histogram_stock_toggle_ui'), style = 'width: 28%;'),
           uiOutput(ns('dispersion_histogram_bin_number_ui'), style = 'width: 40%;')
         )
       )
