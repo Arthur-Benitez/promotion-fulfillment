@@ -605,8 +605,8 @@ generate_quantity_histogram_data <- function(output_filtered_data, bins = 10) {
 generate_dispersion_histogram_data <- function(output_filtered_data, bins_type = 'fixed', bins = 12, stock = 'total') {
   res <- output_filtered_data %>% 
     summarise_data(group = c('feature_name', 'store_nbr'))
-  promo_vars <- c(sym('total_ddv'), sym('total_qty'), sym('total_cost'))
-  total_vars <- c(sym('total_stock_ddv'), sym('total_stock_qty'), sym('total_stock_cost'))
+  promo_vars <- syms(list(ddv = 'total_ddv', qty = 'total_qty', cost = 'total_cost'))
+  total_vars <- syms(list(ddv = 'total_stock_ddv', qty = 'total_stock_qty', cost = 'total_stock_cost'))
   
   if (bins_type == 'fixed') {
     cut_values <- c(0, 3, 7, 14, 21, 28, 35, 50, 75, 100, 150, 250, 350, 450, Inf)
@@ -621,9 +621,9 @@ generate_dispersion_histogram_data <- function(output_filtered_data, bins_type =
   }
   
   if (stock == 'total') {
-    vars <- total_vars
+    temp_vars <- total_vars
   } else {
-    vars <- promo_vars
+    temp_vars <- promo_vars
   }
   
   cut_labels <- paste(
@@ -635,10 +635,10 @@ generate_dispersion_histogram_data <- function(output_filtered_data, bins_type =
   
   res %>% 
     mutate(
-      !!vars[[1]] := round(!!vars[[1]], 1),
-      ddv_bin = cut(!!vars[[1]],  breaks = cut_values, labels = cut_labels, include.lowest = TRUE),
-      temp_qty = !!vars[[2]],
-      temp_cost = !!vars[[3]]
+      ddv = round(!!temp_vars$ddv, 1),
+      ddv_bin = cut(ddv,  breaks = cut_values, labels = cut_labels, include.lowest = TRUE),
+      temp_qty = !!temp_vars$qty,
+      temp_cost = !!temp_vars$cost
     ) %>% 
     group_by(ddv_bin) %>% 
     summarise(
