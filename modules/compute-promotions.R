@@ -602,27 +602,30 @@ generate_quantity_histogram_data <- function(output_filtered_data, bins = 10) {
 }
 
 ## Tabla de histograma
-generate_dispersion_histogram_data <- function(output_filtered_data, bins_type = 'fixed', bins = 12, oh = TRUE) {
+generate_dispersion_histogram_data <- function(output_filtered_data, bins_type = 'fixed', bins = 12, stock = 'total') {
   res <- output_filtered_data %>% 
     summarise_data(group = c('feature_name', 'store_nbr'))
+  promo_vars <- c(sym('total_ddv'), sym('total_qty'), sym('total_cost'))
+  total_vars <- c(sym('total_stock_ddv'), sym('total_stock_qty'), sym('total_stock_cost'))
   
   if (bins_type == 'fixed') {
     cut_values <- c(0, 3, 7, 14, 21, 28, 35, 50, 75, 100, 150, 250, 350, 450, Inf)
   } else {
-    if (oh) {
+    if (stock == 'total') {
       max_ddv <- max(res$total_stock_ddv)
       cut_values <- round(c(seq(0, max_ddv / 2, length.out = bins), Inf))
-      var_ddv <- sym('total_stock_ddv')
-      var_qty <- sym('total_stock_qty')
-      var_cost <- sym('total_stock_cost')
     } else {
       max_ddv <- mean(res$max_ddv)
       cut_values <- round(c(seq(0, max_ddv, length.out = bins - 1), 2 * max_ddv, Inf))
-      var_ddv <- sym('total_ddv')
-      var_qty <- sym('total_qty')
-      var_cost <- sym('total_cost')
     }
   }
+  
+  if (stock == 'total') {
+    vars <- total_vars
+  } else {
+    vars <- promo_vars
+  }
+  
   cut_labels <- paste(
     head(cut_values, -1),
     cut_values[-1],
@@ -632,10 +635,10 @@ generate_dispersion_histogram_data <- function(output_filtered_data, bins_type =
   
   res %>% 
     mutate(
-      !!var_ddv := round(!!var_ddv, 1),
-      ddv_bin = cut(!!var_ddv,  breaks = cut_values, labels = cut_labels, include.lowest = TRUE),
-      temp_qty = !!var_qty,
-      temp_cost = !!var_cost
+      !!vars[[1]] := round(!!vars[[1]], 1),
+      ddv_bin = cut(!!vars[[1]],  breaks = cut_values, labels = cut_labels, include.lowest = TRUE),
+      temp_qty = !!vars[[2]],
+      temp_cost = !!vars[[3]]
     ) %>% 
     group_by(ddv_bin) %>% 
     summarise(
@@ -1485,7 +1488,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
   })
   dispersion_histogram_data <- reactive({
     req(final_results_filt())
-    generate_dispersion_histogram_data(final_results_filt(), bins_type = input$dispersion_bin_selection, bins = input$dispersion_histogram_bin_number, oh = input$dispersion_histogram_stock_toggle)
+    generate_dispersion_histogram_data(final_results_filt(), bins_type = input$dispersion_bin_selection, bins = input$dispersion_histogram_bin_number, stock = input$dispersion_histogram_stock_toggle)
   })
   
   ## Histograma de alcance
@@ -1622,10 +1625,10 @@ computePromotionsServer <- function(input, output, session, credentials) {
     ns <- session$ns
     tags$div(
       title = lang$dispersion_histogram_stock_toggle_title,
-      shinyWidgets::checkboxGroupButtons(
+      shinyWidgets::radioGroupButtons(
         inputId = ns('dispersion_histogram_stock_toggle'),
         label = lang$dispersion_histogram_stock_toggle, 
-        choices = c('Promoción' = 'normal', 'Promoción + OH' = 'total'),
+        choices = c('Promoción' = 'promo', 'Promoción + OH' = 'total'),
         selected = 'total',
         justified = TRUE,
         direction = 'vertical'
