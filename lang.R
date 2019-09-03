@@ -98,7 +98,7 @@ lang <- list(
   dispersion_fixed_bins = 'Barras estándar',
   dispersion_calculated_bins = 'Barras móviles',
   dispersion_histogram_stock_toggle = 'Inventario graficado',
-  dispersion_histogram_stock_toggle_title = 'Selecciona la mercancía que quieres que se incluya en la gráfica de dispersión.',
+  dispersion_histogram_stock_toggle_title = '¿Mostrar la dispersión de inventario sólo de la promoción o total (promoción + OH actual)?',
   summary_groups = 'Nivel de detalle',
   running_query = 'Ejecutando consulta...',
   running_computations = 'Realizando cálculos...',
