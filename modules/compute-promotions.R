@@ -1650,8 +1650,8 @@ computePromotionsServer <- function(input, output, session, credentials) {
               set_names(c(lang$dispersion_fixed_bins, lang$dispersion_calculated_bins)),
             width = '25%'
           ),
-          uiOutput(ns('dispersion_histogram_stock_toggle_ui'), style = 'width: 12%;'),
-          uiOutput(ns('dispersion_histogram_bin_number_ui'), style = 'margin-left: 4%;width: 40%;')
+          uiOutput(ns('dispersion_histogram_stock_toggle_ui'), style = 'width: 21%;'),
+          uiOutput(ns('dispersion_histogram_bin_number_ui'), style = 'width: 40%;')
         )
       )
       output$feature_histogram <- renderPlotly(dispersion_histogram())
