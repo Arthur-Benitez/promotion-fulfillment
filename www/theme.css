@@ -204,6 +204,22 @@ table.dataTable thead tr td {
   background-color: #6CABE7;
 }
 
+table.dataTable thead tr th.header-theme1 {
+  background-color: #eb148d;
+}
+
+table.dataTable thead tr th.header-theme2 {
+  background-color: #76c043;
+}
+
+table.dataTable thead tr th.header-theme3 {
+  background-color: #041e42;
+}
+
+table.dataTable thead tr th.header-theme4 {
+  background-color: #de1c24;
+}
+
 /* Gráficas */
 .svg-container {
   width: 100%;
