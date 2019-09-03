@@ -1485,7 +1485,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
   })
   dispersion_histogram_data <- reactive({
     req(final_results_filt())
-    generate_dispersion_histogram_data(final_results_filt(), bins_type = input$dispersion_bin_selection, bins = input$dispersion_histogram_bin_number, oh = input$oh_add)
+    generate_dispersion_histogram_data(final_results_filt(), bins_type = input$dispersion_bin_selection, bins = input$dispersion_histogram_bin_number, oh = input$dispersion_histogram_stock_toggle)
   })
   
   ## Histograma de alcance
@@ -1617,12 +1617,12 @@ computePromotionsServer <- function(input, output, session, credentials) {
     )
   })
   
-  output$dispersion_histogram_oh_add_ui <- renderUI({
+  output$dispersion_histogram_stock_toggle_ui <- renderUI({
     req(input$histogram_selection == 'dispersion')
     ns <- session$ns
     tags$div(
-      title = lang$oh_add_title,
-      shinyWidgets::materialSwitch(ns('oh_add'), tags$b(lang$oh_add), value = TRUE, status = 'success')
+      title = lang$dispersion_histogram_stock_toggle_title,
+      shinyWidgets::materialSwitch(ns('dispersion_histogram_stock_toggle'), tags$b(lang$dispersion_histogram_stock_toggle), value = TRUE, status = 'success')
     )
   })
   
@@ -1643,7 +1643,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
               set_names(c(lang$dispersion_fixed_bins, lang$dispersion_calculated_bins)),
             width = '25%'
           ),
-          uiOutput(ns('dispersion_histogram_oh_add_ui'), style = 'width: 12%;'),
+          uiOutput(ns('dispersion_histogram_stock_toggle_ui'), style = 'width: 12%;'),
           uiOutput(ns('dispersion_histogram_bin_number_ui'), style = 'margin-left: 4%;width: 40%;')
         )
       )
