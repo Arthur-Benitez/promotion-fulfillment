@@ -51,7 +51,7 @@ parse_input <- function(input_file, gl, calendar_day, date_format = '%Y-%m-%d') 
     }
     nms <- remap_names(columns = nms, column_info, from_col = 'pretty_name', to_col = 'name')
     col_types <- generate_cols_spec(column_info, nms)
-    x <- read_excel(
+    items <- read_excel(
       path = input_file,
       sheet = 1,
       col_names = TRUE,
@@ -68,9 +68,15 @@ parse_input <- function(input_file, gl, calendar_day, date_format = '%Y-%m-%d') 
         display_key = paste(dept_nbr, old_nbr, negocio, sep = '.'),
         split_var = paste(semana_ini, semana_fin, fcst_or_sales, sep = '-')
       )
-    val <- validate_input(x, gl = gl, calendar_day = calendar_day)
+    lists <- read_excel(
+      path = input_file,
+      sheet = 2,
+      col_names = TRUE
+    ) %>%
+      map(~.x[!is.na(.x)])
+    val <- validate_input(data = items, lists = lists, gl = gl, calendar_day = calendar_day)
     if (isTRUE(val)) {
-      return(x)
+      return(items)
     } else {
       return(val)
     }
@@ -81,7 +87,7 @@ parse_input <- function(input_file, gl, calendar_day, date_format = '%Y-%m-%d') 
 
 
 ## Validar inputs
-validate_input <- function(data, gl, calendar_day) {
+validate_input <- function(data, lists, gl, calendar_day) {
   column_info <- gl$cols[gl$cols$is_input, ]
   if (
     ## Condiciones básicas
@@ -159,7 +165,16 @@ validate_input <- function(data, gl, calendar_day) {
         with(data, all(max_feature_qty >= 1)),
         ## Checar que min_feature_qty esté entre 1 y max_feature_qty
         'min_feature_qty debe ser un entero entre 1 y max_feature_qty.',
-        with(data, all(1 <= min_feature_qty & min_feature_qty <= max_feature_qty))
+        with(data, all(1 <= min_feature_qty & min_feature_qty <= max_feature_qty)),
+        ## Todas las listas usadas deben existir
+        'Alguna de las columnas con las tiendas especiales a incluir o excluir no existe.',
+        all(unique(data$white_list) %in% names(lists)) && all(unique(data$black_list) %in% names(lists)),
+        ## Verificar que todos los datos en las columnas de tiendas sean números
+        'Las columnas de tiendas especiales deben contener sólo números.',
+        lists %>% 
+          map(~typeof(.x) == 'double') %>% 
+          unlist() %>% 
+          all()
       )
       failed_idx <- which(!cond$passed)
       if (length(failed_idx) == 0) {
