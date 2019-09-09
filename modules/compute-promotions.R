@@ -183,7 +183,7 @@ validate_input <- function(data, stores_lists = NULL, gl, calendar_day) {
         with(data, all(1 <= min_feature_qty & min_feature_qty <= max_feature_qty)),
         ## Todas las listas usadas deben existir
         'Alguna de las columnas con las tiendas especiales a incluir o excluir no existe.',
-        all(unique(data$white_list) %in% names(lists)) && all(unique(data$black_list) %in% names(lists)),
+        (is.null(stores_lists) && all(is.na(data$white_list)) && all(is.na(data$black_list))) || (all(discard(unique(data$white_list), is.na) %in% names(stores_lists)) && all(discard(unique(data$black_list), is.na) %in% names(stores_lists))),
         ## Verificar que todos los datos en las columnas de tiendas sean números
         'Las columnas de tiendas especiales deben contener sólo números.',
         stores_lists %>% 
