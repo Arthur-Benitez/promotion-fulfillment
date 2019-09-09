@@ -74,9 +74,9 @@ parse_input <- function(input_file, gl, calendar_day, date_format = '%Y-%m-%d') 
       col_names = TRUE
     ) %>%
       map(~.x[!is.na(.x)])
-    val <- validate_input(data = items, lists = lists, gl = gl, calendar_day = calendar_day)
+    val <- validate_input(data = items, stores_lists = stores_lists, gl = gl, calendar_day = calendar_day)
     if (isTRUE(val)) {
-      return(items)
+      return(list(items = items, stores_lists = stores_lists))
     } else {
       return(val)
     }
@@ -87,7 +87,7 @@ parse_input <- function(input_file, gl, calendar_day, date_format = '%Y-%m-%d') 
 
 
 ## Validar inputs
-validate_input <- function(data, lists, gl, calendar_day) {
+validate_input <- function(data, stores_lists = NULL, gl, calendar_day) {
   column_info <- gl$cols[gl$cols$is_input, ]
   if (
     ## Condiciones básicas
@@ -171,7 +171,7 @@ validate_input <- function(data, lists, gl, calendar_day) {
         all(unique(data$white_list) %in% names(lists)) && all(unique(data$black_list) %in% names(lists)),
         ## Verificar que todos los datos en las columnas de tiendas sean números
         'Las columnas de tiendas especiales deben contener sólo números.',
-        lists %>% 
+        stores_lists %>% 
           map(~typeof(.x) == 'double') %>% 
           unlist() %>% 
           all()
@@ -773,6 +773,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
     auth_trigger = 0,
     items_file = NULL,
     items = NULL,
+    stores_lists = NULL,
     is_running = FALSE,
     query_was_tried = FALSE,
     reset_trigger = 0,
@@ -876,6 +877,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
     ## Resetear primero
     r$items_file <- NULL
     r$items <- NULL
+    r$stores_lists <- NULL
     graph_table(NULL)
     query_result(NULL)
     r$query_was_tried <- NULL
@@ -892,7 +894,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
       )
     )))
     val <- parse_input(r$items_file, gl = gl, calendar_day = calendar_day, date_format = input$date_format)
-    if (!is.data.frame(val)) {
+    if (!is.list(val) || !is.data.frame(val$items)) {
       shinyalert(
         type = "error", 
         title = lang$error,
@@ -901,6 +903,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
         closeOnClickOutside = TRUE
       )
       r$items <- NULL
+      r$stores_lists <- NULL
       flog.error(toJSON(list(
         session_info = msg_cred(credentials()),
         message = 'PARSING INPUT FILE FAILED',
@@ -910,7 +913,8 @@ computePromotionsServer <- function(input, output, session, credentials) {
         )
       )))
     } else {
-      r$items <- val
+      r$items <- val$items
+      r$stores_lists <- val$stores_lists
       flog.info(toJSON(list(
         session_info = msg_cred(credentials()),
         message = 'DONE PARSING INPUT FILE',
@@ -1685,6 +1689,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
     ## Esto es necesario porque al resetear la UI de input$items, no cambia el datapath
     r$items_file <- NULL
     r$items <- NULL
+    r$stores_lists <- NULL
     graph_table(NULL)
     query_result(NULL)
     r$query_was_tried <- NULL
@@ -1865,6 +1870,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
         detail = detail(),
         calculations = final_result(),
         items = r$items,
+        stores_lists = r$stores_lists,
         params = list(
           impact_toggle = input$impact_toggle,
           min_feature_qty_toggle = input$min_feature_qty_toggle,
