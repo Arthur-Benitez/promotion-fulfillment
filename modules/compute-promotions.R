@@ -73,7 +73,7 @@ parse_input <- function(input_file, gl, calendar_day, date_format = '%Y-%m-%d') 
       mutate(
         fcst_or_sales = toupper(fcst_or_sales),
         display_key = paste(dept_nbr, old_nbr, negocio, sep = '.'),
-        split_var = paste(semana_ini, semana_fin, fcst_or_sales, sep = '-')
+        split_var = paste(semana_ini, semana_fin, fcst_or_sales, white_list, black_list, sep = '-')
       )
     
     stores_lists <- tryCatch({
@@ -214,17 +214,19 @@ save_files <- function(data_files, gl, credentials) {
 }
 
 ## Correr query
-prepare_query <- function(query, keys, old_nbrs, wk_inicio, wk_final) {
+prepare_query <- function(query, keys, old_nbrs, wk_inicio, wk_final, white_list, black_list) {
   query %>% 
     str_replace_all('\\?KEY', paste0("'", paste(keys, collapse = "','"), "'")) %>%
     str_replace_all('\\?OLD_NBRS', paste(old_nbrs, collapse = ",")) %>%
     str_replace_all('\\?WK_INICIO', as.character(wk_inicio)) %>% 
     str_replace_all('\\?WK_FINAL', as.character(wk_final)) %>% 
+    str_replace_all('\\?WHITE_LIST', paste(white_list, collapse = ",")) %>%
+    str_replace_all('\\?BLACK_LIST', paste(black_list, collapse = ",")) %>%
     str_subset('^\\s*--', negate = TRUE) %>%  #quitar lineas de comentarios
     stringi::stri_trans_general('ASCII') %>% # quitar no ASCII porque truena en producción
     paste(collapse = '\n')
 }
-run_query_once <- function(ch, input_data, connector = 'production-connector') {
+run_query_once <- function(ch, input_data, white_list, black_list, connector = 'production-connector') {
   wk_inicio <- unique(input_data$semana_ini)
   wk_final <- unique(input_data$semana_fin)
   type <- toupper(unique(input_data$fcst_or_sales))
@@ -242,7 +244,9 @@ run_query_once <- function(ch, input_data, connector = 'production-connector') {
     keys = input_data$display_key,
     old_nbrs = input_data$old_nbr,
     wk_inicio = wk_inicio,
-    wk_final = wk_final
+    wk_final = wk_final,
+    white_list = unlist(white_list),
+    black_list = unlist(black_list)
   )
   tryCatch({
     res <- sql_query(
@@ -265,11 +269,13 @@ run_query_once <- function(ch, input_data, connector = 'production-connector') {
     NULL
   })
 }
-run_query <- function(ch, input_data, connector = 'production-connector') {
+run_query <- function(ch, input_data, stores_lists, connector = 'production-connector') {
   res <- input_data %>% 
     split(., .$split_var) %>% 
     map(safely(function(x){
-      run_query_once(ch, x, connector)
+      white_list <- stores_lists[unique(x$white_list)]
+      black_list <- stores_lists[unique(x$black_list)]
+      run_query_once(ch, x, white_list, black_list, connector)
     })) %>% 
     map('result') %>% 
     keep(is.data.frame)
@@ -1336,6 +1342,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
     ## Ver: https://cran.r-project.org/web/packages/future/vignettes/future-4-issues.html
     is_dev <- !is.null(r$ch)
     items <- r$items
+    stores_lists <- r$stores_lists
     usr <- input$user
     pwd <- input$password
     future({
@@ -1349,7 +1356,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
       }
       list(
         timestamp = time1,
-        data = run_query(future_ch, items, 'production-connector'),
+        data = run_query(future_ch, items, stores_lists, 'production-connector'),
         data_ss = search_ss(future_ch, items, 'WM3')
       )
     }) %...>% 
