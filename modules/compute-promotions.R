@@ -45,9 +45,12 @@ parse_input <- function(input_file, gl, calendar_day, date_format = '%Y-%m-%d') 
   }
   tryCatch({
     column_info <- gl$cols[gl$cols$is_input, ]
+    # Quitar las columnas opcionales
+    required_cols <- column_info %>% 
+      filter(!(name %in% c('white_list', 'black_list')))
     nms <- names(readxl::read_excel(input_file, sheet = 1, n_max = 0))
-    if (!all(column_info$pretty_name %in% nms)) {
-      return(sprintf('Las siguientes columnas faltan en el archivo de entrada: %s', paste(setdiff(column_info$pretty_name, nms), collapse = ', ')))
+    if (!all(required_cols$pretty_name %in% nms)) {
+      return(sprintf('Las siguientes columnas faltan en el archivo de entrada: %s', paste(setdiff(required_cols$pretty_name, nms), collapse = ', ')))
     }
     nms <- remap_names(columns = nms, column_info, from_col = 'pretty_name', to_col = 'name')
     col_types <- generate_cols_spec(column_info, nms)
@@ -58,7 +61,11 @@ parse_input <- function(input_file, gl, calendar_day, date_format = '%Y-%m-%d') 
       col_types = col_types$excel_type
       ) %>% 
       magrittr::set_names(nms) %>%  
-      .[column_info$name] %>% 
+      mutate(
+        white_list = ifelse(rep('white_list' %in% nms, nrow(.)), white_list, NA),
+        black_list = ifelse(rep('black_list' %in% nms, nrow(.)), black_list, NA),
+      ) %>% 
+    .[column_info$name] %>% 
       mutate_at(
         col_types$name[col_types$type %in% c('date')],
         as.Date
@@ -68,12 +75,17 @@ parse_input <- function(input_file, gl, calendar_day, date_format = '%Y-%m-%d') 
         display_key = paste(dept_nbr, old_nbr, negocio, sep = '.'),
         split_var = paste(semana_ini, semana_fin, fcst_or_sales, sep = '-')
       )
-    lists <- read_excel(
-      path = input_file,
-      sheet = 2,
-      col_names = TRUE
-    ) %>%
-      map(~.x[!is.na(.x)])
+    
+    stores_lists <- tryCatch({
+      read_excel(
+        path = input_file,
+        sheet = 2,
+        col_names = TRUE
+      ) %>%
+        map(~.x[!is.na(.x)])
+    }, error = function(e) {
+      return(NULL)
+    })
     val <- validate_input(data = items, stores_lists = stores_lists, gl = gl, calendar_day = calendar_day)
     if (isTRUE(val)) {
       return(list(items = items, stores_lists = stores_lists))
@@ -107,7 +119,10 @@ validate_input <- function(data, stores_lists = NULL, gl, calendar_day) {
         ~message, ~passed,
         ## Checar que no haya valores faltantes
         'No puede haber valores faltantes (blanks). Esto se debe comúnmente a que la fecha está almacenada como texto en Excel. Asegúrate de que Excel reconozca las fechas.',
-        !anyNA(data),
+        data %>% 
+          select(-white_list, -black_list) %>% 
+          anyNA() %>% 
+          not(),
         ## Checar que feature_name sea de longitid <= 22 caracteres (para que en total sean <= 40 para GRS)
         'feature_name no puede tener más de 22 caracteres',
         all(nchar(data$feature_name) <= 22),
@@ -981,6 +996,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
         shiny::need(!is.null(r$items), lang$need_valid_input)
     )
     r$items[intersect(names(r$items), gl$cols$name[gl$cols$is_input])] %>%
+      select_if(~!all(is.na(.))) %>% 
       generate_basic_datatable(gl$cols, scrollX = TRUE, scrollY = ifelse(input$graph_toggle, gl$table_height$short, gl$table_height$tall))
   })
   
