@@ -215,22 +215,23 @@ save_files <- function(data_files, gl, credentials) {
 
 ## Correr query
 prepare_query <- function(query, keys, old_nbrs, wk_inicio, wk_final, white_list, black_list) {
-  true_char <- '1=1'
-  false_char <- '1=0'
-  control_w <- ifelse(is.null(white_list), true_char, false_char)
-  control_b <- ifelse((is.null(black_list) || !is.null(white_list)), true_char, false_char)
-  if(is.null(white_list)) {white_list <- 0}
-  if(is.null(black_list)) {black_list <- 0}
+  # Condición para sustituir el string en el query
+  if (is.null(white_list)) {
+    if (is.null(black_list)) {
+      cond_str <- '1=1'
+    } else {
+      cond_str <- sprintf('T1.STORE_NBR NOT IN (%s)', paste(black_list, collapse = ","))
+    }
+  } else {
+    cond_str <- sprintf('T1.STORE_NBR IN (%s)', paste(white_list, collapse = ","))
+  }
   
   query %>% 
     str_replace_all('\\?KEY', paste0("'", paste(keys, collapse = "','"), "'")) %>%
     str_replace_all('\\?OLD_NBRS', paste(old_nbrs, collapse = ",")) %>%
     str_replace_all('\\?WK_INICIO', as.character(wk_inicio)) %>% 
     str_replace_all('\\?WK_FINAL', as.character(wk_final)) %>% 
-    str_replace_all('\\?CONTROL_W', control_w) %>% 
-    str_replace_all('\\?CONTROL_B', control_b) %>% 
-    str_replace_all('\\?WHITE_LIST', paste(white_list, collapse = ",")) %>%
-    str_replace_all('\\?BLACK_LIST', paste(black_list, collapse = ",")) %>%
+    str_replace_all('\\?COND_STR', cond_str) %>% 
     str_subset('^\\s*--', negate = TRUE) %>%  #quitar lineas de comentarios
     stringi::stri_trans_general('ASCII') %>% # quitar no ASCII porque truena en producción
     paste(collapse = '\n')
