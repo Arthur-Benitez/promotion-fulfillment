@@ -784,10 +784,18 @@ generate_sample_input <- function(calendar_day, column_info) {
     semana_fin = c(rep(sales_wks[2], 4), rep(fcst_wks[2], 2)),
     StartDate = c(rep(Sys.Date() + 7, 4), rep(Sys.Date() + 14, 2)),
     EndDate = c(rep(Sys.Date() + 35, 4), rep(Sys.Date() + 49, 2)),
-    Priority = 12
+    Priority = 12,
+    white_list = c('aperturas', 'aperturas', 'aperturas', 'aperturas', NA, NA),
+    black_list = c(NA, NA, NA, NA, 'tiendas_pequeñas', 'tiendas_pequeñas')
   )
   names(info) <- remap_names(names(info), column_info, to_col = 'pretty_name')
-  return(info)
+  
+  stores_lists <- list(
+    aperturas = c(383, 4680, 4577, 4619, 3679, 4752),
+    tiendas_pequenas = c(3810, 3813, 3820, 3826, 3830),
+    otra_lista = c(2344, 2345, 2648)
+  )
+  return(list(promo = info, tiendas_especiales = stores_lists))
 }
 
 # Server ------------------------------------------------------------------
@@ -1799,7 +1807,13 @@ computePromotionsServer <- function(input, output, session, credentials) {
     filename = 'promo-fulfillment-template.xlsx',
     content = function(file) {
       x <- generate_sample_input(calendar_day, gl$cols)
-      openxlsx::write.xlsx(x, file = file, sheetName = "pf-template", append = FALSE, row.names = FALSE)
+      max_length <- x$tiendas_especiales %>% 
+        map_dbl(length) %>% 
+        max
+      x$tiendas_especiales <- x$tiendas_especiales %>% 
+        map(~c(.x, rep(NA, max_length - length(.x)))) %>% 
+        as_tibble()
+      openxlsx::write.xlsx(x, file = file, append = FALSE, row.names = FALSE, tabColour = c('#0071ce', '#eb148d'))
     },
     # Excel content type
     contentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
