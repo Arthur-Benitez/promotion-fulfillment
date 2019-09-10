@@ -1016,6 +1016,20 @@ computePromotionsServer <- function(input, output, session, credentials) {
       generate_basic_datatable(gl$cols, scrollX = TRUE, scrollY = ifelse(input$graph_toggle, gl$table_height$short, gl$table_height$tall))
   })
   
+  output$stores_lists_table <- renderDT({
+    shiny::validate(
+      shiny::need(!is.null(r$items_file), lang$need_items_file) %then%
+        shiny::need(!is.null(r$stores_lists), lang$no_stores_lists)
+    )
+    max_length <- r$stores_lists %>% 
+      map_dbl(length) %>% 
+      max
+    
+    r$stores_lists %>% 
+      map(~c(.x, rep(NA, max_length - length(.x)))) %>% 
+      as_tibble() %>% 
+      generate_basic_datatable(gl$cols, scrollX = TRUE)
+  })
   
   ## Apagar bandera r$is_running
   observeEvent(graph_table(), {
@@ -2013,10 +2027,22 @@ computePromotionsUI <- function(id) {
       selected = NULL,
       width = 10,
       tabPanel(
-        value = 'input_table',
+        value = 'inputs_tabPanel',
         title = lang$tab_input,
-        uiOutput(ns('grafica_ventas_completa')),
-        DTOutput(ns('input_table'))
+        tabBox(
+          width = '100%',
+          tabPanel(
+            value = 'input_table',
+            title = lang$tab_input_graph,
+            uiOutput(ns('grafica_ventas_completa')),
+            DTOutput(ns('input_table'))
+          ),
+          tabPanel(
+            value = 'stores_lists',
+            title = lang$tab_stores_lists,
+            DTOutput(ns('stores_lists_table'))
+          )
+        )
       ),
       tabPanel(
         value = 'output_summary',

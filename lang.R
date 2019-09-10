@@ -89,6 +89,8 @@ lang <- list(
   tab_output_histogram = 'Alcance',
   tab_output_summary = 'Resultados',
   tab_output_table = 'Cálculos',
+  tab_input_graph = 'Tabla & Gráfica',
+  tab_stores_lists = 'Tiendas especiales',
   feature = 'Promoción',
   quantity_histogram = 'Alcance a exhibición',
   histogram_selection = 'Histograma a desplegar',
@@ -164,6 +166,7 @@ lang <- list(
 )
 
 lang$need_valid_input <- paste0('El archivo de items no está en el formato correcto.\n', lang$need_input_format)
+lang$no_stores_lists <- paste0('Tu archivo no tiene listas de tiendas especiales para incluir o excluir, por lo que las promociones se calcularán para todas las tiendas válidas de los formatos especificados.\n', lang$need_input_format)
 lang$email_name <- 'Replenishment Data Science MX'
 lang$email <- 'replen_ds_mx@email.wal-mart.com'
 lang$email_subject <- 'Solicitud de activación de Promo Fulfillment'
