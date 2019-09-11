@@ -63,6 +63,8 @@ lang <- list(
   user_level_icon = '¡Hola %s!',
   ## Compute Promotions
   compute_promotions_inputs = 'Inputs',
+  compute_promotions_basic_intructions = 'Uso básico',
+  compute_promotions_columns_glossary = 'Glosario de columnas',
   compute_promotions_inputs_title = 'Controles principales. Para más ayuda haz click en "(?) Instrucciones".',
   compute_promotions_computation_parameters = 'Exhibiciones',
   compute_promotions_computation_parameters_title = 'Parámetros que afectan el cálculo de las exhibiciones.',
