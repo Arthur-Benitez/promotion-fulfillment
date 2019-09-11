@@ -61,10 +61,7 @@ parse_input <- function(input_file, gl, calendar_day, date_format = '%Y-%m-%d') 
       col_types = col_types$excel_type
       ) %>% 
       magrittr::set_names(nms) %>%  
-      mutate(
-        white_list = ifelse(rep('white_list' %in% nms, nrow(.)), white_list, NA),
-        black_list = ifelse(rep('black_list' %in% nms, nrow(.)), black_list, NA),
-      ) %>% 
+      init_col(c('white_list', 'black_list')) %>% 
       .[column_info$name] %>% 
       mutate_at(
         col_types$name[col_types$type %in% c('date')],
