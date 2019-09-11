@@ -65,7 +65,7 @@ parse_input <- function(input_file, gl, calendar_day, date_format = '%Y-%m-%d') 
         white_list = ifelse(rep('white_list' %in% nms, nrow(.)), white_list, NA),
         black_list = ifelse(rep('black_list' %in% nms, nrow(.)), black_list, NA),
       ) %>% 
-    .[column_info$name] %>% 
+      .[column_info$name] %>% 
       mutate_at(
         col_types$name[col_types$type %in% c('date')],
         as.Date
