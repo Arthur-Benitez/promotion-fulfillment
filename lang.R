@@ -68,6 +68,7 @@ lang <- list(
   compute_promotions_computation_parameters_title = 'Parámetros que afectan el cálculo de las exhibiciones.',
   compute_promotions_impact_parameters = 'Impacto',
   compute_promotions_impact_parameters_title = 'Parámetros que afectan el cálculo de impacto.',
+  compute_promotions_stores_lists = 'Tiendas Especiales',
   date_format = 'Formato de fechas en los archivos descargados',
   grafica_ventas = 'Combinación a visualizar',
   no_info = 'SIN INFORMACIÓN',
