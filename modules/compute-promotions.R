@@ -251,8 +251,8 @@ run_query_once <- function(ch, input_data, white_list, black_list, connector = '
     old_nbrs = input_data$old_nbr,
     wk_inicio = wk_inicio,
     wk_final = wk_final,
-    white_list = unlist(white_list),
-    black_list = unlist(black_list)
+    white_list = white_list,
+    black_list = black_list
   )
   tryCatch({
     res <- sql_query(
@@ -279,8 +279,8 @@ run_query <- function(ch, input_data, stores_lists, connector = 'production-conn
   res <- input_data %>% 
     split(., .$split_var) %>% 
     map(safely(function(x){
-      white_list <- stores_lists[unique(x$white_list)]
-      black_list <- stores_lists[unique(x$black_list)]
+      white_list <- stores_lists[[unique(x$white_list)]]
+      black_list <- stores_lists[[unique(x$black_list)]]
       run_query_once(ch, x, white_list, black_list, connector)
     })) %>% 
     map('result') %>% 
@@ -1368,6 +1368,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
     stores_lists <- r$stores_lists
     usr <- input$user
     pwd <- input$password
+    browser()
     future({
       # init_log(log_dir)
       if (is_dev) {
