@@ -1844,7 +1844,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
         tabBox(
           width = 12,
           tabPanel(
-            title = 'Uso básico',
+            title = lang$compute_promotions_basic_intructions,
             includeHTML('html/instructions-basic-usage.html')
           ),
           tabPanel(
@@ -1860,7 +1860,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
             includeHTML('html/instructions-stores-lists.html')
           ),
           tabPanel(
-            title = 'Glosario de columnas',
+            title = lang$compute_promotions_columns_glossary,
             renderDT({ 
               generate_basic_datatable(glossary_table, gl$cols)
             })
