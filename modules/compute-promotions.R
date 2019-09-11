@@ -1856,6 +1856,10 @@ computePromotionsServer <- function(input, output, session, credentials) {
             includeHTML('html/instructions-impact.html')
           ),
           tabPanel(
+            title = lang$compute_promotions_stores_lists,
+            includeHTML('html/instructions-stores-lists.html')
+          ),
+          tabPanel(
             title = 'Glosario de columnas',
             renderDT({ 
               generate_basic_datatable(glossary_table, gl$cols)
