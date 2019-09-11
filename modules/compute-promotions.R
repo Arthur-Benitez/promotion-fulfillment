@@ -1025,13 +1025,8 @@ computePromotionsServer <- function(input, output, session, credentials) {
       shiny::need(!is.null(r$items_file), lang$need_items_file) %then%
         shiny::need(!is.null(r$stores_lists), lang$no_stores_lists)
     )
-    max_length <- r$stores_lists %>% 
-      map_dbl(length) %>% 
-      max
-    
     r$stores_lists %>% 
-      map(~c(.x, rep(NA, max_length - length(.x)))) %>% 
-      as_tibble() %>% 
+      fill_vectors %>% 
       generate_basic_datatable(gl$cols, scrollX = TRUE)
   })
   
@@ -1803,12 +1798,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
     filename = 'promo-fulfillment-template.xlsx',
     content = function(file) {
       x <- generate_sample_input(calendar_day, gl$cols)
-      max_length <- x$tiendas_especiales %>% 
-        map_dbl(length) %>% 
-        max
-      x$tiendas_especiales <- x$tiendas_especiales %>% 
-        map(~c(.x, rep(NA, max_length - length(.x)))) %>% 
-        as_tibble()
+      x$tiendas_especiales <- fill_vectors(x$tiendas_especiales)
       openxlsx::write.xlsx(x, file = file, append = FALSE, row.names = FALSE, tabColour = c('#0071ce', '#eb148d'))
     },
     # Excel content type
