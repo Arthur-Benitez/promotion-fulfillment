@@ -1,18 +1,18 @@
 <!DOCTYPE html>
 <h2>Tiendas Especiales</h2>
-<p>Esta sección explica cómo usar la funcionalidad que permite incluir o excluir de las promociones a algunas tiendas de forma particular.</p>
-<ul>
-  <li><b>Incluir tiendas:</b> Las promociones que estás calculando pueden impactar <b>sólo en algunas tiendas</b> en particular, ignorando a todas las demás de su formato. Esta funcionalidad puede ser útil si deseas un refuerzo para ciertas tiendas que hayas detectado con falta de inventario o venta excepcional.</li>
-  <ul>
-    <li>Esta funcionalidad se activa a través de la columna de <em>"Incluir sólo estas tiendas (opcional)"</em> en el formato que cargas como input.</li>
-  </ul>
-  <li><b>Excluir tiendas:</b> Las promociones que estás calculando pueden impactar a todas las tiendas del formato, <b>excepto a algunas</b>. Esta funcionalidad puede ser útil si tienes detectadas ciertas tiendas que sabes podrían tener un problema con la cantidad de mercancía, aún si se respetan los DDV (por ej. tiendas físicamente muy pequeñas con grandes ventas).</li>
-  <ul>
-    <li>Esta funcionalidad se activa a través de la columna de <em>"Excluir estas tiendas (opcional)"</em> en el formato que cargas como input.</li>
-  </ul>
-  <br>
-  <p>Si tu archivo de input no tiene las columnas mencionadas, puedes descargar el formato del ejemplo. En estas columnas, debes escribir el <b>nombre</b> de otra columna que encabece la lista de tiendas que deseas incluir o excluir de la promoción, según sea el caso.
-    El nombre de la lista debe ser igual para todos los artículos dentro de la misma promoción, pero puedes cambiarlo para otras promociones. Ten en cuenta que si usas esta funcionalidad, todos los resultados que veas acerca de las promociones afectadas, reflejarán también información sólo de las tiendas que estas incluyendo/no excluyendo.</p>
-  <p>Las listas de tiendas con los nombres que se usan como se describe arriba, deberán ir en otra pestaña en el mismo archivo de Excel que usas como input. Esta pestaña debe ser la segunda de izquierda a derecha en el archivo (la primera debe ser la que trae la información para el cálculo). En esta pestaña, debes poner los nombres de las listas en la fila 1, comenzando por la columna A. Para cada columna, puedes poner un nombre diferente y abajo de los nombres, debes escribir las determinantes de las tiendas (store_nbr) que habrá en cada lista. Las listas pueden variar en longitud y puedes repetir tiendas en varias listas. La listas de inclusión tienen prioridad sobre las de exclusión, de forma que si para una promoción especificas ambos tipos de listas, el resultado tendrá sólo la información de la lista de inclusión, sin importar la lista de exclusión.</p>
-</ul>
-<p><i class="fas fa-info-circle text-icon"></i> Nota: Esta es una funcionalidad completamente opcional, de forma que si para alguna promoción no quieres usarla, sólo deja en blanco esas columnas en la pestaña de la información para el cálculo. También puedes seguir usando el formato de siempre, y las promociones afectarán a todas las tiendas válidas de su formato. Si tienes preguntas, ¡no dudes en contactarnos!</p>
+<p>
+  Para incluir sólo ciertas tiendas o excluir algunas tiendas, hay que seguir los siguientes pasos:
+</p>
+<ol>
+  <li><b>Definir listas de tiendas:</b> En la segunda pestaña del input puedes poner una lista de tiendas por columna. El nombre de cada columna es el identificador de la lista y tú lo defines. Las listas pueden ser de longitudes diferentes.</li>
+  <li><b>Incluir tiendas:</b> Para que una promoción impacte únicamente en ciertas tiendas, basta con que en el campo "" del input le pongas el nombre de la lista que quieres utilizar. Nota que si usas esta funcionalidad, únicamente se incluirán las tiendas del formato especificado que aparezcan en la lista, y se ignorará la lista de exclusión.</li>
+  <li><b>Excluir tiendas:</b> Para excluir ciertas tiendas de una promoción, solamente tienes que especificar la lista de tiendas que quieres excluir en el campo "" de la promoción.</li>
+  <li><b>Notas:</b></li>
+  <ol>
+    <li>Si no quieres incluir ni excluir tiendas específicas, sólo deja en blanco las columnas del input.</li>
+    <li>Es necesario repetir el nombre de la lista para todos los renglones dentro de una misma promoción, pero puede variar entre promociones.</li>
+    <li>Si intentas incluir y excluir tiendas al mismo tiempo, se ignorará la lista de exclusión.</li>
+    <li>La pestaña con las listas debe ser la segunda del archivo de entrada.</li>
+    <li>Puedes dejar listas que no se utilicen en ninguna promoción, pero si el nombre de una lista aparece en una promoción, es indispensable que la lista exista en la segunda pestaña.</li>
+  </ol>
+</ol>
