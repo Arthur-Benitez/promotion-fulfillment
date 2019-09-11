@@ -187,8 +187,7 @@ validate_input <- function(data, stores_lists = NULL, gl, calendar_day) {
         ## Verificar que todos los datos en las columnas de tiendas sean números
         'Las columnas de tiendas especiales deben contener sólo números.',
         stores_lists %>% 
-          map(~typeof(.x) == 'double') %>% 
-          unlist() %>% 
+          map_lgl(~typeof(.x) == 'double') %>% 
           all()
       )
       failed_idx <- which(!cond$passed)
