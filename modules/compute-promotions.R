@@ -1368,7 +1368,6 @@ computePromotionsServer <- function(input, output, session, credentials) {
     stores_lists <- r$stores_lists
     usr <- input$user
     pwd <- input$password
-    browser()
     future({
       # init_log(log_dir)
       if (is_dev) {
