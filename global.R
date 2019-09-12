@@ -132,9 +132,9 @@ gl <- list(
     'MEDIMART',
     'OTRO'
   ),
-  max_input_rows = 100,
+  max_input_rows = 500,
   max_output_rows = 100000,
-  max_input_queries = 10,
+  max_input_queries = 15,
   plotly_height = '40vh',
   table_height = list(
     short = '30vh',
