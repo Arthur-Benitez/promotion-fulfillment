@@ -299,7 +299,7 @@ usageStatsServer <- function(input, output, session, credentials, dev_connection
         sort_fun <- fct_infreq
       } else if (input$graph_top_split == 'vp') {
         colorvar <- sym('vp')
-        pal <- colorblind_pal()(n_distinct(df$vp)) %>% set_names(sort(unique(df$vp), na.last = TRUE))
+        pal <- extended_colorblind_pal(n_distinct(df$vp)) %>% set_names(sort(unique(df$vp), na.last = TRUE))
         sort_fun <- identity
       } else {
         colorvar <- sym('role')
