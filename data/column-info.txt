@@ -14,6 +14,8 @@ fcst_or_sales	character	TRUE	TRUE	character	default		¿Forecast o ventas?	"""F""
 StartDate	date	TRUE	TRUE	date	default		Promo StartDate	Fecha de inicio de efectividad de la promo. Hay que especificar el formato de la fecha al subir el archivo.
 EndDate	date	TRUE	TRUE	date	default		Promo EndDate	Fecha de fin de efectividad de la promo. Hay que especificar el formato de la fecha al subir el archivo.
 Priority	numeric	TRUE	TRUE	comma	default	0	Priority	Prioridad de la estrategia en el sistema.
+white_list	character	TRUE	TRUE	character	default		Incluir sólo estas tiendas (opcional)	Tiendas que serán exclusivamente incluidas en la promoción.
+black_list	character	TRUE	TRUE	character	default		Excluir estas tiendas (opcional)	Tiendas que serán excluidas de la promoción.
 timestamp	datetime		FALSE	datetime	default		Timestamp	Timestamp
 cid	numeric		FALSE	character	default		CID	CID = repl_group_nbr en Teradata
 primary_desc	character		FALSE	character	default		Descripción	Descripción del artículo.

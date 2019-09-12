@@ -12,6 +12,26 @@ init_log <- function(log_dir) {
   )
 }
 
+## Función que inicializa una columna con un valor específico si no existe ya
+init_col <- function(data, col, init_value = NA) {
+  for (cc in col) {
+    if (is.null(data[[cc]])) {
+      data[[cc]] <- init_value
+    }
+  }
+  data
+}
+
+## Función para que todos los vectores dentro de una lista sean de la misma longitud
+fill_vectors <- function(data, value = NA) {
+  max_length <- data %>% 
+    map_dbl(length) %>% 
+    max
+  data %>% 
+    map(~c(.x, rep(value, max_length - length(.x)))) %>% 
+    as_tibble()
+}
+
 ## Función para encadenar condiciones dentro de validate()
 `%then%` <- shiny:::`%OR%`
 
