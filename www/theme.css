@@ -289,6 +289,10 @@ table.dataTable thead tr th.header-theme4 {
   color: #003896;
 }
 
+.nav-tabs-custom .nav-tabs-custom {
+  margin-bottom: 0;
+}
+
 
 /* Loading de gráfica de ventas */
 #compute_promotions-grafica_ventas + .shiny-output-error-validation {

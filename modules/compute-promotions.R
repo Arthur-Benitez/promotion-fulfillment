@@ -45,19 +45,23 @@ parse_input <- function(input_file, gl, calendar_day, date_format = '%Y-%m-%d') 
   }
   tryCatch({
     column_info <- gl$cols[gl$cols$is_input, ]
+    # Quitar las columnas opcionales
+    required_cols <- column_info %>% 
+      filter(!(name %in% c('white_list', 'black_list')))
     nms <- names(readxl::read_excel(input_file, sheet = 1, n_max = 0))
-    if (!all(column_info$pretty_name %in% nms)) {
-      return(sprintf('Las siguientes columnas faltan en el archivo de entrada: %s', paste(setdiff(column_info$pretty_name, nms), collapse = ', ')))
+    if (!all(required_cols$pretty_name %in% nms)) {
+      return(sprintf('Las siguientes columnas faltan en el archivo de entrada: %s', paste(setdiff(required_cols$pretty_name, nms), collapse = ', ')))
     }
     nms <- remap_names(columns = nms, column_info, from_col = 'pretty_name', to_col = 'name')
     col_types <- generate_cols_spec(column_info, nms)
-    x <- read_excel(
+    items <- read_excel(
       path = input_file,
       sheet = 1,
       col_names = TRUE,
       col_types = col_types$excel_type
       ) %>% 
       magrittr::set_names(nms) %>%  
+      init_col(c('white_list', 'black_list')) %>% 
       .[column_info$name] %>% 
       mutate_at(
         col_types$name[col_types$type %in% c('date')],
@@ -66,11 +70,22 @@ parse_input <- function(input_file, gl, calendar_day, date_format = '%Y-%m-%d') 
       mutate(
         fcst_or_sales = toupper(fcst_or_sales),
         display_key = paste(dept_nbr, old_nbr, negocio, sep = '.'),
-        split_var = paste(semana_ini, semana_fin, fcst_or_sales, sep = '-')
+        split_var = paste(semana_ini, semana_fin, fcst_or_sales, white_list, black_list, sep = '-')
       )
-    val <- validate_input(x, gl = gl, calendar_day = calendar_day)
+    
+    stores_lists <- tryCatch({
+      read_excel(
+        path = input_file,
+        sheet = 2,
+        col_names = TRUE
+      ) %>%
+        map(~.x[!is.na(.x)])
+    }, error = function(e) {
+      return(NULL)
+    })
+    val <- validate_input(data = items, stores_lists = stores_lists, gl = gl, calendar_day = calendar_day)
     if (isTRUE(val)) {
-      return(x)
+      return(list(items = items, stores_lists = stores_lists))
     } else {
       return(val)
     }
@@ -81,7 +96,7 @@ parse_input <- function(input_file, gl, calendar_day, date_format = '%Y-%m-%d') 
 
 
 ## Validar inputs
-validate_input <- function(data, gl, calendar_day) {
+validate_input <- function(data, stores_lists = NULL, gl, calendar_day) {
   column_info <- gl$cols[gl$cols$is_input, ]
   if (
     ## Condiciones básicas
@@ -101,7 +116,10 @@ validate_input <- function(data, gl, calendar_day) {
         ~message, ~passed,
         ## Checar que no haya valores faltantes
         'No puede haber valores faltantes (blanks). Esto se debe comúnmente a que la fecha está almacenada como texto en Excel. Asegúrate de que Excel reconozca las fechas.',
-        !anyNA(data),
+        data %>% 
+          select(-white_list, -black_list) %>% 
+          anyNA() %>% 
+          not(),
         ## Checar que feature_name sea de longitid <= 22 caracteres (para que en total sean <= 40 para GRS)
         'feature_name no puede tener más de 22 caracteres',
         all(nchar(data$feature_name) <= 22),
@@ -159,7 +177,15 @@ validate_input <- function(data, gl, calendar_day) {
         with(data, all(max_feature_qty >= 1)),
         ## Checar que min_feature_qty esté entre 1 y max_feature_qty
         'min_feature_qty debe ser un entero entre 1 y max_feature_qty.',
-        with(data, all(1 <= min_feature_qty & min_feature_qty <= max_feature_qty))
+        with(data, all(1 <= min_feature_qty & min_feature_qty <= max_feature_qty)),
+        ## Todas las listas usadas deben existir
+        'Alguna de las columnas con las tiendas especiales a incluir o excluir no existe.',
+        (is.null(stores_lists) && all(is.na(data$white_list)) && all(is.na(data$black_list))) || (all(discard(unique(data$white_list), is.na) %in% names(stores_lists)) && all(discard(unique(data$black_list), is.na) %in% names(stores_lists))),
+        ## Verificar que todos los datos en las columnas de tiendas sean números
+        'Las columnas de tiendas especiales deben contener sólo números.',
+        stores_lists %>% 
+          map_lgl(~typeof(.x) == 'double') %>% 
+          all()
       )
       failed_idx <- which(!cond$passed)
       if (length(failed_idx) == 0) {
@@ -184,17 +210,29 @@ save_files <- function(data_files, gl, credentials) {
 }
 
 ## Correr query
-prepare_query <- function(query, keys, old_nbrs, wk_inicio, wk_final) {
+prepare_query <- function(query, keys, old_nbrs, wk_inicio, wk_final, white_list, black_list) {
+  # Condición para sustituir el string en el query
+  if (is.null(white_list)) {
+    if (is.null(black_list)) {
+      cond_str <- '1=1'
+    } else {
+      cond_str <- sprintf('T1.STORE_NBR NOT IN (%s)', paste(black_list, collapse = ","))
+    }
+  } else {
+    cond_str <- sprintf('T1.STORE_NBR IN (%s)', paste(white_list, collapse = ","))
+  }
+  
   query %>% 
     str_replace_all('\\?KEY', paste0("'", paste(keys, collapse = "','"), "'")) %>%
     str_replace_all('\\?OLD_NBRS', paste(old_nbrs, collapse = ",")) %>%
     str_replace_all('\\?WK_INICIO', as.character(wk_inicio)) %>% 
     str_replace_all('\\?WK_FINAL', as.character(wk_final)) %>% 
+    str_replace_all('\\?COND_STR', cond_str) %>% 
     str_subset('^\\s*--', negate = TRUE) %>%  #quitar lineas de comentarios
     stringi::stri_trans_general('ASCII') %>% # quitar no ASCII porque truena en producción
     paste(collapse = '\n')
 }
-run_query_once <- function(ch, input_data, connector = 'production-connector') {
+run_query_once <- function(ch, input_data, white_list, black_list, connector = 'production-connector') {
   wk_inicio <- unique(input_data$semana_ini)
   wk_final <- unique(input_data$semana_fin)
   type <- toupper(unique(input_data$fcst_or_sales))
@@ -212,7 +250,9 @@ run_query_once <- function(ch, input_data, connector = 'production-connector') {
     keys = input_data$display_key,
     old_nbrs = input_data$old_nbr,
     wk_inicio = wk_inicio,
-    wk_final = wk_final
+    wk_final = wk_final,
+    white_list = white_list,
+    black_list = black_list
   )
   tryCatch({
     res <- sql_query(
@@ -235,11 +275,13 @@ run_query_once <- function(ch, input_data, connector = 'production-connector') {
     NULL
   })
 }
-run_query <- function(ch, input_data, connector = 'production-connector') {
+run_query <- function(ch, input_data, stores_lists, connector = 'production-connector') {
   res <- input_data %>% 
     split(., .$split_var) %>% 
     map(safely(function(x){
-      run_query_once(ch, x, connector)
+      white_list <- stores_lists[[unique(x$white_list)]]
+      black_list <- stores_lists[[unique(x$black_list)]]
+      run_query_once(ch, x, white_list, black_list, connector)
     })) %>% 
     map('result') %>% 
     keep(is.data.frame)
@@ -738,10 +780,18 @@ generate_sample_input <- function(calendar_day, column_info) {
     semana_fin = c(rep(sales_wks[2], 4), rep(fcst_wks[2], 2)),
     StartDate = c(rep(Sys.Date() + 7, 4), rep(Sys.Date() + 14, 2)),
     EndDate = c(rep(Sys.Date() + 35, 4), rep(Sys.Date() + 49, 2)),
-    Priority = 12
+    Priority = 12,
+    white_list = c('aperturas', 'aperturas', 'aperturas', 'aperturas', NA, NA),
+    black_list = c(NA, NA, NA, NA, 'tiendas_pequeñas', 'tiendas_pequeñas')
   )
   names(info) <- remap_names(names(info), column_info, to_col = 'pretty_name')
-  return(info)
+  
+  stores_lists <- list(
+    aperturas = c(383, 4680, 4577, 4619, 3679, 4752),
+    tiendas_pequenas = c(3810, 3813, 3820, 3826, 3830),
+    otra_lista = c(2344, 2345, 2648)
+  )
+  return(list(promo = info, tiendas_especiales = stores_lists))
 }
 
 # Server ------------------------------------------------------------------
@@ -758,6 +808,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
     auth_trigger = 0,
     items_file = NULL,
     items = NULL,
+    stores_lists = NULL,
     is_running = FALSE,
     query_was_tried = FALSE,
     reset_trigger = 0,
@@ -861,6 +912,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
     ## Resetear primero
     r$items_file <- NULL
     r$items <- NULL
+    r$stores_lists <- NULL
     graph_table(NULL)
     query_result(NULL)
     r$query_was_tried <- NULL
@@ -877,7 +929,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
       )
     )))
     val <- parse_input(r$items_file, gl = gl, calendar_day = calendar_day, date_format = input$date_format)
-    if (!is.data.frame(val)) {
+    if (!is.list(val) || !is.data.frame(val$items)) {
       shinyalert(
         type = "error", 
         title = lang$error,
@@ -886,6 +938,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
         closeOnClickOutside = TRUE
       )
       r$items <- NULL
+      r$stores_lists <- NULL
       flog.error(toJSON(list(
         session_info = msg_cred(credentials()),
         message = 'PARSING INPUT FILE FAILED',
@@ -895,7 +948,8 @@ computePromotionsServer <- function(input, output, session, credentials) {
         )
       )))
     } else {
-      r$items <- val
+      r$items <- val$items
+      r$stores_lists <- val$stores_lists
       flog.info(toJSON(list(
         session_info = msg_cred(credentials()),
         message = 'DONE PARSING INPUT FILE',
@@ -962,9 +1016,19 @@ computePromotionsServer <- function(input, output, session, credentials) {
         shiny::need(!is.null(r$items), lang$need_valid_input)
     )
     r$items[intersect(names(r$items), gl$cols$name[gl$cols$is_input])] %>%
+      select_if(~!all(is.na(.))) %>% 
       generate_basic_datatable(gl$cols, scrollX = TRUE, scrollY = ifelse(input$graph_toggle, gl$table_height$short, gl$table_height$tall))
   })
   
+  output$stores_lists_table <- renderDT({
+    shiny::validate(
+      shiny::need(!is.null(r$items_file), lang$need_items_file) %then%
+        shiny::need(!is.null(r$stores_lists), lang$no_stores_lists)
+    )
+    r$stores_lists %>% 
+      fill_vectors %>% 
+      generate_basic_datatable(gl$cols, scrollX = TRUE)
+  })
   
   ## Apagar bandera r$is_running
   observeEvent(graph_table(), {
@@ -1301,8 +1365,10 @@ computePromotionsServer <- function(input, output, session, credentials) {
     ## Ver: https://cran.r-project.org/web/packages/future/vignettes/future-4-issues.html
     is_dev <- !is.null(r$ch)
     items <- r$items
+    stores_lists <- r$stores_lists
     usr <- input$user
     pwd <- input$password
+    browser()
     future({
       # init_log(log_dir)
       if (is_dev) {
@@ -1314,7 +1380,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
       }
       list(
         timestamp = time1,
-        data = run_query(future_ch, items, 'production-connector'),
+        data = run_query(future_ch, items, stores_lists, 'production-connector'),
         data_ss = search_ss(future_ch, items, 'WM3')
       )
     }) %...>% 
@@ -1670,6 +1736,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
     ## Esto es necesario porque al resetear la UI de input$items, no cambia el datapath
     r$items_file <- NULL
     r$items <- NULL
+    r$stores_lists <- NULL
     graph_table(NULL)
     query_result(NULL)
     r$query_was_tried <- NULL
@@ -1732,7 +1799,8 @@ computePromotionsServer <- function(input, output, session, credentials) {
     filename = 'promo-fulfillment-template.xlsx',
     content = function(file) {
       x <- generate_sample_input(calendar_day, gl$cols)
-      openxlsx::write.xlsx(x, file = file, sheetName = "pf-template", append = FALSE, row.names = FALSE)
+      x$tiendas_especiales <- fill_vectors(x$tiendas_especiales)
+      openxlsx::write.xlsx(x, file = file, append = FALSE, row.names = FALSE, tabColour = c('#0071ce', '#eb148d'))
     },
     # Excel content type
     contentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
@@ -1763,7 +1831,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
         tabBox(
           width = 12,
           tabPanel(
-            title = 'Uso básico',
+            title = lang$compute_promotions_basic_intructions,
             includeHTML('html/instructions-basic-usage.html')
           ),
           tabPanel(
@@ -1775,7 +1843,11 @@ computePromotionsServer <- function(input, output, session, credentials) {
             includeHTML('html/instructions-impact.html')
           ),
           tabPanel(
-            title = 'Glosario de columnas',
+            title = lang$compute_promotions_stores_lists,
+            includeHTML('html/instructions-stores-lists.html')
+          ),
+          tabPanel(
+            title = lang$compute_promotions_columns_glossary,
             renderDT({ 
               generate_basic_datatable(glossary_table, gl$cols)
             })
@@ -1850,6 +1922,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
         detail = detail(),
         calculations = final_result(),
         items = r$items,
+        stores_lists = r$stores_lists,
         params = list(
           impact_toggle = input$impact_toggle,
           min_feature_qty_toggle = input$min_feature_qty_toggle,
@@ -1959,10 +2032,22 @@ computePromotionsUI <- function(id) {
       selected = NULL,
       width = 10,
       tabPanel(
-        value = 'input_table',
+        value = 'inputs_tabPanel',
         title = lang$tab_input,
-        uiOutput(ns('grafica_ventas_completa')),
-        DTOutput(ns('input_table'))
+        tabBox(
+          width = '100%',
+          tabPanel(
+            value = 'input_table',
+            title = lang$tab_input_graph,
+            uiOutput(ns('grafica_ventas_completa')),
+            DTOutput(ns('input_table'))
+          ),
+          tabPanel(
+            value = 'stores_lists',
+            title = lang$tab_stores_lists,
+            DTOutput(ns('stores_lists_table'))
+          )
+        )
       ),
       tabPanel(
         value = 'output_summary',
