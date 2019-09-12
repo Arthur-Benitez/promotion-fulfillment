@@ -115,8 +115,8 @@ gl <- list(
       'dev'
     }
   },
-  app_version = '1.4.1',
-  app_version_date = '2019-08-27',
+  app_version = '1.4.2',
+  app_version_date = '2019-09-12',
   ## Compute promotions
   cols = tryCatch({
     read_tsv('data/column-info.txt', col_types = 'ccllcncc')
