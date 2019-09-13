@@ -647,25 +647,17 @@ generate_quantity_histogram_data <- function(output_filtered_data, bins = 10) {
 generate_dispersion_histogram_data <- function(output_filtered_data, bins_type = 'fixed', bins = 12, stock = 'total') {
   res <- output_filtered_data %>% 
     summarise_data(group = c('feature_name', 'store_nbr'))
-  promo_vars <- syms(list(ddv = 'total_ddv', qty = 'total_qty', cost = 'total_cost'))
-  total_vars <- syms(list(ddv = 'total_stock_ddv', qty = 'total_stock_qty', cost = 'total_stock_cost'))
+  ddv <- pull(res, !!temp_vars$ddv)
+  if (stock == 'total') {
+    temp_vars <- syms(list(ddv = 'total_stock_ddv', qty = 'total_stock_qty', cost = 'total_stock_cost'))
+  } else {
+    temp_vars <- syms(list(ddv = 'total_ddv', qty = 'total_qty', cost = 'total_cost'))
+  }
   
   if (bins_type == 'fixed') {
     cut_values <- c(0, 3, 7, 14, 21, 28, 35, 50, 75, 100, 150, 250, 350, 450, Inf)
   } else {
-    if (stock == 'total') {
-      max_ddv <- max(res$total_stock_ddv)
-      cut_values <- round(c(seq(0, max_ddv / 2, length.out = bins), Inf))
-    } else {
-      max_ddv <- mean(res$max_ddv)
-      cut_values <- round(c(seq(0, max_ddv, length.out = bins - 1), 2 * max_ddv, Inf))
-    }
-  }
-  
-  if (stock == 'total') {
-    temp_vars <- total_vars
-  } else {
-    temp_vars <- promo_vars
+    cut_values <- unique(c(0, pmax(0, floor(mean(ddv) + max(sd(ddv), 0.5) * seq(-2, 2, length.out = bins))), Inf))
   }
   
   cut_labels <- paste(
@@ -673,7 +665,13 @@ generate_dispersion_histogram_data <- function(output_filtered_data, bins_type =
     cut_values[-1],
     sep = ' - '
   ) %>% 
-    replace(list = length(.), sprintf('+%s', round(cut_values[length(cut_values)-1])))
+    replace(
+      list = c(1, length(.)),
+      values = c(
+        sprintf('< %s', round(cut_values[2])),
+        sprintf('> %s', round(cut_values[length(cut_values)-1]))
+      )
+    )
   
   res %>% 
     mutate(
