@@ -93,7 +93,6 @@ lang <- list(
   quantity_histogram = 'Alcance a exhibición',
   histogram_selection = 'Histograma a desplegar',
   dispersion_histogram = 'Dispersión de inventario',
-  bin_size = 'Tamaño del rango',
   bin_number = 'Número de barras',
   dispersion_bin_selection = 'Distribución de barras',
   dispersion_fixed_bins = 'Barras estándar',
@@ -131,7 +130,7 @@ lang <- list(
   ## Variables
   dc = 'CEDIS',
   store_nbr = 'Tienda',
-  cid = 'Artículo',
+  cid = 'CID',
   old_nbr = 'Artículo',
   feature_name = 'Promoción',
   business = 'Negocio',

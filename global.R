@@ -115,8 +115,8 @@ gl <- list(
       'dev'
     }
   },
-  app_version = '1.4.0',
-  app_version_date = '2019-08-19',
+  app_version = '1.4.1',
+  app_version_date = '2019-08-27',
   ## Compute promotions
   cols = tryCatch({
     read_tsv('data/column-info.txt', col_types = 'ccllcncc')
@@ -133,8 +133,14 @@ gl <- list(
     'OTRO'
   ),
   max_input_rows = 100,
+  max_output_rows = 100000,
   max_input_queries = 10,
-  plotly_height = 300
+  plotly_height = '40vh',
+  table_height = list(
+    short = '30vh',
+    medium = '40vh',
+    tall = '50vh'
+  )
 )
 gl$is_dev <- gl$app_deployment_environment == 'dev'
 gl$app_version_text <- sprintf('Versión %s (%s)', gl$app_version, gl$app_version_date)

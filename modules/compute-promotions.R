@@ -545,7 +545,7 @@ summarise_data <- function(data, group = c('feature_name', 'cid')) {
 }
 
 ## Tabla de histograma
-generate_quantity_histogram_data <- function(output_filtered_data, bin_size = 0.2) {
+generate_quantity_histogram_data <- function(output_filtered_data, bins = 10) {
   res <- output_filtered_data %>% 
     summarise_data(group = c('feature_name', 'store_nbr')) %>% 
     ungroup() %>% 
@@ -553,16 +553,15 @@ generate_quantity_histogram_data <- function(output_filtered_data, bin_size = 0.
       perc_max_feature_qty = round(total_qty / max_feature_qty, 5)
     )
   
-  max_bin <- bin_size * ceiling(max(res$perc_max_feature_qty) / bin_size)
-  cut_values <- seq(0, max(max_bin, 0), by = bin_size)
+  cut_values <- seq(0, 1, length.out = bins + 1)
   cut_labels <- paste(
     scales::percent(head(cut_values, -1), accuracy = 1),
     scales::percent(cut_values[-1], accuracy = 1),
     sep = ' - '
   )
-  
   res %>% 
     mutate(
+      perc_max_feature_qty = pmin(1, perc_max_feature_qty),
       perc_max_feature_qty_bin = cut(perc_max_feature_qty,
                                      breaks = cut_values,
                                      labels = cut_labels,
@@ -944,8 +943,9 @@ computePromotionsServer <- function(input, output, session, credentials) {
         shiny::need(!is.null(r$items), lang$need_valid_input)
     )
     r$items[intersect(names(r$items), gl$cols$name[gl$cols$is_input])] %>%
-      generate_basic_datatable(gl$cols, scrollX = TRUE, scrollY = ifelse(input$graph_toggle, '150px', '500px'))
+      generate_basic_datatable(gl$cols, scrollX = TRUE, scrollY = ifelse(input$graph_toggle, gl$table_height$short, gl$table_height$tall))
   })
+  
   
   ## Apagar bandera r$is_running
   observeEvent(graph_table(), {
@@ -960,12 +960,23 @@ computePromotionsServer <- function(input, output, session, credentials) {
     selectInput(
       ns('sales_summary_groups'),
       label = lang$sales_summary_groups,
-      choices = c('feature_name', 'old_nbr', 'negocio', 'dept_nbr') %>% 
-        set_names(c(lang$feature_name, lang$old_nbr, lang$business, lang$departamento)),
+      choices = c('feature_name', 'old_nbr', 'negocio', 'dept_nbr', 'cid') %>% 
+        set_names(c(lang$feature_name, lang$old_nbr, lang$business, lang$departamento, lang$cid)),
       multiple = TRUE,
       selected = c('feature_name'),
       width = '100%'
     )
+  })
+  
+  sales_graph_group_cols <- reactive({
+    group_cols <- input$sales_summary_groups %>% 
+      replace(input$sales_summary_groups == 'old_nbr', 'old_nbr_desc')
+    if (!('old_nbr' %in% input$sales_summary_groups)) {
+      group_cols <- group_cols %>% 
+        replace(group_cols == 'cid', 'cid_desc')
+    } else {
+      group_cols
+    }
   })
   
   graph_choices <- reactiveVal()
@@ -977,12 +988,22 @@ computePromotionsServer <- function(input, output, session, credentials) {
     if (length(input$sales_summary_groups) == 0) {
       graph_choices('Todos')
     } else {
-      graph_table() %>% 
+      table <- graph_table()
+      if ('cid' %in% input$sales_summary_groups) {
+        table <- table %>% 
+          group_by(cid) %>% 
+          mutate(
+            primary_desc = first(primary_desc)
+          ) %>% 
+          ungroup()
+      }
+      table %>% 
         right_join(r$items, by = c('old_nbr', 'negocio')) %>% 
         mutate(
-          old_nbr = paste0(primary_desc, ' (', old_nbr, ')')
+          old_nbr_desc = paste0(primary_desc, ' (', old_nbr, ')'),
+          cid_desc = paste0(primary_desc, ' (', cid, ')')
         ) %>% 
-        select(input$sales_summary_groups) %>% 
+        select(sales_graph_group_cols()) %>% 
         apply(1, paste, collapse = '-') %>% 
         unique() %>% 
         sort() %>% 
@@ -1038,13 +1059,19 @@ computePromotionsServer <- function(input, output, session, credentials) {
         by = c('old_nbr', 'negocio')
       ) %>% 
       unique() %>% 
+      group_by(cid) %>% 
       mutate(
-        old_nbr = paste0(primary_desc, ' (', old_nbr, ')')
+        primary_desc = first(primary_desc)
+      ) %>%
+      ungroup() %>% 
+      mutate(
+        old_nbr_desc = paste0(primary_desc, ' (', old_nbr, ')'),
+        cid_desc = paste0(primary_desc, ' (', cid, ')')
       )
-    if (length(input$sales_summary_groups) == 0) {
+    if (length(sales_graph_group_cols()) == 0) {
       df$filtro <- 'Todos'
     } else {
-      df$filtro <- df[input$sales_summary_groups] %>% 
+      df$filtro <- df[sales_graph_group_cols()] %>% 
         apply(1, paste, collapse = '-')
     }
     df <- df %>% 
@@ -1206,8 +1233,8 @@ computePromotionsServer <- function(input, output, session, credentials) {
     tagList(
       tags$div(
         class = 'evenly-spaced-inputs',
-        uiOutput(ns('sales_summary_groups_input'), style = 'width: 26%;'),
-        uiOutput(ns('sales_graph_selector_input'), style = 'width: 53%;'),
+        uiOutput(ns('sales_summary_groups_input'), style = 'width: 29%;'),
+        uiOutput(ns('sales_graph_selector_input'), style = 'width: 50%;'),
         uiOutput(ns('sales_graph_agg_input'), style = 'width: 14%;')
       ),
       plotlyOutput(ns('grafica_ventas'), height = gl$plotly_height) %>% withSpinner(type = 8)
@@ -1370,7 +1397,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
             fixedColumns = list(leftColumns = 5),
             keys = TRUE,
             scrollX = TRUE,
-            scrollY = '500px',
+            scrollY = gl$table_height$medium,
             pageLength = 100
           ),
           colnames = remap_names(names(.), gl$cols, to_col = 'pretty_name'),
@@ -1402,7 +1429,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
             fixedColumns = list(leftColumns = length(group_vars(.)) + 1),
             keys = TRUE,
             scrollX = TRUE,
-            scrollY = '500px',
+            scrollY = gl$table_height$medium,
             pageLength = 100
           ),
           colnames = remap_names(names(.), gl$cols, to_col = 'pretty_name'),
@@ -1424,7 +1451,8 @@ computePromotionsServer <- function(input, output, session, credentials) {
     selectInput(
       inputId = ns('output_feature_select'),
       label = lang$feature,
-      choices = choices
+      choices = choices,
+      width = '100%'
     )
   })
   
@@ -1437,11 +1465,11 @@ computePromotionsServer <- function(input, output, session, credentials) {
   })
   quantity_histogram_data <- reactive({
     req(final_results_filt())
-    generate_quantity_histogram_data(final_results_filt(), bin_size = input$quantity_histogram_bin_size)
+    generate_quantity_histogram_data(final_results_filt(), bins = input$quantity_histogram_bin_number)
   })
   dispersion_histogram_data <- reactive({
     req(final_results_filt())
-    generate_dispersion_histogram_data(final_results_filt(), bins_type = input$dispersion_bin_selection, bins = input$dispersion_histogram_bin_size)
+    generate_dispersion_histogram_data(final_results_filt(), bins_type = input$dispersion_bin_selection, bins = input$dispersion_histogram_bin_number)
   })
   
   ## Histograma de alcance
@@ -1519,7 +1547,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
             fixedColumns = list(leftColumns = 2),
             keys = TRUE,
             scrollX = TRUE,
-            scrollY = '200px',
+            scrollY = gl$table_height$short,
             pageLength = 20
           ),
           colnames = remap_names(names(.), gl$cols, to_col = 'pretty_name'),
@@ -1550,7 +1578,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
             fixedColumns = list(leftColumns = 2),
             keys = TRUE,
             scrollX = TRUE,
-            scrollY = '200px',
+            scrollY = gl$table_height$short,
             pageLength = 20
           ),
           colnames = remap_names(names(.), gl$cols, to_col = 'pretty_name'),
@@ -1562,35 +1590,35 @@ computePromotionsServer <- function(input, output, session, credentials) {
     })
   })
   
-  output$dispersion_histogram_bin_size <- renderUI({
+  output$dispersion_histogram_bin_number_ui <- renderUI({
     req(input$dispersion_bin_selection == 'calculated')
     ns <- session$ns
     sliderInput(
-      ns('dispersion_histogram_bin_size'),
+      ns('dispersion_histogram_bin_number'),
       lang$bin_number,
       min = 2, max = 20, value = 12, step = 1,
-      width = '250'
+      width = '80%'
     )
   })
   
   observeEvent(input$histogram_selection, {
     ns <- session$ns
     if (input$histogram_selection == 'quantity') {
-      output$histogram_input <- renderUI(sliderInput(ns('quantity_histogram_bin_size'), lang$bin_size, min = 0.05, max = 0.5, value = 0.10, step = 0.05))
+      output$histogram_input <- renderUI(sliderInput(ns('quantity_histogram_bin_number'), lang$bin_number, min = 2, max = 20, value = 10, step = 1))
       output$feature_histogram <- renderPlotly(quantity_histogram())
       output$feature_histogram_table <- renderDT(server = FALSE, quantity_histogram_table())
     } else if (input$histogram_selection == 'dispersion') {
       output$histogram_input <- renderUI(
         tags$div(
-          class = 'form-group inline-inputs',
+          class = 'evenly-spaced-inputs',
           selectInput(
             ns('dispersion_bin_selection'),
             label = lang$dispersion_bin_selection,
             choices = c('fixed', 'calculated') %>% 
               set_names(c(lang$dispersion_fixed_bins, lang$dispersion_calculated_bins)),
-            width = '200px'
+            width = '30%'
           ),
-          uiOutput(ns('dispersion_histogram_bin_size'), style = 'margin-left: 20px;')
+          uiOutput(ns('dispersion_histogram_bin_number_ui'), style = 'margin-left: 4%;width: 70%;')
         )
       )
       output$feature_histogram <- renderPlotly(dispersion_histogram())
@@ -1627,7 +1655,12 @@ computePromotionsServer <- function(input, output, session, credentials) {
         message = 'DOWNLOADING COMPUTATIONS FILE',
         details = list()
       )))
-      write_excel_csv(final_result(), path = file, na = '')
+      write_excel_csv(
+        final_result() %>% 
+          magrittr::set_names(remap_names(names(.), column_info = gl$cols)),
+        path = file,
+        na = ''
+      )
     },
     contentType = 'text/csv'
   )
@@ -1648,7 +1681,12 @@ computePromotionsServer <- function(input, output, session, credentials) {
         message = 'DOWNLOADING SUMMARY FILE',
         details = list()
       )))
-      write_excel_csv(summary_table(), path = file, na = '')
+      write_excel_csv(
+        summary_table() %>% 
+          magrittr::set_names(remap_names(names(.), column_info = gl$cols)),
+        path = file,
+        na = ''
+      )
     },
     contentType = 'text/csv'
   )
@@ -1762,6 +1800,15 @@ computePromotionsServer <- function(input, output, session, credentials) {
         message = 'DOWNLOADING DETAIL FILE',
         details = list()
       )))
+      if (nrow(detail()) >= gl$max_output_rows) {
+        shinyalert::shinyalert(
+          type = 'warning',
+          title = lang$warning,
+          text = sprintf('El archivo "detail" excede el límite permitido por GRS de %s renglones por carga.', scales::comma(gl$max_output_rows, accuracy = 1)),
+          closeOnClickOutside = TRUE,
+          timer = 4000
+        )
+      }
       data_files <- list(
         header = header(),
         detail = detail(),
@@ -1782,6 +1829,17 @@ computePromotionsServer <- function(input, output, session, credentials) {
     },
     contentType = 'text/csv'
   )
+  
+  output$impact_toggle_ui <- renderUI({
+    req(input$sspres_benchmark_toggle != 'none')
+    ns <- session$ns
+    selectInput(
+      ns('impact_toggle'),
+      label = lang$impact_toggle,
+      choices = c('add', 'swap') %>% 
+        set_names(lang$impact_toggle_names)
+    )
+  })
   
   ## Regresar conexión dev para que se use en otros módulos
   reactive(reactiveValuesToList(r))
@@ -1857,12 +1915,7 @@ computePromotionsUI <- function(id) {
       ),
       tags$div(
         title = lang$impact_toggle_title,
-        selectInput(
-          ns('impact_toggle'),
-          label = lang$impact_toggle,
-          choices = c('add', 'swap') %>% 
-            set_names(lang$impact_toggle_names)
-        )
+        uiOutput(ns('impact_toggle_ui'))
       )
     ),
     tabBox(
@@ -1889,8 +1942,15 @@ computePromotionsUI <- function(id) {
             multiple = TRUE
           ),
           tags$div(
+            class = 'inline-dropdown-margin',
+            selectInput(
+              ns('date_format'),
+              lang$date_format,
+              c('yyyy-mm-dd' = '%Y-%m-%d', 'dd/mm/yyyy' = '%d/%m/%Y', 'mm/dd/yyyy' = '%m/%d/%Y')
+            ) 
+          ),
+          tags$div(
             class = 'form-group inline-inputs',
-            style = 'margin-right: 10px; margin-left: 10px;',
             tags$div(
               class = 'inline-button-wrapper',
               uiOutput(ns('download_summary_ui'))
@@ -1903,10 +1963,7 @@ computePromotionsUI <- function(id) {
               class = 'inline-button-wrapper',
               uiOutput(ns('download_detail_ui'))
             )
-          ),
-          selectInput(ns('date_format'), lang$date_format, c('yyyy-mm-dd' = '%Y-%m-%d',
-                                                             'dd/mm/yyyy' = '%d/%m/%Y',
-                                                             'mm/dd/yyyy' = '%m/%d/%Y'))
+          )
         ),
         DTOutput(ns('summary_table')) %>% withSpinner(type = 8)
       ),
@@ -1914,23 +1971,16 @@ computePromotionsUI <- function(id) {
         value = 'output_histogram',
         title = lang$tab_output_histogram,
         tags$div(
-          class = 'form-group inline-inputs',
-          tags$div(
-            class = 'form-group',
-            style = 'margin-right: 25px;',
-            selectInput(
-              ns('histogram_selection'),
-              label = lang$histogram_selection,
-              choices = c('quantity', 'dispersion') %>% 
-                set_names(c(lang$quantity_histogram, lang$dispersion_histogram))
-            )
+          class = 'evenly-spaced-inputs',
+          selectInput(
+            ns('histogram_selection'),
+            label = lang$histogram_selection,
+            choices = c('quantity', 'dispersion') %>% 
+              set_names(c(lang$quantity_histogram, lang$dispersion_histogram)),
+            width = '16%'
           ),
-          uiOutput(ns('output_feature_select_ui')),
-          tags$div(
-            class = 'form-group',
-            style = 'margin-left: 30px;',
-            uiOutput(ns('histogram_input'))
-          )
+          uiOutput(ns('output_feature_select_ui'), style = 'width: 30%;'),
+          uiOutput(ns('histogram_input'), style = 'width: 50%;')
         ),
         plotlyOutput(ns('feature_histogram'), height = gl$plotly_height) %>% withSpinner(type = 8),
         DTOutput(ns('feature_histogram_table'))

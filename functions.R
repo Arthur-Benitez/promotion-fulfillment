@@ -46,6 +46,15 @@ format_difftime <- function(x) {
   )
 }
 
+## Escala de colores colorblind extendida
+extended_colorblind_pal <- function(n) {
+  x <- c(ggthemes::colorblind_pal()(8), 'darkblue', 'gray30', 'gray70', 'gray 90', 'red', 'magenta', 'gold', 'darkgreen', 'purple')
+  if (length(x) < n) {
+    x <- c(x, viridis::viridis_pal(option = 'A')(n - length(x)))
+  }
+  head(x, n)
+}
+
 ## Run a query in dev or prod
 sql_query <- function(ch = NULL, connector = NULL, query, stringsAsFactors = FALSE, ...) {
   if (is.null(ch)) {
@@ -105,7 +114,7 @@ build_callback <- function(titles) {
 }
 
 ## Generar datatable con parámetros comunes
-generate_basic_datatable <- function(x, column_info, scrollX = FALSE, scrollY = '200px') {
+generate_basic_datatable <- function(x, column_info, scrollX = FALSE, scrollY = '30vh') {
   x %>% 
     transform_columns(column_info) %>% 
     datatable(

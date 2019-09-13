@@ -44,8 +44,10 @@ h6,
 
 /* Obligar a que los páneles tengan siempre una altura razonable */
 .tab-pane {
-  min-height: 400px;
+  height: auto;
+  min-height: 80vh;
 }
+
 
 /* Centrar login */
 .login-panel {
@@ -60,12 +62,18 @@ h6,
 /* Display de botones */
 .inline-inputs {
   display: inline-flex;
+  height: 60px;
   /*display: grid;
   grid-template-columns: 40% 20% 20% 20%;*/
 }
 
 .inline-button-wrapper {
-  margin: auto 10px 17px 10px;
+  margin-top: 25px;
+  margin-left: 20px;
+}
+
+.inline-dropdown-margin {
+  margin-left: 20px;
 }
 
 .inline-select-button-wrapper {
