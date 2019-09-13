@@ -647,12 +647,12 @@ generate_quantity_histogram_data <- function(output_filtered_data, bins = 10) {
 generate_dispersion_histogram_data <- function(output_filtered_data, bins_type = 'fixed', bins = 12, stock = 'total') {
   res <- output_filtered_data %>% 
     summarise_data(group = c('feature_name', 'store_nbr'))
-  ddv <- pull(res, !!temp_vars$ddv)
   if (stock == 'total') {
     temp_vars <- syms(list(ddv = 'total_stock_ddv', qty = 'total_stock_qty', cost = 'total_stock_cost'))
   } else {
     temp_vars <- syms(list(ddv = 'total_ddv', qty = 'total_qty', cost = 'total_cost'))
   }
+  ddv <- pull(res, !!temp_vars$ddv)
   
   if (bins_type == 'fixed') {
     cut_values <- c(0, 3, 7, 14, 21, 28, 35, 50, 75, 100, 150, 250, 350, 450, Inf)
