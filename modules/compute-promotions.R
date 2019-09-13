@@ -657,7 +657,8 @@ generate_dispersion_histogram_data <- function(output_filtered_data, bins_type =
   if (bins_type == 'fixed') {
     cut_values <- c(0, 3, 7, 14, 21, 28, 35, 50, 75, 100, 150, 250, 350, 450, Inf)
   } else {
-    cut_values <- unique(c(0, pmax(0, floor(mean(ddv) + max(sd(ddv), 0.5) * seq(-2, 2, length.out = bins))), Inf))
+    cut_values <- floor(mean(ddv) + max(sd(ddv), 0.5) * seq(-2, 2, length.out = bins))
+    cut_values <- unique(c(0, pmax(0, cut_values) %/% 5 * 5, Inf))
   }
   
   cut_labels <- paste(
