@@ -1679,7 +1679,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
     sliderInput(
       ns('dispersion_histogram_bin_number'),
       lang$bin_number,
-      min = 2, max = 20, value = 12, step = 1,
+      min = 4, max = 15, value = 10, step = 1,
       width = '100%'
     )
   })
