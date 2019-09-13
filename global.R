@@ -115,8 +115,8 @@ gl <- list(
       'dev'
     }
   },
-  app_version = '1.4.1',
-  app_version_date = '2019-08-27',
+  app_version = '1.4.2',
+  app_version_date = '2019-09-12',
   ## Compute promotions
   cols = tryCatch({
     read_tsv('data/column-info.txt', col_types = 'ccllccncc')
@@ -132,9 +132,9 @@ gl <- list(
     'MEDIMART',
     'OTRO'
   ),
-  max_input_rows = 100,
+  max_input_rows = 500,
   max_output_rows = 100000,
-  max_input_queries = 10,
+  max_input_queries = 15,
   plotly_height = '40vh',
   table_height = list(
     short = '30vh',
