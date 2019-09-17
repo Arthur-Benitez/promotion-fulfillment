@@ -59,11 +59,20 @@ get_pretty_names <- function(x) {
 format_difftime <- function(x) {
   units(x) <- "secs"
   x <- round(as.numeric(x))
-  sprintf(
-    "%d minutos y %d segundos",
-    x %/% 60,
+  
+  segs <- sprintf(
+    '%d segundos',
     x %% 60
   )
+  if (x >= 60) {
+    mins <- sprintf(
+      '%d minutos y ',
+      x %/% 60
+    )
+  } else {
+    mins <- ''
+  }
+  paste0(mins, segs)
 }
 
 ## Escala de colores colorblind extendida

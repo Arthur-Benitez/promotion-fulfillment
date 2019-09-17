@@ -1346,6 +1346,8 @@ computePromotionsServer <- function(input, output, session, credentials) {
   
   ## Correr query
   query_result <- reactiveVal()
+  query_runtime_warning <- reactiveVal()
+  query_timeout <- reactiveVal()
   observeEvent(rr(), {
     flog.info(toJSON(list(
       session_info = msg_cred(credentials()),
@@ -1368,7 +1370,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
     stores_lists <- r$stores_lists
     usr <- input$user
     pwd <- input$password
-    future({
+    query_result_promise <- future({
       # init_log(log_dir)
       if (is_dev) {
         ## Las conexiones no se pueden exportar a otros procesos de R, así que se tiene que generar una nueva conexión
@@ -1382,12 +1384,44 @@ computePromotionsServer <- function(input, output, session, credentials) {
         data = run_query(future_ch, items, stores_lists, 'production-connector'),
         data_ss = search_ss(future_ch, items, 'WM3')
       )
-    }) %...>% 
+    })
+    query_result_promise %...>% 
       query_result()
+    
+    query_timeout_promise <- future({
+      Sys.sleep(500)
+      list(
+        timestamp = time1,
+        data = TRUE,
+        data_ss = TRUE
+      )
+    })
+    promise_race(query_result_promise, query_timeout_promise) %...>% 
+      query_timeout()
   }, ignoreInit = TRUE)
   
   ## Hacer cálculos
   ### Mostrar alertas y checar info
+  observeEvent(query_timeout(), {
+    flog.info(toJSON(list(
+      session_info = msg_cred(isolate(credentials())),
+      message = 'QUERY TIMED OUT',
+      details = list()
+    )))
+    req(isTRUE(query_timeout()$data))
+    shinyalert::shinyalert(
+      type = 'warning',
+      title = lang$warning,
+      text = sprintf(
+        'Teradata no contestó después de %s. Esto se debe usualmente a que está corriendo un proceso pesado en Teradata (ej. el lunes en la mañana). Te sugerimos intentarlo más tarde.',
+        format_difftime(difftime(Sys.time(), query_timeout()$timestamp))
+      ),
+      closeOnClickOutside = TRUE,
+      showCancelButton = FALSE,
+      showConfirmButton = TRUE,
+      confirmButtonText = lang$ok
+    )
+  })
   good_features_rv <- reactiveVal()
   observeEvent(query_result(), {
     req(query_result()$data)
