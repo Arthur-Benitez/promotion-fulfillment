@@ -1412,14 +1412,8 @@ computePromotionsServer <- function(input, output, session, credentials) {
     shinyalert::shinyalert(
       type = 'warning',
       title = lang$warning,
-      text = sprintf(
-        'Teradata no contestó después de %s. Esto se debe usualmente a que está corriendo un proceso pesado en Teradata (ej. el lunes en la mañana). Te sugerimos intentarlo más tarde.',
-        format_difftime(difftime(Sys.time(), query_result()$timestamp))
-      ),
-      closeOnClickOutside = TRUE,
-      showCancelButton = FALSE,
-      showConfirmButton = TRUE,
-      confirmButtonText = lang$ok
+      text = 'Esto podría demorar unos minutos porque Teradata está tardando más de lo normal. Si quieres, puedes esperar a que termine el proceso, pero te sugerimos intentarlo más tarde. Si quieres reiniciar la aplicación, carga la página de nuevo.',
+      showConfirmButton = FALSE
     )
   })
   good_features_rv <- reactiveVal()
