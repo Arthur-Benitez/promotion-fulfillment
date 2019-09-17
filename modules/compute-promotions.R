@@ -1346,6 +1346,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
   
   ## Correr query
   query_result <- reactiveVal()
+  query_warning <- reactiveVal()
   observeEvent(rr(), {
     flog.info(toJSON(list(
       session_info = msg_cred(credentials()),
@@ -1395,14 +1396,14 @@ computePromotionsServer <- function(input, output, session, credentials) {
       )
     })
     promise_race(query_result_promise, query_timeout_promise) %...>% 
-      query_result()
+      query_warning()
     
   }, ignoreInit = TRUE)
   
   ## Hacer cálculos
   ### Mostrar alertas y checar info
-  observeEvent(query_result(), {
-    req(isTRUE(query_result()$data))
+  observeEvent(query_warning(), {
+    req(isTRUE(query_warning()$data))
     flog.info(toJSON(list(
       session_info = msg_cred(isolate(credentials())),
       message = 'QUERY TIMED OUT',
