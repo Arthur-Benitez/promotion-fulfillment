@@ -1346,8 +1346,6 @@ computePromotionsServer <- function(input, output, session, credentials) {
   
   ## Correr query
   query_result <- reactiveVal()
-  query_runtime_warning <- reactiveVal()
-  query_timeout <- reactiveVal()
   observeEvent(rr(), {
     flog.info(toJSON(list(
       session_info = msg_cred(credentials()),
@@ -1397,24 +1395,25 @@ computePromotionsServer <- function(input, output, session, credentials) {
       )
     })
     promise_race(query_result_promise, query_timeout_promise) %...>% 
-      query_timeout()
+      query_result()
+    
   }, ignoreInit = TRUE)
   
   ## Hacer cálculos
   ### Mostrar alertas y checar info
-  observeEvent(query_timeout(), {
+  observeEvent(query_result(), {
+    req(isTRUE(query_result()$data))
     flog.info(toJSON(list(
       session_info = msg_cred(isolate(credentials())),
       message = 'QUERY TIMED OUT',
       details = list()
     )))
-    req(isTRUE(query_timeout()$data))
     shinyalert::shinyalert(
       type = 'warning',
       title = lang$warning,
       text = sprintf(
         'Teradata no contestó después de %s. Esto se debe usualmente a que está corriendo un proceso pesado en Teradata (ej. el lunes en la mañana). Te sugerimos intentarlo más tarde.',
-        format_difftime(difftime(Sys.time(), query_timeout()$timestamp))
+        format_difftime(difftime(Sys.time(), query_result()$timestamp))
       ),
       closeOnClickOutside = TRUE,
       showCancelButton = FALSE,
@@ -1424,7 +1423,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
   })
   good_features_rv <- reactiveVal()
   observeEvent(query_result(), {
-    req(query_result()$data)
+    req(is.data.frame(query_result()$data))
     r$is_running <- FALSE
     feature_info <- get_empty_features(query_result()$data, isolate(r$items))
     good_features <- with(feature_info, feature_name[!is_empty])
