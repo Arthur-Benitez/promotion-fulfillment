@@ -1418,8 +1418,8 @@ computePromotionsServer <- function(input, output, session, credentials) {
   })
   good_features_rv <- reactiveVal()
   observeEvent(query_result(), {
-    req(is.data.frame(query_result()$data))
     r$is_running <- FALSE
+    req(is.data.frame(query_result()$data))
     feature_info <- get_empty_features(query_result()$data, isolate(r$items))
     good_features <- with(feature_info, feature_name[!is_empty])
     empty_features <- with(feature_info, feature_name[is_empty])
@@ -1476,6 +1476,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
   })
   need_query_ready <- reactive({
     shiny::need(r$query_was_tried, lang$need_run) %then%
+      shiny::need(!r$is_running, lang$need_finish_running) %then%
       shiny::need(is.data.frame(query_result()$data), lang$need_query_result) %then%
       shiny::need(is.data.frame(final_result()), lang$need_final_result)
   })
