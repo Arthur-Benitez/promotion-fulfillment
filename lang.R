@@ -131,6 +131,7 @@ lang <- list(
   need_auth = 'Iniciar sesión para continuar.',
   need_input_format = 'Descarga el formato de ejemplo para más información.',
   need_run = 'Click en *Correr* para empezar.',
+  need_finish_running = 'Corriendo query...',
   need_query_result = 'El query falló :(',
   need_final_result = 'Los cálculos fallaron :(',
   need_select_feature = 'Selecciona una promoción para continuar.',
