@@ -1387,7 +1387,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
       query_result()
     
     query_timeout_promise <- future({
-      Sys.sleep(500)
+      Sys.sleep(gl$timeout)
       list(
         timestamp = time1,
         data = TRUE,
