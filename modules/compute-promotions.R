@@ -2062,7 +2062,7 @@ computePromotionsUI <- function(id) {
             label = lang$summary_groups,
             choices = c('feature_name', 'cid', 'old_nbr', 'store_nbr', 'dc_nbr') %>% 
               set_names(c(lang$feature_name, lang$cid, lang$old_nbr, lang$store_nbr, lang$dc)),
-            selected = c('feature_name', 'cid'),
+            selected = c('feature_name', 'old_nbr'),
             multiple = TRUE
           ),
           tags$div(
