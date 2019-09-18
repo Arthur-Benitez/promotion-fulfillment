@@ -1412,8 +1412,9 @@ computePromotionsServer <- function(input, output, session, credentials) {
     shinyalert::shinyalert(
       type = 'warning',
       title = lang$warning,
-      text = 'Esto podría demorar unos minutos porque Teradata está tardando más de lo normal. Si quieres, puedes esperar a que termine el proceso, pero te sugerimos intentarlo más tarde. Si quieres reiniciar la aplicación, carga la página de nuevo.',
-      showConfirmButton = FALSE
+      text = sprintf('Esto podría demorar unos minutos porque Teradata está tardando más de lo normal. Si quieres, puedes esperar a que termine el proceso, pero te sugerimos intentarlo más tarde. Si quieres reiniciar la aplicación, carga la página de nuevo. <br> Hora de inicio: %s', format(query_warning()$timestamp, "%X", tz = 'America/Mexico_City')),
+      showConfirmButton = FALSE,
+      html = TRUE
     )
   })
   good_features_rv <- reactiveVal()
