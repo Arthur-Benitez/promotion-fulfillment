@@ -540,21 +540,20 @@ perform_computations <- function(data, data_ss = NULL, min_feature_qty_toggle = 
 ## Tabla de resumen
 summarise_data <- function(data, group = c('feature_name', 'cid')) {
   ## Checks
-  stopifnot(is.null(group) || all(group %in% c('feature_name', 'store_nbr', 'cid', 'dc_nbr')))
+  stopifnot(is.null(group) || all(group %in% c('feature_name', 'store_nbr', 'cid', 'dc_nbr', 'old_nbr')))
   ## Cambios a combinaciones específicas
   extra_groups <- list(
-    'cid' = c('old_nbr', 'primary_desc'),
     'dc_nbr' = c('dc_name'),
     'store_nbr' = c('store_name')
   )
-  group <- c(group, unlist(extra_groups[intersect(names(extra_groups), group)]))
+  group <- unique(c(group, unlist(extra_groups[intersect(names(extra_groups), group)])))
   if (is.null(group)) {
     group <- 'feature_name'
     data <- data %>% 
       mutate(feature_name = 'Total')
   }
   ## Grupos de tabla de salida
-  group_order <- c('feature_name', 'store_nbr', 'store_name', 'cid', 'old_nbr', 'primary_desc', 'dc_nbr', 'dc_name')
+  group_order <- c('feature_name', 'store_nbr', 'store_name', 'cid', 'old_nbr', 'dc_nbr', 'dc_name')
   grp <- group_order[group_order %in% group]
   ## Variables numéricas de tabla de salida
   vv <- c('avg_dly_sales', 'avg_dly_forecast', 'min_feature_qty', 'max_feature_qty', 'max_ddv', 'total_cost', 'total_impact_cost', 'total_stock_cost', 'total_qty', 'total_impact_qty', 'total_stock_qty', 'total_ddv', 'total_impact_ddv', 'total_stock_ddv', 'total_vnpk', 'total_impact_vnpk', 'total_stock_vnpk')
@@ -563,11 +562,17 @@ summarise_data <- function(data, group = c('feature_name', 'cid')) {
   } else {
     val_vars <- c('n_stores', vv)
   }
+  if ('cid' %in% grp || 'old_nbr' %in% grp) {
+    val_vars <- c('primary_desc', val_vars)
+  } else {
+    val_vars <- val_vars
+  }
   ## Sumarizar
   data_summary <- data  %>%
     group_by(!!!syms(grp)) %>%
     summarise(
       n_stores = n_distinct(store_nbr),
+      primary_desc = first(primary_desc),
       ## Las ventas ya son promedio, así que sumándolas dan las ventas promedio de una entidad más grande
       avg_dly_sales = ifelse(any(fcst_or_sales == 'S'), sum(avg_dly_pos_or_fcst[fcst_or_sales=='S'], na.rm = TRUE), NA_real_),
       avg_dly_forecast = ifelse(any(fcst_or_sales == 'F'), sum(avg_dly_pos_or_fcst[fcst_or_sales=='F'], na.rm = TRUE), NA_real_),
