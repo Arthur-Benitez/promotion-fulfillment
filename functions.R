@@ -79,6 +79,10 @@ extended_colorblind_pal <- function(n) {
 sql_query <- function(ch = NULL, connector = NULL, query, stringsAsFactors = FALSE, ...) {
   if (is.null(ch)) {
     res <- mlutils::dataset.load(name = connector, query = query, ...)
+    if (!stringsAsFactors) {
+      res <- res %>%
+        mutate_if(is.factor, as.character)
+    }
   } else {
     res <- RODBC::sqlQuery(ch, query, stringsAsFactors = stringsAsFactors, ...)
   }

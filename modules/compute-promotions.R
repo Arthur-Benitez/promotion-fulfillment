@@ -540,21 +540,20 @@ perform_computations <- function(data, data_ss = NULL, min_feature_qty_toggle = 
 ## Tabla de resumen
 summarise_data <- function(data, group = c('feature_name', 'cid')) {
   ## Checks
-  stopifnot(is.null(group) || all(group %in% c('feature_name', 'store_nbr', 'cid', 'dc_nbr')))
+  stopifnot(is.null(group) || all(group %in% c('feature_name', 'store_nbr', 'cid', 'dc_nbr', 'old_nbr')))
   ## Cambios a combinaciones específicas
   extra_groups <- list(
-    'cid' = c('old_nbr', 'primary_desc'),
     'dc_nbr' = c('dc_name'),
     'store_nbr' = c('store_name')
   )
-  group <- c(group, unlist(extra_groups[intersect(names(extra_groups), group)]))
+  group <- unique(c(group, unlist(extra_groups[intersect(names(extra_groups), group)])))
   if (is.null(group)) {
     group <- 'feature_name'
     data <- data %>% 
       mutate(feature_name = 'Total')
   }
   ## Grupos de tabla de salida
-  group_order <- c('feature_name', 'store_nbr', 'store_name', 'cid', 'old_nbr', 'primary_desc', 'dc_nbr', 'dc_name')
+  group_order <- c('feature_name', 'store_nbr', 'store_name', 'cid', 'old_nbr', 'dc_nbr', 'dc_name')
   grp <- group_order[group_order %in% group]
   ## Variables numéricas de tabla de salida
   vv <- c('avg_dly_sales', 'avg_dly_forecast', 'min_feature_qty', 'max_feature_qty', 'max_ddv', 'total_cost', 'total_impact_cost', 'total_stock_cost', 'total_qty', 'total_impact_qty', 'total_stock_qty', 'total_ddv', 'total_impact_ddv', 'total_stock_ddv', 'total_vnpk', 'total_impact_vnpk', 'total_stock_vnpk')
@@ -563,11 +562,17 @@ summarise_data <- function(data, group = c('feature_name', 'cid')) {
   } else {
     val_vars <- c('n_stores', vv)
   }
+  if ('cid' %in% grp || 'old_nbr' %in% grp) {
+    val_vars <- c('primary_desc', val_vars)
+  } else {
+    val_vars <- val_vars
+  }
   ## Sumarizar
   data_summary <- data  %>%
     group_by(!!!syms(grp)) %>%
     summarise(
       n_stores = n_distinct(store_nbr),
+      primary_desc = first(primary_desc),
       ## Las ventas ya son promedio, así que sumándolas dan las ventas promedio de una entidad más grande
       avg_dly_sales = ifelse(any(fcst_or_sales == 'S'), sum(avg_dly_pos_or_fcst[fcst_or_sales=='S'], na.rm = TRUE), NA_real_),
       avg_dly_forecast = ifelse(any(fcst_or_sales == 'F'), sum(avg_dly_pos_or_fcst[fcst_or_sales=='F'], na.rm = TRUE), NA_real_),
@@ -647,25 +652,18 @@ generate_quantity_histogram_data <- function(output_filtered_data, bins = 10) {
 generate_dispersion_histogram_data <- function(output_filtered_data, bins_type = 'fixed', bins = 12, stock = 'total') {
   res <- output_filtered_data %>% 
     summarise_data(group = c('feature_name', 'store_nbr'))
-  promo_vars <- syms(list(ddv = 'total_ddv', qty = 'total_qty', cost = 'total_cost'))
-  total_vars <- syms(list(ddv = 'total_stock_ddv', qty = 'total_stock_qty', cost = 'total_stock_cost'))
+  if (stock == 'total') {
+    temp_vars <- syms(list(ddv = 'total_stock_ddv', qty = 'total_stock_qty', cost = 'total_stock_cost'))
+  } else {
+    temp_vars <- syms(list(ddv = 'total_ddv', qty = 'total_qty', cost = 'total_cost'))
+  }
+  ddv <- pull(res, !!temp_vars$ddv)
   
   if (bins_type == 'fixed') {
     cut_values <- c(0, 3, 7, 14, 21, 28, 35, 50, 75, 100, 150, 250, 350, 450, Inf)
   } else {
-    if (stock == 'total') {
-      max_ddv <- max(res$total_stock_ddv)
-      cut_values <- round(c(seq(0, max_ddv / 2, length.out = bins), Inf))
-    } else {
-      max_ddv <- mean(res$max_ddv)
-      cut_values <- round(c(seq(0, max_ddv, length.out = bins - 1), 2 * max_ddv, Inf))
-    }
-  }
-  
-  if (stock == 'total') {
-    temp_vars <- total_vars
-  } else {
-    temp_vars <- promo_vars
+    cut_values <- floor(mean(ddv) + max(sd(ddv), 0.5) * seq(-2, 2, length.out = bins))
+    cut_values <- unique(c(0, pmax(0, cut_values) %/% 5 * 5, Inf))
   }
   
   cut_labels <- paste(
@@ -673,7 +671,13 @@ generate_dispersion_histogram_data <- function(output_filtered_data, bins_type =
     cut_values[-1],
     sep = ' - '
   ) %>% 
-    replace(list = length(.), sprintf('+%s', round(cut_values[length(cut_values)-1])))
+    replace(
+      list = c(1, length(.)),
+      values = c(
+        sprintf('< %s', round(cut_values[2])),
+        sprintf('> %s', round(cut_values[length(cut_values)-1]))
+      )
+    )
   
   res %>% 
     mutate(
@@ -1680,7 +1684,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
     sliderInput(
       ns('dispersion_histogram_bin_number'),
       lang$bin_number,
-      min = 2, max = 20, value = 12, step = 1,
+      min = 4, max = 15, value = 10, step = 1,
       width = '100%'
     )
   })
@@ -2056,9 +2060,9 @@ computePromotionsUI <- function(id) {
           selectInput(
             ns('summary_groups'),
             label = lang$summary_groups,
-            choices = c('feature_name', 'cid', 'store_nbr', 'dc_nbr') %>% 
-              set_names(c(lang$feature_name, lang$cid, lang$store_nbr, lang$dc)),
-            selected = c('feature_name', 'cid'),
+            choices = c('feature_name', 'cid', 'old_nbr', 'store_nbr', 'dc_nbr') %>% 
+              set_names(c(lang$feature_name, lang$cid, lang$old_nbr, lang$store_nbr, lang$dc)),
+            selected = c('feature_name', 'old_nbr'),
             multiple = TRUE
           ),
           tags$div(
