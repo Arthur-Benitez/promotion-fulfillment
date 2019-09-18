@@ -1350,6 +1350,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
   
   ## Correr query
   query_result <- reactiveVal()
+  query_warning <- reactiveVal()
   observeEvent(rr(), {
     flog.info(toJSON(list(
       session_info = msg_cred(credentials()),
@@ -1372,7 +1373,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
     stores_lists <- r$stores_lists
     usr <- input$user
     pwd <- input$password
-    future({
+    query_result_promise <- future({
       # init_log(log_dir)
       if (is_dev) {
         ## Las conexiones no se pueden exportar a otros procesos de R, así que se tiene que generar una nueva conexión
@@ -1386,16 +1387,44 @@ computePromotionsServer <- function(input, output, session, credentials) {
         data = run_query(future_ch, items, stores_lists, 'production-connector'),
         data_ss = search_ss(future_ch, items, 'WM3')
       )
-    }) %...>% 
+    })
+    query_result_promise %...>% 
       query_result()
+    
+    query_timeout_promise <- future({
+      Sys.sleep(gl$timeout_warning_duration)
+      list(
+        timestamp = time1,
+        data = TRUE,
+        data_ss = TRUE
+      )
+    })
+    promise_race(query_result_promise, query_timeout_promise) %...>% 
+      query_warning()
+    
   }, ignoreInit = TRUE)
   
   ## Hacer cálculos
   ### Mostrar alertas y checar info
+  observeEvent(query_warning(), {
+    req(isTRUE(query_warning()$data))
+    flog.info(toJSON(list(
+      session_info = msg_cred(isolate(credentials())),
+      message = 'QUERY TIMED OUT',
+      details = list()
+    )))
+    shinyalert::shinyalert(
+      type = 'warning',
+      title = lang$warning,
+      text = sprintf('Esto podría demorar unos minutos porque Teradata está tardando más de lo normal. Si quieres, puedes esperar a que termine el proceso, pero te sugerimos intentarlo más tarde. Si quieres reiniciar la aplicación, carga la página de nuevo.<br>Hora de inicio: %s', format(query_warning()$timestamp, "%X", tz = 'America/Mexico_City')),
+      showConfirmButton = FALSE,
+      html = TRUE
+    )
+  })
   good_features_rv <- reactiveVal()
   observeEvent(query_result(), {
-    req(query_result()$data)
     r$is_running <- FALSE
+    req(is.data.frame(query_result()$data))
     feature_info <- get_empty_features(query_result()$data, isolate(r$items))
     good_features <- with(feature_info, feature_name[!is_empty])
     empty_features <- with(feature_info, feature_name[is_empty])
@@ -1452,6 +1481,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
   })
   need_query_ready <- reactive({
     shiny::need(r$query_was_tried, lang$need_run) %then%
+      shiny::need(!r$is_running, lang$need_finish_running) %then%
       shiny::need(is.data.frame(query_result()$data), lang$need_query_result) %then%
       shiny::need(is.data.frame(final_result()), lang$need_final_result)
   })
