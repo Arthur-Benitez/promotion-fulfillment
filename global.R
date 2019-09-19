@@ -115,7 +115,7 @@ gl <- list(
       'dev'
     }
   },
-  app_version = '1.5',
+  app_version = '1.5.1',
   app_version_date = '2019-09-19',
   ## Compute promotions
   cols = tryCatch({
