@@ -16,6 +16,30 @@ params:
 knitr::opts_chunk$set(echo = FALSE)
 ```
 
+```{r}
+library(tidyverse)
+# Correr los queries
+prepare_queries <- function(query, params) {
+  query %>% 
+    str_replace_all('\\?NEGOCIOS', params$negocios) %>%
+    str_replace_all('\\?OLD_NBRS', params$old_nbrs) %>%
+    str_replace_all('\\?WK_INI_STUD', as.character(params$wk_ini_stud)) %>%
+    str_replace_all('\\?WK_FIN_STUD', as.character(params$wk_fin_stud)) %>%
+    str_replace_all('\\?WK_INI_VTAS', as.character(params$wk_ini_vtas)) %>%
+    str_replace_all('\\?WK_FIN_VTAS', as.character(params$wk_fin_vtas)) %>%
+    str_subset('^\\s*--', negate = TRUE) %>%  #quitar lineas de comentarios
+    stringi::stri_trans_general('ASCII') %>% # quitar no ASCII porque truena en producción
+    paste(collapse = '\n')
+}
+
+queries <- list(
+  ddv = readLines('../sql/item-business-week-ddv.sql'),
+  is = readLines('../sql/item-business-week-sales.sql'),
+  sales = readLines('../sql/item-business-week-is.sql')
+  ) %>%
+  map(function(x){prepare_queries(x, params)}) %>% 
+  map(cat)
+```
 
 ## R Markdown
 
