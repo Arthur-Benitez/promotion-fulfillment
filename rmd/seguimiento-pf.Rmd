@@ -2,7 +2,7 @@
 title: "Seguimiento PF"
 author: "Arthur Benitez"
 date: "26/9/2019"
-output: ioslides_presentation
+output: powerpoint_presentation
 ---
 
 ```{r setup, include=FALSE}
