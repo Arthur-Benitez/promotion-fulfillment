@@ -3,6 +3,13 @@ title: "Seguimiento PF"
 author: "Arthur Benitez"
 date: "26/9/2019"
 output: powerpoint_presentation
+params:
+  negocios: "'BODEGA','BAE'"
+  old_nbrs: 4007408, 4225344
+  wk_ini_stud: 11930
+  wk_fin_stud: 11935
+  wk_ini_vtas: 11926
+  wk_fin_vtas: 11929
 ---
 
 ```{r setup, include=FALSE}
