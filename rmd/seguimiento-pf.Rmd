@@ -37,8 +37,7 @@ queries <- list(
   is = readLines('../sql/item-business-week-is.sql'),
   sales = readLines('../sql/item-business-week-sales.sql')
   ) %>%
-  map(function(x){prepare_queries(x, params)}) %>% 
-  map(cat)
+  map(~prepare_queries(.x, params))
 ```
 
 ## R Markdown
