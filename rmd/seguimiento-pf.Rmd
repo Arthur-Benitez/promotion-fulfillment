@@ -17,7 +17,7 @@ params:
 knitr::opts_chunk$set(echo = FALSE)
 ```
 
-```{r}
+```{r run_queries, message=FALSE, warning=FALSE, include=FALSE}
 library(tidyverse)
 # Correr los queries
 prepare_queries <- function(query, params) {
