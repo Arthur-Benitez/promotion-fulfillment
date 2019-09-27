@@ -68,6 +68,14 @@ res$ddv <- res$ddv %>%
       )
 ```
 
+```{r graphs}
+library(ggplot2)
+
+graph_ddv <- res$ddv %>% 
+  ggplot(aes(wm_yr_wk)) +
+  geom_col(aes(y = n_stores, fill = bin))
+```
+
 ## R Markdown
 
 This is an R Markdown presentation. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
