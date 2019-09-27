@@ -34,8 +34,8 @@ prepare_queries <- function(query, params) {
 
 queries <- list(
   ddv = readLines('../sql/item-business-week-ddv.sql'),
-  is = readLines('../sql/item-business-week-sales.sql'),
-  sales = readLines('../sql/item-business-week-is.sql')
+  is = readLines('../sql/item-business-week-is.sql'),
+  sales = readLines('../sql/item-business-week-sales.sql')
   ) %>%
   map(function(x){prepare_queries(x, params)}) %>% 
   map(cat)
