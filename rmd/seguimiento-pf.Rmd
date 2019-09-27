@@ -10,6 +10,7 @@ params:
   wk_fin_stud: 11935
   wk_ini_vtas: 11926
   wk_fin_vtas: 11929
+  user: 'user'
 ---
 
 ```{r setup, include=FALSE}
@@ -38,6 +39,10 @@ queries <- list(
   sales = readLines('../sql/item-business-week-sales.sql')
   ) %>%
   map(~prepare_queries(.x, params))
+
+ch <- RODBC::odbcDriverConnect(sprintf("Driver={Teradata};DBCName=WM3;AUTHENTICATION=ldap;AUTHENTICATIONPARAMETER=%s@@%s", params$user, rstudioapi::askForPassword('Password')))
+
+res <- map(queries, ~as_tibble(RODBC::sqlQuery(ch, .x, stringsAsFactors = FALSE)))
 ```
 
 ## R Markdown
