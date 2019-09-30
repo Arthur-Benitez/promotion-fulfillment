@@ -74,6 +74,68 @@ library(ggplot2)
 graph_ddv <- res$ddv %>% 
   ggplot(aes(wm_yr_wk)) +
   geom_col(aes(y = n_stores, fill = bin))
+
+metrics <- res$is %>% 
+  left_join(
+    res$sales %>% 
+      select(-c(cid, old_nbr)),
+    by = c(
+      'item_nbr' = 'prime_xref_item_nbr',
+      'formato' = 'negocio',
+      'wm_yr_wk' = 'wm_yr_wk'
+    )
+  ) %>% 
+  mutate(
+    scaled_sales = scales::rescale(
+      wkly_qty,
+      to = c(
+        min(c(is_oh, is_ttl)) * 100,
+        max(c(is_oh, is_ttl)) * 100
+      )
+    )
+  ) %>% 
+  select(
+    vp,
+    division,
+    dep_nbr,
+    category_nbr,
+    cid,
+    item_nbr,
+    old_nbr,
+    primary_desc,
+    sell_price,
+    everything()
+  )
+
+graph_metrics <- metrics %>% 
+  ggplot(aes(x = wm_yr_wk)) + 
+  geom_line(aes(y = is_oh * 100, colour = 'In Stock OH')) + 
+  geom_line(aes(y = is_ttl * 100, colour = 'In Stock Total')) + 
+  geom_line(aes(y = scaled_sales, colour = 'Ventas')) + 
+  geom_point(aes(y = is_oh * 100, colour = 'In Stock OH')) + 
+  geom_point(aes(y = is_ttl * 100, colour = 'In Stock Total')) + 
+  geom_point(aes(y = scaled_sales, colour = 'Ventas')) + 
+  # ggtitle("Indicadores durante la estrategia") + 
+  scale_y_continuous(
+    sec.axis = sec_axis(
+      ~scales::rescale(
+        .,
+        to = c(min(metrics$wkly_qty), max(metrics$wkly_qty))
+      ),
+      name = 'Piezas'
+    )
+  ) + 
+  scale_color_hue() + 
+  labs(
+    title = 'Indicadores durante la estrategia',
+    x = 'Semanas Walmart',
+    y = 'Porcentaje (%)',
+    colour = 'Indicador'
+  ) + 
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    legend.position = 'bottom'
+  )
 ```
 
 ## R Markdown
