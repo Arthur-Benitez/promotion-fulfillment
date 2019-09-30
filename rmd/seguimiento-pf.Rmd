@@ -95,8 +95,8 @@ metrics <- res$is %>%
     scaled_sales = scales::rescale(
       wkly_qty,
       to = c(
-        min(c(is_oh, is_ttl)) * 100,
-        max(c(is_oh, is_ttl)) * 100
+        min(c(is_oh, is_ttl)),
+        max(c(is_oh, is_ttl))
       )
     )
   ) %>% 
@@ -115,14 +115,14 @@ metrics <- res$is %>%
 
 graph_metrics <- metrics %>% 
   ggplot(aes(x = wm_yr_wk)) + 
-  geom_line(aes(y = is_oh * 100, colour = 'In Stock OH')) + 
-  geom_line(aes(y = is_ttl * 100, colour = 'In Stock Total')) + 
+  geom_line(aes(y = is_oh, colour = 'In Stock OH')) + 
+  geom_line(aes(y = is_ttl, colour = 'In Stock Cadena')) + 
   geom_line(aes(y = scaled_sales, colour = 'Ventas')) + 
-  geom_point(aes(y = is_oh * 100, colour = 'In Stock OH')) + 
-  geom_point(aes(y = is_ttl * 100, colour = 'In Stock Total')) + 
+  geom_point(aes(y = is_oh, colour = 'In Stock OH')) + 
+  geom_point(aes(y = is_ttl, colour = 'In Stock Cadena')) + 
   geom_point(aes(y = scaled_sales, colour = 'Ventas')) + 
-  # ggtitle("Indicadores durante la estrategia") + 
   scale_y_continuous(
+    labels = scales::percent,
     sec.axis = sec_axis(
       ~scales::rescale(
         .,
@@ -131,12 +131,13 @@ graph_metrics <- metrics %>%
       name = 'Piezas'
     )
   ) + 
-  scale_color_hue() + 
+  ggthemes::scale_color_colorblind() + 
   labs(
     title = 'Indicadores durante la estrategia',
     x = 'Semanas Walmart',
     y = 'Porcentaje (%)',
-    colour = 'Indicador'
+    colour = 'Indicador',
+    caption = 'Indicadores calculados al cierre de las semanas.'
   ) + 
   theme(
     plot.title = element_text(hjust = 0.5),
