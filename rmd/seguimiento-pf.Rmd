@@ -73,7 +73,13 @@ library(ggplot2)
 
 graph_ddv <- res$ddv %>% 
   ggplot(aes(wm_yr_wk)) +
-  geom_col(aes(y = n_stores, fill = bin))
+  geom_col(aes(y = n_stores, fill = bin)) + 
+  labs(
+    title = 'Dispersión de DDV OH por semana',
+    x = 'Semanas Walmart',
+    y = 'Número de tiendas',
+    fill = 'Rango de DDV OH'
+  )
 
 metrics <- res$is %>% 
   left_join(
