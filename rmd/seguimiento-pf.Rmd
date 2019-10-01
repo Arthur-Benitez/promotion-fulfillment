@@ -19,7 +19,8 @@ knitr::opts_chunk$set(echo = FALSE)
 
 ```{r run_queries, message=FALSE, warning=FALSE, include=FALSE}
 library(tidyverse)
-# Correr los queries
+library(ggplot2)
+
 prepare_queries <- function(query, params) {
   query %>% 
     str_replace_all('\\?NEGOCIOS', params$negocios) %>%
@@ -116,6 +117,8 @@ graph_metrics <- metrics %>%
     plot.title = element_text(hjust = 0.5),
     legend.position = 'bottom'
   )
+
+graph_metrics
 ```
 
 ```{r bins_graph, echo=FALSE}
@@ -146,6 +149,8 @@ graph_ddv <- disp_bins %>%
     y = 'Número de tiendas',
     fill = 'Rango de DDV OH'
   )
+
+graph_ddv
 ```
 
 
