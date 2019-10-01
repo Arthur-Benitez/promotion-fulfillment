@@ -65,15 +65,6 @@ metrics <- res$is %>%
       'wm_yr_wk' = 'wm_yr_wk'
     )
   ) %>% 
-  mutate(
-    scaled_sales = scales::rescale(
-      wkly_qty,
-      to = c(
-        min(c(is_oh, is_ttl)),
-        max(c(is_oh, is_ttl))
-      )
-    )
-  ) %>% 
   select(
     vp,
     division,
@@ -88,37 +79,50 @@ metrics <- res$is %>%
   )
 
 graph_metrics <- metrics %>% 
-  ggplot(aes(x = wm_yr_wk)) + 
-  geom_line( aes(y = is_oh,        colour = 'In Stock OH'    ), size = 1) + 
-  geom_line( aes(y = is_ttl,       colour = 'In Stock Cadena'), size = 1) + 
-  geom_line( aes(y = scaled_sales, colour = 'Ventas'         ), size = 1) + 
-  geom_point(aes(y = is_oh,        colour = 'In Stock OH'    ), size = 2) + 
-  geom_point(aes(y = is_ttl,       colour = 'In Stock Cadena'), size = 2) + 
-  geom_point(aes(y = scaled_sales, colour = 'Ventas'         ), size = 2) + 
-  scale_y_continuous(
-    labels = scales::percent,
-    sec.axis = sec_axis(
-      ~scales::rescale(
-        .,
-        to = c(min(metrics$wkly_qty), max(metrics$wkly_qty))
-      ),
-      name = 'Piezas'
-    )
-  ) + 
-  ggthemes::scale_color_colorblind() + 
-  labs(
-    title = 'Indicadores durante la estrategia',
-    x = 'Semanas Walmart',
-    y = 'Porcentaje (%)',
-    colour = 'Indicador',
-    caption = 'Indicadores calculados al cierre de las semanas.'
-  ) + 
-  theme(
-    plot.title = element_text(hjust = 0.5),
-    legend.position = 'bottom'
-  ) + 
-  # facet_grid(item_nbr ~ formato, scales = 'free')
-  facet_wrap(c('item_nbr', 'formato'), scales = 'free', dir = 'v')
+  group_by(item_nbr, primary_desc, formato) %>% 
+  group_map(~{
+    .x %>% 
+      mutate(
+        scaled_sales = scales::rescale(
+          wkly_qty,
+          to = c(
+            min(c(is_oh, is_ttl)),
+            max(c(is_oh, is_ttl))
+          )
+        )
+      ) %>% 
+      ggplot(aes(x = wm_yr_wk)) + 
+      geom_line( aes(y = is_oh,        colour = 'In Stock OH'    ), size = 1) + 
+      geom_line( aes(y = is_ttl,       colour = 'In Stock Cadena'), size = 1) + 
+      geom_line( aes(y = scaled_sales, colour = 'Ventas'         ), size = 1) + 
+      geom_point(aes(y = is_oh,        colour = 'In Stock OH'    ), size = 2) + 
+      geom_point(aes(y = is_ttl,       colour = 'In Stock Cadena'), size = 2) + 
+      geom_point(aes(y = scaled_sales, colour = 'Ventas'         ), size = 2) + 
+      scale_y_continuous(
+        labels = scales::percent,
+        sec.axis = sec_axis(
+          ~scales::rescale(
+            .,
+            to = c(min(.x$wkly_qty), max(.x$wkly_qty))
+          ),
+          name = 'Piezas',
+          labels = scales::comma
+        )
+      ) + 
+      ggthemes::scale_color_colorblind() + 
+      labs(
+        title = sprintf('Indicadores durante la estrategia - %s - %s', .y$item_nbr, .y$formato),
+        x = 'Semanas Walmart',
+        y = 'Porcentaje (%)',
+        colour = 'Indicador',
+        caption = sprintf('Indicadores calculados al cierre de las semanas. Item: %s.', .y$primary_desc)
+      ) + 
+      theme(
+        plot.title = element_text(hjust = 0.5),
+        legend.position = 'bottom'
+      )
+  })
+
 graph_metrics
 ```
 
