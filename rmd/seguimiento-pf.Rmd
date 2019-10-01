@@ -11,6 +11,7 @@ params:
   wk_ini_vtas: 11926
   wk_fin_vtas: 11929
   user: 'user'
+  password: 'password'
 ---
 
 ```{r setup, include=FALSE}
@@ -24,7 +25,7 @@ library(ggplot2)
 prepare_queries <- function(query, params) {
   query %>% 
     str_replace_all('\\?NEGOCIOS', params$negocios) %>%
-    str_replace_all('\\?OLD_NBRS', params$old_nbrs) %>%
+    str_replace_all('\\?OLD_NBRS', paste(params$old_nbrs, collapse = ',')) %>%
     str_replace_all('\\?WK_INI_STUD', as.character(params$wk_ini_stud)) %>%
     str_replace_all('\\?WK_FIN_STUD', as.character(params$wk_fin_stud)) %>%
     str_replace_all('\\?WK_INI_VTAS', as.character(params$wk_ini_vtas)) %>%
@@ -42,7 +43,7 @@ queries <- list(
   ) %>%
   map(~prepare_queries(.x, params))
 
-ch <- RODBC::odbcDriverConnect(sprintf("Driver={Teradata};DBCName=WM3;AUTHENTICATION=ldap;AUTHENTICATIONPARAMETER=%s@@%s", params$user, rstudioapi::askForPassword('Password')))
+ch <- RODBC::odbcDriverConnect(sprintf("Driver={Teradata};DBCName=WM3;AUTHENTICATION=ldap;AUTHENTICATIONPARAMETER=%s@@%s", params$user, params$password))
 
 res <- map(
   queries,
