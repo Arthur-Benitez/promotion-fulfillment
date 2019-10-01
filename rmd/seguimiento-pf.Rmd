@@ -33,8 +33,6 @@ prepare_queries <- function(query, params) {
     paste(collapse = '\n')
 }
 
-bines <- c('DDV00_IG_000', 'DDV01_MN_003', 'DDV02_MN_007', 'DDV03_MN_014', 'DDV04_MN_021', 'DDV05_MN_028', 'DDV06_MN_035', 'DDV07_MN_050', 'DDV08_MN_075', 'DDV09_MN_100', 'DDV10_MN_150', 'DDV11_MN_250', 'DDV12_MN_350', 'DDV13_MN_450', 'DDV14_MY_450')
-
 queries <- list(
   ddv = readLines('../sql/item-business-week-ddv.sql'),
   is = readLines('../sql/item-business-week-is.sql'),
@@ -52,34 +50,9 @@ res <- map(
       set_names(tolower(names(.)))
   })
 
-res$ddv <- res$ddv %>% 
-      complete(
-        prime_xref_item_nbr,
-        negocio,
-        wm_yr_wk,
-        repl_group_nbr,
-        bin = bines,
-        fill = list(
-          oh = 0,
-          sales = 0,
-          ddv_oh = 0,
-          n_stores = 0
-        )
-      )
 ```
 
-```{r graphs}
-library(ggplot2)
-
-graph_ddv <- res$ddv %>% 
-  ggplot(aes(wm_yr_wk)) +
-  geom_col(aes(y = n_stores, fill = bin)) + 
-  labs(
-    title = 'Dispersión de DDV OH por semana',
-    x = 'Semanas Walmart',
-    y = 'Número de tiendas',
-    fill = 'Rango de DDV OH'
-  )
+```{r is_graph, echo=FALSE}
 
 metrics <- res$is %>% 
   left_join(
@@ -144,6 +117,37 @@ graph_metrics <- metrics %>%
     legend.position = 'bottom'
   )
 ```
+
+```{r bins_graph, echo=FALSE}
+
+bines <- c('DDV00_IG_000', 'DDV01_MN_003', 'DDV02_MN_007', 'DDV03_MN_014', 'DDV04_MN_021', 'DDV05_MN_028', 'DDV06_MN_035', 'DDV07_MN_050', 'DDV08_MN_075', 'DDV09_MN_100', 'DDV10_MN_150', 'DDV11_MN_250', 'DDV12_MN_350', 'DDV13_MN_450', 'DDV14_MY_450')
+
+disp_bins <- res$ddv %>% 
+      complete(
+        prime_xref_item_nbr,
+        negocio,
+        wm_yr_wk,
+        repl_group_nbr,
+        bin = bines,
+        fill = list(
+          oh = 0,
+          sales = 0,
+          ddv_oh = 0,
+          n_stores = 0
+        )
+      )
+
+graph_ddv <- disp_bins %>% 
+  ggplot(aes(wm_yr_wk)) +
+  geom_col(aes(y = n_stores, fill = bin)) + 
+  labs(
+    title = 'Dispersión de DDV OH por semana',
+    x = 'Semanas Walmart',
+    y = 'Número de tiendas',
+    fill = 'Rango de DDV OH'
+  )
+```
+
 
 ## R Markdown
 
