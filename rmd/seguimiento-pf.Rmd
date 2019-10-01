@@ -52,11 +52,9 @@ res <- map(
       as_tibble() %>% 
       set_names(tolower(names(.)))
   })
-
 ```
 
 ```{r is_graph, echo=FALSE}
-
 metrics <- res$is %>% 
   left_join(
     res$sales %>% 
@@ -157,7 +155,6 @@ disp_box <- res$stats %>%
 ```
 
 ```{r bins_graph, echo=FALSE}
-
 bines <- c('DDV00_IG_000', 'DDV01_MN_003', 'DDV02_MN_007', 'DDV03_MN_014', 'DDV04_MN_021', 'DDV05_MN_028', 'DDV06_MN_035', 'DDV07_MN_050', 'DDV08_MN_075', 'DDV09_MN_100', 'DDV10_MN_150', 'DDV11_MN_250', 'DDV12_MN_350', 'DDV13_MN_450', 'DDV14_MY_450')
 
 disp_bins <- res$ddv %>% 
