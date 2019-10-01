@@ -123,6 +123,39 @@ graph_metrics <- metrics %>%
 graph_metrics
 ```
 
+```{r box_plot}
+disp_box <- res$stats %>% 
+  mutate(
+    wm_yr_wk = as.character(wm_yr_wk)
+  ) %>% 
+  ggplot(
+    aes(
+      x = wm_yr_wk,
+      ymin = perc_00,
+      lower = perc_25,
+      middle = perc_50,
+      upper = perc_75,
+      ymax = perc_100
+    )
+  ) + 
+  geom_errorbar(
+    width = 0.4,
+    size = 1
+  ) + 
+  geom_boxplot(
+    stat = 'identity',
+    size = 1
+  ) + 
+  labs(
+    title = 'Dispersión durante la estrategia',
+    x = 'Semanas Walmart',
+    y = 'DDV'
+  ) + 
+  theme(
+    plot.title = element_text(hjust = 0.5)
+  )
+```
+
 ```{r bins_graph, echo=FALSE}
 
 bines <- c('DDV00_IG_000', 'DDV01_MN_003', 'DDV02_MN_007', 'DDV03_MN_014', 'DDV04_MN_021', 'DDV05_MN_028', 'DDV06_MN_035', 'DDV07_MN_050', 'DDV08_MN_075', 'DDV09_MN_100', 'DDV10_MN_150', 'DDV11_MN_250', 'DDV12_MN_350', 'DDV13_MN_450', 'DDV14_MY_450')
