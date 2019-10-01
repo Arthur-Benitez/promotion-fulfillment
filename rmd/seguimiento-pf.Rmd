@@ -116,8 +116,9 @@ graph_metrics <- metrics %>%
   theme(
     plot.title = element_text(hjust = 0.5),
     legend.position = 'bottom'
-  )
-
+  ) + 
+  # facet_grid(item_nbr ~ formato, scales = 'free')
+  facet_wrap(c('item_nbr', 'formato'), scales = 'free', dir = 'v')
 graph_metrics
 ```
 
