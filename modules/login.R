@@ -407,6 +407,26 @@ sso_credentials <- function(session) {
   return(res)
 }
 
+## Leer credenciales de Compass (SSO login)
+compass_credentials <- function(session) {
+  cookies <- session$request$HTTP_COOKIE
+  if (is.null(cookies)) {
+    res <- NULL
+  } else {
+    print(sprintf('Cookies: %s', cookies))
+    res$user <- tryCatch({
+      strsplit(cookies, " ")[[1]] %>% 
+        {keep(., ~ startsWith(.x, 'CompassUserName'))[[1]]} %>% 
+        {strsplit(trimws(.), '=')[[1]][2]}
+    }, error = function(e){
+      NULL
+    })
+    print(sprintf('User: %s', res$user))
+    print(res)
+  }
+  return(res)
+}
+
 
 # Login -------------------------------------------------------------------
 
