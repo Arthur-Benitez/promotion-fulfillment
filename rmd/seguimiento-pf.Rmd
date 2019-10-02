@@ -123,7 +123,15 @@ graph_metrics <- metrics %>%
       )
   })
 
+grids <- gridExtra::marrangeGrob(
+  grobs = graph_metrics,
+  nrow = 2,
+  ncol = 2,
+  top =  quote(paste('Resumen', g, 'of', npages))
+)
+
 graph_metrics
+grids
 ```
 
 ```{r box_plot}
