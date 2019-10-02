@@ -137,16 +137,19 @@ grids
 ```{r box_plot}
 disp_box <- res$stats %>% 
   mutate(
-    wm_yr_wk = as.character(wm_yr_wk)
+    wm_yr_wk = as.character(wm_yr_wk),
+    iqr = perc_75 - perc_25,
+    up_whisk = perc_75 + 1.5 * iqr,
+    low_whisk = ifelse(perc_25 - 1.5 * iqr < 0, 0, perc_25 - 1.5 * iqr)
   ) %>% 
   ggplot(
     aes(
       x = wm_yr_wk,
-      ymin = perc_00,
+      ymin = ifelse(perc_00 == perc_25, perc_00, low_whisk),
       lower = perc_25,
       middle = perc_50,
       upper = perc_75,
-      ymax = perc_100
+      ymax = ifelse(perc_100 == perc_75, perc_100, up_whisk)
     )
   ) + 
   geom_errorbar(
