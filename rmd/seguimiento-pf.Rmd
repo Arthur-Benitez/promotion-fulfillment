@@ -2,7 +2,7 @@
 title: "Seguimiento PF"
 author: "Arthur Benitez"
 date: "26/9/2019"
-output: powerpoint_presentation
+output: slidy_presentation
 params:
   negocios: "'BODEGA','BAE'"
   old_nbrs: 4007408, 9574857
