@@ -11,3 +11,4 @@ examples/
 packrat/lib*/
 www/notifications/
 www/season/
+rmd/*.html
