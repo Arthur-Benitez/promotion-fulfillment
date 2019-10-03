@@ -59,7 +59,7 @@ write_rds(res, '../rmd/queries-res.rds')
 res <- read_rds('../rmd/queries-res.rds')
 ```
 
-```{r is_graph, echo=FALSE, message=FALSE, warning=FALSE}
+```{r metrics_calc, message=FALSE, warning=FALSE, include=FALSE}
 metrics <- res$is %>% 
   left_join(
     res$sales %>% 
@@ -116,11 +116,11 @@ graph_metrics <- metrics %>%
       ) + 
       ggthemes::scale_color_colorblind() + 
       labs(
-        title = sprintf('Indicadores durante la estrategia - %s - %s', .y$item_nbr, .y$formato),
+        title = sprintf('%s - %s', .y$item_nbr, .y$formato),
         x = 'Semanas Walmart',
         y = 'Porcentaje (%)',
         colour = 'Indicador',
-        caption = sprintf('Indicadores calculados al cierre de las semanas. Item: %s.', .y$primary_desc)
+        caption = sprintf('Item: %s.', .y$primary_desc)
       ) + 
       theme(
         plot.title = element_text(hjust = 0.5),
@@ -132,11 +132,8 @@ grids_metrics <- gridExtra::marrangeGrob(
   grobs = graph_metrics,
   nrow = 2,
   ncol = 2,
-  top =  quote(paste('Resumen', g, 'of', npages))
+  top =  ''
 )
-
-graph_metrics
-grids_metrics
 ```
 
 ```{r box_plot, echo=FALSE, message=FALSE, warning=FALSE}
