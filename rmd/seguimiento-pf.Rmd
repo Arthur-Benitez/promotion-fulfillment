@@ -54,7 +54,7 @@ res <- map(
   })
 ```
 
-```{r is_graph, echo=FALSE}
+```{r is_graph, echo=FALSE, message=FALSE, warning=FALSE}
 metrics <- res$is %>% 
   left_join(
     res$sales %>% 
@@ -134,7 +134,7 @@ graph_metrics
 grids_metrics
 ```
 
-```{r box_plot}
+```{r box_plot, echo=FALSE, message=FALSE, warning=FALSE}
 box_info <- res$stats  %>% 
   mutate(
         wm_yr_wk = as.character(wm_yr_wk),
@@ -186,7 +186,6 @@ graph_box
 grids_metrics
 ```
 
-```{r bins_graph, echo=FALSE}
 ```{r bins_graph, eval=FALSE, include=FALSE}
 bines <- c('DDV00_IG_000', 'DDV01_MN_003', 'DDV02_MN_007', 'DDV03_MN_014', 'DDV04_MN_021', 'DDV05_MN_028', 'DDV06_MN_035', 'DDV07_MN_050', 'DDV08_MN_075', 'DDV09_MN_100', 'DDV10_MN_150', 'DDV11_MN_250', 'DDV12_MN_350', 'DDV13_MN_450', 'DDV14_MY_450')
 
