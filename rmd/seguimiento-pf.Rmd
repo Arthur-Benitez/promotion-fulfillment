@@ -216,28 +216,36 @@ graph_ddv <- disp_bins %>%
 graph_ddv
 ```
 
+## IS/Ventas - Gráficas Individuales
 
-## R Markdown
+Indicadores durante la estrategia, calculados al cierre de las semanas Walmart.
 
-This is an R Markdown presentation. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document.
-
-## Slide with Bullets
-
-- Bullet 1
-- Bullet 2
-- Bullet 3
-
-## Slide with R Output
-
-```{r cars, echo = TRUE}
-summary(cars)
+```{r metrics_ind, echo=FALSE, fig.height=5, fig.width=19, message=FALSE, warning=FALSE}
+graph_metrics %>%
+  walk(plot)
 ```
 
-## Slide with Plot
+## IS/Ventas - Gráficas de Resumen
 
-```{r pressure}
-plot(pressure)
+Indicadores durante la estrategia, calculados al cierre de las semanas Walmart.
+
+```{r metrics_sum, echo=FALSE, fig.height=8, fig.width=19, message=FALSE, warning=FALSE}
+grids_metrics
 ```
 
+## Dispersión - Gráficas Individuales
+
+Dispersión durante la estrategia.
+
+```{r box_ind, echo=FALSE, fig.height=5, fig.width=19, message=FALSE, warning=FALSE}
+graph_box %>%
+  walk(plot)
+```
+
+## Dispersión - Gráficas de Resumen
+
+Dispersión durante la estrategia.
+
+```{r box_sum, echo=FALSE, fig.height=8, fig.width=19, message=FALSE, warning=FALSE}
+grids_box
+```
