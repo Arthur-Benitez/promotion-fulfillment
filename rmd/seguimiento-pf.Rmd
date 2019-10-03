@@ -123,7 +123,7 @@ graph_metrics <- metrics %>%
       )
   })
 
-grids <- gridExtra::marrangeGrob(
+grids_metrics <- gridExtra::marrangeGrob(
   grobs = graph_metrics,
   nrow = 2,
   ncol = 2,
@@ -131,48 +131,63 @@ grids <- gridExtra::marrangeGrob(
 )
 
 graph_metrics
-grids
+grids_metrics
 ```
 
 ```{r box_plot}
-disp_box <- res$stats %>% 
+box_info <- res$stats  %>% 
   mutate(
-    wm_yr_wk = as.character(wm_yr_wk),
-    iqr = perc_75 - perc_25,
-    up_whisk = perc_75 + 1.5 * iqr,
-    low_whisk = ifelse(perc_25 - 1.5 * iqr < 0, 0, perc_25 - 1.5 * iqr)
-  ) %>% 
-  ggplot(
-    aes(
-      x = wm_yr_wk,
-      ymin = ifelse(perc_00 == perc_25, perc_00, low_whisk),
-      lower = perc_25,
-      middle = perc_50,
-      upper = perc_75,
-      ymax = ifelse(perc_100 == perc_75, perc_100, up_whisk)
-    )
-  ) + 
-  geom_errorbar(
-    width = 0.4,
-    size = 1
-  ) + 
-  geom_boxplot(
-    stat = 'identity',
-    size = 1
-  ) + 
-  labs(
-    title = 'Dispersión durante la estrategia',
-    x = 'Semanas Walmart',
-    y = 'DDV'
-  ) + 
-  theme(
-    plot.title = element_text(hjust = 0.5)
+        wm_yr_wk = as.character(wm_yr_wk),
+        iqr = perc_75 - perc_25,
+        up_whisk = perc_75 + 1.5 * iqr,
+        low_whisk = ifelse(perc_25 - 1.5 * iqr < 0, 0, perc_25 - 1.5 * iqr)
   )
+  
+graph_box <- box_info  %>% 
+  group_by(prime_xref_item_nbr, negocio) %>% 
+  group_map(~{
+    .x %>% 
+      ggplot(
+        aes(
+          x = wm_yr_wk,
+          ymin = ifelse(perc_00 == perc_25, perc_00, low_whisk),
+          lower = perc_25,
+          middle = perc_50,
+          upper = perc_75,
+          ymax = ifelse(perc_100 == perc_75, perc_100, up_whisk)
+        )
+      ) + 
+      geom_errorbar(
+        width = 0.4,
+        size = 1
+      ) + 
+      geom_boxplot(
+        stat = 'identity',
+        size = 1
+      ) + 
+      labs(
+        title = 'Dispersión durante la estrategia',
+        x = 'Semanas Walmart',
+        y = 'DDV'
+      ) + 
+      theme(
+        plot.title = element_text(hjust = 0.5)
+      )
+  })
 
-disp_box
+grids_metrics <- gridExtra::marrangeGrob(
+  grobs = graph_box,
+  nrow = 2,
+  ncol = 2,
+  top =  quote(paste('Resumen', g, 'of', npages))
+)
+
+graph_box
+grids_metrics
 ```
 
 ```{r bins_graph, echo=FALSE}
+```{r bins_graph, eval=FALSE, include=FALSE}
 bines <- c('DDV00_IG_000', 'DDV01_MN_003', 'DDV02_MN_007', 'DDV03_MN_014', 'DDV04_MN_021', 'DDV05_MN_028', 'DDV06_MN_035', 'DDV07_MN_050', 'DDV08_MN_075', 'DDV09_MN_100', 'DDV10_MN_150', 'DDV11_MN_250', 'DDV12_MN_350', 'DDV13_MN_450', 'DDV14_MY_450')
 
 disp_bins <- res$ddv %>% 
