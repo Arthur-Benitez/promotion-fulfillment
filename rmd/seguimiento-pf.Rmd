@@ -223,16 +223,7 @@ Reporte de IS, Ventas y Dispersión.
 
 ###### Este reporte fue generado automáticamente.
 
-## IS/Ventas - Gráficas Individuales
-
-Indicadores durante la estrategia, calculados al cierre de las semanas Walmart.
-
-```{r metrics_ind, echo=FALSE, fig.height=5, fig.width=19, message=FALSE, warning=FALSE}
-graph_metrics %>%
-  walk(plot)
-```
-
-## IS/Ventas - Gráficas de Resumen
+## IS/Ventas
 
 Indicadores durante la estrategia, calculados al cierre de las semanas Walmart.
 
@@ -240,16 +231,7 @@ Indicadores durante la estrategia, calculados al cierre de las semanas Walmart.
 grids_metrics
 ```
 
-## Dispersión - Gráficas Individuales
-
-Dispersión durante la estrategia.
-
-```{r box_ind, echo=FALSE, fig.height=5, fig.width=19, message=FALSE, warning=FALSE}
-graph_box %>%
-  walk(plot)
-```
-
-## Dispersión - Gráficas de Resumen
+## Dispersión - Boxplot
 
 Dispersión durante la estrategia.
 
