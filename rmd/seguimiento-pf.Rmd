@@ -136,7 +136,7 @@ grids_metrics <- gridExtra::marrangeGrob(
 )
 ```
 
-```{r box_plot, echo=FALSE, message=FALSE, warning=FALSE}
+```{r box_calc, message=FALSE, warning=FALSE, include=FALSE}
 box_info <- res$stats  %>% 
   mutate(
         wm_yr_wk = as.character(wm_yr_wk),
@@ -168,7 +168,7 @@ graph_box <- box_info  %>%
         size = 1
       ) + 
       labs(
-        title = 'Dispersión durante la estrategia',
+        title = sprintf('%s - %s', .y$prime_xref_item_nbr, .y$negocio),
         x = 'Semanas Walmart',
         y = 'DDV'
       ) + 
@@ -177,15 +177,12 @@ graph_box <- box_info  %>%
       )
   })
 
-grids_metrics <- gridExtra::marrangeGrob(
+grids_box <- gridExtra::marrangeGrob(
   grobs = graph_box,
   nrow = 2,
   ncol = 2,
-  top =  quote(paste('Resumen', g, 'of', npages))
+  top =  ''
 )
-
-graph_box
-grids_metrics
 ```
 
 ```{r bins_graph, eval=FALSE, include=FALSE}
