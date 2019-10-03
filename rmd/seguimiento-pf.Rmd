@@ -12,16 +12,16 @@ params:
   wk_fin_vtas: 11929
   user: 'user'
   password: 'password'
+  run_queries: FALSE
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
-```
-
-```{r run_queries, message=FALSE, warning=FALSE, include=FALSE}
 library(tidyverse)
 library(ggplot2)
+```
 
+```{r run_queries, eval=params$run_queries, message=FALSE, warning=FALSE, include=FALSE}
 prepare_queries <- function(query, params) {
   query %>% 
     str_replace_all('\\?NEGOCIOS', params$negocios) %>%
@@ -52,6 +52,11 @@ res <- map(
       as_tibble() %>% 
       set_names(tolower(names(.)))
   })
+write_rds(res, '../rmd/queries-res.rds')
+```
+
+```{r read_info, eval=!params$run_queries, message=FALSE, warning=FALSE, include=FALSE}
+res <- read_rds('../rmd/queries-res.rds')
 ```
 
 ```{r is_graph, echo=FALSE, message=FALSE, warning=FALSE}
