@@ -1,7 +1,4 @@
 ---
-title: "Seguimiento PF"
-author: "Arthur Benitez"
-date: "26/9/2019"
 output: slidy_presentation
 params:
   negocios: "'BODEGA','BAE'"
@@ -215,6 +212,16 @@ graph_ddv <- disp_bins %>%
 
 graph_ddv
 ```
+
+## Reporte de Seguimiento [Promo Fulfillment](https://ml.prod.walmart.com:31705/v1/deployment/shiny_2915_3966/)
+[Replenishment Data Science MX](mailto:Replenishment Data Science MX <replen_ds_mx@email.wal-mart.com>
+  ?subject=Promo Fulfillment&body=Usuario:    [Escribe tu usuario de Windows]%0A%0AMotivo:    [Selecciona a qué tema pertenece tu duda de entre estas opciones: Duda/Error/Solicitud/Capacitación/Otro]%0A%0ADetalles:    [Describe brevemente la situación o adjunta ejemplos/evidencia])
+
+`r Sys.Date()`
+
+Reporte de IS, Ventas y Dispersión.
+
+###### Este reporte fue generado automáticamente.
 
 ## IS/Ventas - Gráficas Individuales
 
