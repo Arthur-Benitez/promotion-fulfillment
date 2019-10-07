@@ -80,53 +80,84 @@ metrics <- res$is %>%
     everything()
   )
 
-graph_metrics <- metrics %>% 
-  group_by(item_nbr, primary_desc, formato) %>% 
-  group_map(~{
-    .x %>% 
-      mutate(
-        scaled_sales = scales::rescale(
-          wkly_qty,
-          to = c(
-            min(c(is_oh, is_ttl)),
-            max(c(is_oh, is_ttl))
-          )
+metrics_plot <- function(data, keys){
+  data %>% 
+    mutate(
+      scaled_sales = scales::rescale(
+        wkly_qty,
+        to = c(
+          min(c(is_oh, is_ttl)),
+          max(c(is_oh, is_ttl))
         )
-      ) %>% 
-      ggplot(aes(x = wm_yr_wk)) + 
-      geom_line( aes(y = is_oh,        colour = 'In Stock OH'    ), size = 1) + 
-      geom_line( aes(y = is_ttl,       colour = 'In Stock Cadena'), size = 1) + 
-      geom_line( aes(y = scaled_sales, colour = 'Ventas'         ), size = 1) + 
-      geom_point(aes(y = is_oh,        colour = 'In Stock OH'    ), size = 2) + 
-      geom_point(aes(y = is_ttl,       colour = 'In Stock Cadena'), size = 2) + 
-      geom_point(aes(y = scaled_sales, colour = 'Ventas'         ), size = 2) + 
-      scale_y_continuous(
-        labels = scales::percent,
-        sec.axis = sec_axis(
-          ~scales::rescale(
-            .,
-            to = c(min(.x$wkly_qty), max(.x$wkly_qty))
-          ),
-          name = 'Piezas',
-          labels = scales::comma
-        )
-      ) + 
-      ggthemes::scale_color_colorblind() + 
-      labs(
-        title = sprintf('%s - %s', .y$item_nbr, .y$formato),
-        x = 'Semanas Walmart',
-        y = 'Porcentaje (%)',
-        colour = 'Indicador',
-        caption = sprintf('Item: %s.', .y$primary_desc)
-      ) + 
-      theme(
-        plot.title = element_text(hjust = 0.5),
-        legend.position = 'bottom'
       )
-  })
+    ) %>% 
+    ggplot(aes(x = wm_yr_wk)) + 
+    geom_line( aes(y = is_oh,        colour = 'In Stock OH'    ), size = 1) + 
+    geom_line( aes(y = is_ttl,       colour = 'In Stock Cadena'), size = 1) + 
+    geom_line( aes(y = scaled_sales, colour = 'Ventas'         ), size = 1) + 
+    geom_point(aes(y = is_oh,        colour = 'In Stock OH'    ), size = 2) + 
+    geom_point(aes(y = is_ttl,       colour = 'In Stock Cadena'), size = 2) + 
+    geom_point(aes(y = scaled_sales, colour = 'Ventas'         ), size = 2) + 
+    scale_y_continuous(
+      labels = scales::percent,
+      sec.axis = sec_axis(
+        ~scales::rescale(
+          .,
+          to = c(min(data$wkly_qty), max(data$wkly_qty))
+        ),
+        name = 'Piezas',
+        labels = scales::comma
+      )
+    ) + 
+    ggthemes::scale_color_colorblind() + 
+    labs(
+      title = apply(keys, 1, paste, collapse = '-'),
+      x = 'Semanas Walmart',
+      y = 'Porcentaje (%)',
+      colour = 'Indicador'
+    ) + 
+    theme(
+      plot.title = element_text(hjust = 0.5),
+      legend.position = 'bottom'
+    )
+}
 
-grids_metrics <- gridExtra::marrangeGrob(
-  grobs = graph_metrics,
+## Preparación de info por item-negocio
+graph_metrics_ind <- metrics %>% 
+  group_by(item_nbr, primary_desc, formato) %>% 
+  group_map(~metrics_plot(.x, .y))
+
+## Grid por item-negocio
+grids_metrics_ind <- gridExtra::marrangeGrob(
+  grobs = graph_metrics_ind,
+  nrow = 2,
+  ncol = 2,
+  top =  ''
+)
+
+## Preparación de info por categoría-negocio
+graph_metrics_sum <- metrics %>% 
+  group_by(category_nbr, formato, wm_yr_wk) %>% 
+  summarise(
+    vp = first(vp),
+    division = first(division),
+    dep_nbr = first(dep_nbr),
+    sell_price = sum(sell_price * wkly_qty, na.rm = TRUE) / sum(wkly_qty, na.rm = TRUE),
+    catalogo = sum(catalogo),
+    falt_oh = sum(falt_oh),
+    falt_oh_it = sum(falt_oh_it),
+    falt_oh_iw = sum(falt_oh_it_iw),
+    falt_ttl = sum(falt_ttl),
+    is_oh = 1 - (falt_oh / catalogo),
+    is_ttl = 1 - (falt_ttl / catalogo),
+    wkly_qty = sum(wkly_qty)
+  ) %>% 
+  group_by(category_nbr, formato) %>% 
+  group_map(~metrics_plot(.x, .y))
+
+## Grid por categoría-negocio
+grids_metrics_sum <- gridExtra::marrangeGrob(
+  grobs = graph_metrics_sum,
   nrow = 2,
   ncol = 2,
   top =  ''
