@@ -167,13 +167,16 @@ grids_metrics_sum <- gridExtra::marrangeGrob(
 ```{r box_calc, message=FALSE, warning=FALSE, include=FALSE}
 box_info <- res$stats  %>% 
   mutate(
-        wm_yr_wk = as.character(wm_yr_wk),
         iqr = perc_75 - perc_25,
         up_whisk = perc_75 + 1.5 * iqr,
         low_whisk = ifelse(perc_25 - 1.5 * iqr < 0, 0, perc_25 - 1.5 * iqr)
   )
 
 box_plot <- function(data, keys){
+  label_values <- data %>% 
+    select(wm_yr_wk, ddv_oh, low_whisk, perc_25, perc_50, perc_75, up_whisk) %>% 
+    mutate_at(vars(-wm_yr_wk), round) %>% 
+    gather(key = 'label', value = 'percentile', -wm_yr_wk)
   data %>% 
     ggplot(
       aes(
@@ -185,8 +188,15 @@ box_plot <- function(data, keys){
         ymax = ifelse(perc_100 == perc_75, perc_100, up_whisk)
       )
     ) + 
-    geom_errorbar(width = 0.4, size = 1) + 
-    geom_boxplot(stat = 'identity', size = 1) + 
+    geom_errorbar(width = 0.4, size = 0.8) + 
+    geom_boxplot(stat = 'identity', size = 1, width = 0.4) + 
+    geom_point(aes(y = ddv_oh), size = 3, color = 'blue') + 
+    annotate(
+      geom = 'text',
+      x = label_values$wm_yr_wk + 0.3,
+      y = label_values$percentile,
+      label = label_values$percentile
+    ) + 
     labs(
       title = apply(keys, 1, paste, collapse = '-'),
       x = 'Semanas Walmart',
