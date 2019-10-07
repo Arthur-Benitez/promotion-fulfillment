@@ -349,7 +349,7 @@ grids_box_ind
 
 ## Dispersión - Boxplot - Resumen
 
-Dispersión durante la estrategia.
+Los percentiles aquí resumidos se calcularon usando el promedio de los percentiles de la base item-formato, por lo que no representan los percentiles reales del conjunto de tiendas agrupadas al nivel de resumen visto. Por ello, estas gráficas son aproximaciones y con objetivo méramente visual.
 
 ```{r box_sum, echo=FALSE, fig.height=8, fig.width=19, message=FALSE, warning=FALSE}
 grids_box_sum
