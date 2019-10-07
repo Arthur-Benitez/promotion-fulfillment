@@ -182,13 +182,14 @@ grids_box <- gridExtra::marrangeGrob(
 )
 ```
 
-```{r bins_graph, eval=FALSE, include=FALSE}
+```{r bins_calc, message=FALSE, warning=FALSE, include=FALSE}
 bines <- c('DDV00_IG_000', 'DDV01_MN_003', 'DDV02_MN_007', 'DDV03_MN_014', 'DDV04_MN_021', 'DDV05_MN_028', 'DDV06_MN_035', 'DDV07_MN_050', 'DDV08_MN_075', 'DDV09_MN_100', 'DDV10_MN_150', 'DDV11_MN_250', 'DDV12_MN_350', 'DDV13_MN_450', 'DDV14_MY_450')
 
-disp_bins <- res$ddv %>% 
+graph_ddv <- res$ddv  %>%
+  group_by(prime_xref_item_nbr, negocio) %>% 
+  group_map(~{
+    .x %>% 
       complete(
-        prime_xref_item_nbr,
-        negocio,
         wm_yr_wk,
         repl_group_nbr,
         bin = bines,
@@ -198,19 +199,23 @@ disp_bins <- res$ddv %>%
           ddv_oh = 0,
           n_stores = 0
         )
+      ) %>% 
+      ggplot(aes(wm_yr_wk)) +
+      geom_col(aes(y = n_stores, fill = bin)) + 
+      scale_fill_manual(values = c(ggthemes::colorblind_pal()(8), 'darkblue', 'gray30', '#ff05c5', 'gray70', 'darkgreen', 'gray 90', '#f27979')) + 
+      labs(
+        title = sprintf('%s - %s', .y$prime_xref_item_nbr, .y$negocio),
+        x = 'Semanas Walmart',
+        y = 'Número de tiendas',
+        fill = 'Rango de DDV OH'
       )
-
-graph_ddv <- disp_bins %>% 
-  ggplot(aes(wm_yr_wk)) +
-  geom_col(aes(y = n_stores, fill = bin)) + 
-  labs(
-    title = 'Dispersión de DDV OH por semana',
-    x = 'Semanas Walmart',
-    y = 'Número de tiendas',
-    fill = 'Rango de DDV OH'
-  )
-
-graph_ddv
+  })
+grids_bins <- gridExtra::marrangeGrob(
+  grobs = graph_ddv,
+  nrow = 2,
+  ncol = 2,
+  top =  ''
+)
 ```
 
 ## Reporte de Seguimiento [Promo Fulfillment](https://ml.prod.walmart.com:31705/v1/deployment/shiny_2915_3966/)
@@ -237,4 +242,12 @@ Dispersión durante la estrategia.
 
 ```{r box_sum, echo=FALSE, fig.height=8, fig.width=19, message=FALSE, warning=FALSE}
 grids_box
+```
+
+## Dispersión - Bines
+
+Esta gráfica muestra la cantidad de tiendas que se clasifican en cada uno de los bines de acuerdo a los DDV OH que presentaron en cada semana.
+
+```{r bins_graph, echo=FALSE, fig.height=8, fig.width=19, message=FALSE, warning=FALSE}
+grids_bins
 ```
