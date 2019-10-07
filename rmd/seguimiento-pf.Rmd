@@ -323,26 +323,50 @@ Reporte de IS, Ventas y Dispersión.
 
 ###### Este reporte fue generado automáticamente.
 
-## IS/Ventas
+## IS/Ventas x Item-Formato
+
+Indicadores durante la estrategia, calculados al cierre de las semanas Walmart.
+
+```{r metrics_ind, echo=FALSE, fig.height=8, fig.width=19, message=FALSE, warning=FALSE}
+grids_metrics_ind
+```
+
+## IS/Ventas - Resumen
 
 Indicadores durante la estrategia, calculados al cierre de las semanas Walmart.
 
 ```{r metrics_sum, echo=FALSE, fig.height=8, fig.width=19, message=FALSE, warning=FALSE}
-grids_metrics
+grids_metrics_sum
 ```
 
-## Dispersión - Boxplot
+## Dispersión - Boxplot x Item-Formato
+
+Dispersión durante la estrategia.
+
+```{r box_ind, echo=FALSE, fig.height=8, fig.width=19, message=FALSE, warning=FALSE}
+grids_box_ind
+```
+
+## Dispersión - Boxplot - Resumen
 
 Dispersión durante la estrategia.
 
 ```{r box_sum, echo=FALSE, fig.height=8, fig.width=19, message=FALSE, warning=FALSE}
-grids_box_ind
+grids_box_sum
 ```
 
-## Dispersión - Bines
+## Dispersión - Bines x Item-Formato
 
 Esta gráfica muestra la cantidad de tiendas que se clasifican en cada uno de los bines de acuerdo a los DDV OH que presentaron en cada semana.
 
-```{r bins_graph, echo=FALSE, fig.height=8, fig.width=19, message=FALSE, warning=FALSE}
-grids_bins
+```{r bins_ind, echo=FALSE, fig.height=8, fig.width=19, message=FALSE, warning=FALSE}
+grids_bins_ind
+```
+
+## Dispersión - Bines - Resumen
+
+Esta gráfica muestra la cantidad de tiendas que se clasifican en cada uno de los bines de acuerdo a los DDV OH que presentaron en cada semana.
+
+```{r bins_sum, echo=FALSE, fig.height=8, fig.width=19, message=FALSE, warning=FALSE}
+grids_bins_sum
 ```
