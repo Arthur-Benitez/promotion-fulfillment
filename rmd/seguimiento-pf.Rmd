@@ -196,7 +196,7 @@ graph_box_sum <- box_info  %>%
     low_whisk = ifelse(perc_25 - 1.5 * iqr < 0, 0, perc_25 - 1.5 * iqr)
   ) %>% 
   group_by(category, negocio) %>% 
-  group_map(box_plot)
+  group_map(~box_plot(.x, .y))
 
 ## Grid por categoría-negocio
 grids_box_sum <- gridExtra::marrangeGrob(
@@ -210,33 +210,72 @@ grids_box_sum <- gridExtra::marrangeGrob(
 ```{r bins_calc, message=FALSE, warning=FALSE, include=FALSE}
 bines <- c('DDV00_IG_000', 'DDV01_MN_003', 'DDV02_MN_007', 'DDV03_MN_014', 'DDV04_MN_021', 'DDV05_MN_028', 'DDV06_MN_035', 'DDV07_MN_050', 'DDV08_MN_075', 'DDV09_MN_100', 'DDV10_MN_150', 'DDV11_MN_250', 'DDV12_MN_350', 'DDV13_MN_450', 'DDV14_MY_450')
 
-graph_ddv <- res$ddv  %>%
+bins_info <- 
+
+bins_plot <- function(data, keys){
+  data %>% 
+  ggplot(aes(wm_yr_wk)) +
+  geom_col(aes(y = n_stores, fill = bin)) + 
+  scale_fill_manual(values = c(ggthemes::colorblind_pal()(8), 'darkblue', 'gray30', '#ff05c5', 'gray70', 'darkgreen', 'gray 90', '#f27979')) + 
+  labs(
+    title = apply(keys, 1, paste, collapse = '-'),
+    x = 'Semanas Walmart',
+    y = 'Número de combinaciones',
+    fill = 'Rango de DDV OH'
+  ) +
+  theme(plot.title = element_text(hjust = 0.5))
+}
+
+## Preparación de info por item-negocio
+graph_ddv_ind <- res$ddv  %>% 
   group_by(prime_xref_item_nbr, negocio) %>% 
-  group_map(~{
-    .x %>% 
-      complete(
-        wm_yr_wk,
-        repl_group_nbr,
-        bin = bines,
-        fill = list(
-          oh = 0,
-          sales = 0,
-          ddv_oh = 0,
-          n_stores = 0
-        )
-      ) %>% 
-      ggplot(aes(wm_yr_wk)) +
-      geom_col(aes(y = n_stores, fill = bin)) + 
-      scale_fill_manual(values = c(ggthemes::colorblind_pal()(8), 'darkblue', 'gray30', '#ff05c5', 'gray70', 'darkgreen', 'gray 90', '#f27979')) + 
-      labs(
-        title = sprintf('%s - %s', .y$prime_xref_item_nbr, .y$negocio),
-        x = 'Semanas Walmart',
-        y = 'Número de tiendas',
-        fill = 'Rango de DDV OH'
-      )
-  })
-grids_bins <- gridExtra::marrangeGrob(
-  grobs = graph_ddv,
+  complete(
+    wm_yr_wk,
+    repl_group_nbr,
+    category,
+    bin = bines,
+    fill = list(
+      oh = 0,
+      sales = 0,
+      ddv_oh = 0,
+      n_stores = 0
+    )
+  ) %>% 
+  group_map(~bins_plot(.x, .y))
+
+## Grid por item-negocio
+grids_bins_ind <- gridExtra::marrangeGrob(
+  grobs = graph_ddv_ind,
+  nrow = 2,
+  ncol = 2,
+  top =  ''
+)
+
+## Preparación de info por categoría-negocio
+graph_ddv_sum <- res$ddv  %>%
+  group_by(category, negocio, wm_yr_wk, bin) %>% 
+  summarise(
+    oh = sum(oh),
+    sales = sum(sales),
+    ddv_oh = ifelse(sales <= 0, 1000, oh / (sales / 7)),
+    n_stores = sum(n_stores)
+  ) %>% 
+  group_by(category, negocio) %>% 
+  complete(
+    wm_yr_wk,
+    bin = bines,
+    fill = list(
+      oh = 0,
+      sales = 0,
+      ddv_oh = 0,
+      n_stores = 0
+    )
+  ) %>% 
+  group_map(~bins_plot(.x, .y))
+
+## Grid por categoria-negocio
+grids_bins_sum <- gridExtra::marrangeGrob(
+  grobs = graph_ddv_sum,
   nrow = 2,
   ncol = 2,
   top =  ''
