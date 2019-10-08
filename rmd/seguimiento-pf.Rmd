@@ -207,7 +207,7 @@ box_plot <- function(data, keys){
 
 ## Preparación de info por item-negocio
 graph_box_ind <- box_info  %>% 
-  group_by(prime_xref_item_nbr, negocio) %>% 
+  group_by(prime_xref_item_nbr, item1_desc, negocio) %>% 
   group_map(~box_plot(.x, .y))
 
 ## Grid por item-negocio
@@ -251,8 +251,6 @@ grids_box_sum <- gridExtra::marrangeGrob(
 ```{r bins_calc, message=FALSE, warning=FALSE, include=FALSE}
 bines <- c('DDV00_IG_000', 'DDV01_MN_003', 'DDV02_MN_007', 'DDV03_MN_014', 'DDV04_MN_021', 'DDV05_MN_028', 'DDV06_MN_035', 'DDV07_MN_050', 'DDV08_MN_075', 'DDV09_MN_100', 'DDV10_MN_150', 'DDV11_MN_250', 'DDV12_MN_350', 'DDV13_MN_450', 'DDV14_MY_450')
 
-bins_info <- 
-
 bins_plot <- function(data, keys){
   data %>% 
   ggplot(aes(wm_yr_wk)) +
@@ -269,7 +267,7 @@ bins_plot <- function(data, keys){
 
 ## Preparación de info por item-negocio
 graph_ddv_ind <- res$ddv  %>% 
-  group_by(prime_xref_item_nbr, negocio) %>% 
+  group_by(prime_xref_item_nbr, item1_desc, negocio) %>% 
   complete(
     wm_yr_wk,
     repl_group_nbr,
