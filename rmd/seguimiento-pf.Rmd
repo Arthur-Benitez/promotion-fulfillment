@@ -75,7 +75,7 @@ metrics <- res$is %>%
     cid,
     item_nbr,
     old_nbr,
-    primary_desc,
+    item1_desc,
     sell_price,
     everything()
   )
@@ -86,8 +86,8 @@ metrics_plot <- function(data, keys){
       scaled_sales = scales::rescale(
         wkly_qty,
         to = c(
-          min(c(is_oh, is_ttl)),
-          max(c(is_oh, is_ttl))
+          min(c(is_oh, is_ttl)) - 0.01,
+          max(c(is_oh, is_ttl)) + 0.01
         )
       )
     ) %>% 
@@ -99,7 +99,7 @@ metrics_plot <- function(data, keys){
     geom_point(aes(y = is_ttl,       colour = 'In Stock Cadena'), size = 2) + 
     geom_point(aes(y = scaled_sales, colour = 'Ventas'         ), size = 2) + 
     scale_y_continuous(
-      labels = scales::percent,
+      labels = scales::percent_format(accuracy = 0.1),
       sec.axis = sec_axis(
         ~scales::rescale(
           .,
@@ -111,10 +111,10 @@ metrics_plot <- function(data, keys){
     ) + 
     ggthemes::scale_color_colorblind() + 
     labs(
-      title = apply(keys, 1, paste, collapse = '-'),
+      title = apply(keys, 1, paste, collapse = ' - '),
       x = 'Semanas Walmart',
       y = 'Porcentaje (%)',
-      colour = 'Indicador'
+      colour = ''
     ) + 
     theme(
       plot.title = element_text(hjust = 0.5),
@@ -124,7 +124,7 @@ metrics_plot <- function(data, keys){
 
 ## Preparación de info por item-negocio
 graph_metrics_ind <- metrics %>% 
-  group_by(item_nbr, primary_desc, formato) %>% 
+  group_by(item_nbr, item1_desc, formato) %>% 
   group_map(~metrics_plot(.x, .y))
 
 ## Grid por item-negocio
@@ -198,7 +198,7 @@ box_plot <- function(data, keys){
       label = label_values$percentile
     ) + 
     labs(
-      title = apply(keys, 1, paste, collapse = '-'),
+      title = apply(keys, 1, paste, collapse = ' - '),
       x = 'Semanas Walmart',
       y = 'DDV'
     ) + 
@@ -257,7 +257,7 @@ bins_plot <- function(data, keys){
   geom_col(aes(y = n_stores, fill = bin)) + 
   scale_fill_manual(values = c(ggthemes::colorblind_pal()(8), 'darkblue', 'gray30', '#ff05c5', 'gray70', 'darkgreen', 'gray 90', '#f27979')) + 
   labs(
-    title = apply(keys, 1, paste, collapse = '-'),
+    title = apply(keys, 1, paste, collapse = ' - '),
     x = 'Semanas Walmart',
     y = 'Número de combinaciones',
     fill = 'Rango de DDV OH'
