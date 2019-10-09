@@ -304,7 +304,10 @@ graph_ddv_sum <- res$ddv  %>%
     ddv_oh = ifelse(sales <= 0, 1000, oh / (sales / 7)),
     n_stores = sum(n_stores)
   ) %>% 
-  group_by(category, negocio) %>% 
+  ungroup() %>% 
+  mutate_at('bin', as.factor) %>% 
+  mutate(group_id = group_indices(., category, negocio)) %>% 
+  group_by(category, negocio, group_id) %>% 
   complete(
     wm_yr_wk,
     bin = bines,
@@ -315,15 +318,13 @@ graph_ddv_sum <- res$ddv  %>%
       n_stores = 0
     )
   ) %>% 
-  group_map(~bins_plot(.x, .y))
+  group_map(~bins_plotly(.x, .y))
 
 ## Grid por categoria-negocio
-grids_bins_sum <- gridExtra::marrangeGrob(
-  grobs = graph_ddv_sum,
-  nrow = 2,
-  ncol = 2,
-  top =  ''
-)
+grids_bins_sum <- graph_ddv_sum %>% 
+  split(ceiling(seq_along(.)/2)) %>% 
+  lapply(subplot, titleX = TRUE, titleY = TRUE)
+
 ```
 
 ## Reporte de Seguimiento [Promo Fulfillment](https://ml.prod.walmart.com:31705/v1/deployment/shiny_2915_3966/)
