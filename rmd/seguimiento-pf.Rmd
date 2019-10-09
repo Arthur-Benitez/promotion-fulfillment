@@ -264,7 +264,13 @@ bins_plotly <- function(data, keys){
       legendgroup = ~bin
     ) %>% 
     layout(
-      title = apply(keys[, !(names(keys) == 'group_id')], 1, paste, collapse = ' - '),
+      annotations = list(
+        x = ifelse(keys$group_id %% 2 == 1, 0.35, 0.65),
+        y = 1,
+        text = apply(
+          keys[, !(names(keys) == 'group_id')], 1, paste, collapse = ' - '),
+        showarrow = F, xref = 'paper', yref = 'paper'
+      ),
       xaxis = list(title = 'Semanas WM'),
       yaxis = list(title = 'Número de tiendas'),
       barmode = 'stack'
