@@ -16,6 +16,7 @@ params:
 knitr::opts_chunk$set(echo = FALSE)
 library(tidyverse)
 library(ggplot2)
+library(plotly)
 ```
 
 ```{r run_queries, eval=params$run_queries, message=FALSE, warning=FALSE, include=FALSE}
@@ -251,27 +252,34 @@ grids_box_sum <- gridExtra::marrangeGrob(
 ```{r bins_calc, message=FALSE, warning=FALSE, include=FALSE}
 bines <- c('DDV00_IG_000', 'DDV01_MN_003', 'DDV02_MN_007', 'DDV03_MN_014', 'DDV04_MN_021', 'DDV05_MN_028', 'DDV06_MN_035', 'DDV07_MN_050', 'DDV08_MN_075', 'DDV09_MN_100', 'DDV10_MN_150', 'DDV11_MN_250', 'DDV12_MN_350', 'DDV13_MN_450', 'DDV14_MY_450')
 
-bins_plot <- function(data, keys){
+bins_plotly <- function(data, keys){
   data %>% 
-  ggplot(aes(wm_yr_wk)) +
-  geom_col(aes(y = n_stores, fill = bin)) + 
-  scale_fill_manual(values = c(ggthemes::colorblind_pal()(8), 'darkblue', 'gray30', '#ff05c5', 'gray70', 'darkgreen', 'gray 90', '#f27979')) + 
-  labs(
-    title = apply(keys, 1, paste, collapse = ' - '),
-    x = 'Semanas Walmart',
-    y = 'Número de combinaciones',
-    fill = 'Rango de DDV OH'
-  ) +
-  theme(plot.title = element_text(hjust = 0.5))
+    plot_ly(
+      x = ~as.character(wm_yr_wk),
+      y = ~n_stores,
+      type = 'bar',
+      color = ~bin,
+      colors = c(ggthemes::colorblind_pal()(8), 'darkblue', 'gray30', '#ff05c5', 'gray70', 'darkgreen', 'gray 90', '#f27979'),
+      showlegend = (keys$group_id %% 2 == 1),
+      legendgroup = ~bin
+    ) %>% 
+    layout(
+      title = apply(keys[, !(names(keys) == 'group_id')], 1, paste, collapse = ' - '),
+      xaxis = list(title = 'Semanas WM'),
+      yaxis = list(title = 'Número de tiendas'),
+      barmode = 'stack'
+    )
 }
 
 ## Preparación de info por item-negocio
 graph_ddv_ind <- res$ddv  %>% 
-  group_by(prime_xref_item_nbr, item1_desc, negocio) %>% 
+  mutate_at('bin', as.factor) %>% 
+  mutate(group_id = group_indices(., prime_xref_item_nbr, item1_desc, negocio)) %>% 
+  group_by(prime_xref_item_nbr, item1_desc, negocio, group_id) %>% 
   complete(
     wm_yr_wk,
     repl_group_nbr,
-    category,
+    category, 
     bin = bines,
     fill = list(
       oh = 0,
@@ -280,15 +288,12 @@ graph_ddv_ind <- res$ddv  %>%
       n_stores = 0
     )
   ) %>% 
-  group_map(~bins_plot(.x, .y))
+  group_map(~bins_plotly(.x, .y))
 
 ## Grid por item-negocio
-grids_bins_ind <- gridExtra::marrangeGrob(
-  grobs = graph_ddv_ind,
-  nrow = 2,
-  ncol = 2,
-  top =  ''
-)
+grids_bins_ind <- graph_ddv_ind %>% 
+  split(ceiling(seq_along(.)/2)) %>% 
+  lapply(subplot, titleX = TRUE, titleY = TRUE)
 
 ## Preparación de info por categoría-negocio
 graph_ddv_sum <- res$ddv  %>%
