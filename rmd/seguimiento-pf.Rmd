@@ -364,7 +364,7 @@ Indicadores durante la estrategia, calculados al cierre de las semanas Walmart.
 grids_metrics_ind
 ```
 
-## IS/Ventas - Resumen
+## IS/Ventas - Categoría-Formato
 
 Indicadores durante la estrategia, calculados al cierre de las semanas Walmart.
 
@@ -380,7 +380,7 @@ Dispersión durante la estrategia.
 grids_box_ind
 ```
 
-## Dispersión - Boxplot - Resumen
+## Dispersión - Boxplot - Categoría-Formato
 
 Los percentiles aquí resumidos se calcularon usando el promedio de los percentiles de la base item-formato, por lo que no representan los percentiles reales del conjunto de tiendas agrupadas al nivel de resumen visto. Por ello, estas gráficas son aproximaciones y con objetivo méramente visual.
 
@@ -393,13 +393,13 @@ grids_box_sum
 Esta gráfica muestra la cantidad de tiendas que se clasifican en cada uno de los bines de acuerdo a los DDV OH que presentaron en cada semana.
 
 ```{r bins_ind, echo=FALSE, fig.height=8, fig.width=19, message=FALSE, warning=FALSE}
-grids_bins_ind
+htmltools::tagList(grids_bins_ind)
 ```
 
-## Dispersión - Bines - Resumen
+## Dispersión - Bines - Categoría-Formato
 
 Esta gráfica muestra la cantidad de tiendas que se clasifican en cada uno de los bines de acuerdo a los DDV OH que presentaron en cada semana.
 
 ```{r bins_sum, echo=FALSE, fig.height=8, fig.width=19, message=FALSE, warning=FALSE}
-grids_bins_sum
+htmltools::tagList(grids_bins_sum)
 ```
