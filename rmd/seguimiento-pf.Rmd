@@ -343,7 +343,61 @@ graph_ddv_sum <- bins_info  %>%
 grids_bins_sum <- graph_ddv_sum %>% 
   split(ceiling(seq_along(.)/2)) %>% 
   lapply(subplot, titleX = TRUE, titleY = TRUE)
+```
 
+```{r sum_calc, echo=FALSE, message=FALSE, warning=FALSE}
+wmwk1 <- min(metrics$wm_yr_wk) 
+wmwk2 <- max(metrics$wm_yr_wk)
+is_oh_1 <- rlang::sym(paste('is_oh', wmwk1, sep = '_'))
+is_oh_2 <- rlang::sym(paste('is_oh', wmwk2, sep = '_'))
+ddv_oh_1 <- rlang::sym(paste('is_oh', wmwk1, sep = '_'))
+ddv_oh_2 <- rlang::sym(paste('is_oh', wmwk2, sep = '_'))
+wkly_qty1 <- rlang::sym(paste('is_oh', wmwk1, sep = '_'))
+wkly_qty2 <- rlang::sym(paste('is_oh', wmwk2, sep = '_'))
+pretty_names <- c(categoria = 'category_nbr', articulo = 'item_nbr', descripcion = 'item1_desc.x')
+
+summary <- metrics %>% 
+  left_join(
+    y = box_info,
+    by = c(
+      'item_nbr' = 'prime_xref_item_nbr',
+      'formato' = 'negocio',
+      'wm_yr_wk' = 'wm_yr_wk'
+    )
+  ) %>% 
+  select(
+    item_nbr,
+    formato,
+    category_nbr,
+    item1_desc.x,
+    wm_yr_wk,
+    is_oh,
+    wkly_qty,
+    # oh,
+    # sales,
+    ddv_oh
+  ) %>% 
+  filter(wm_yr_wk %in% c(wmwk1, wmwk2)) %>% 
+  gather(variable, value, -(item_nbr:wm_yr_wk)) %>% 
+  unite(temp, variable, wm_yr_wk) %>% 
+  spread(temp, value) %>% 
+  mutate(
+    is_oh_dif = (!!is_oh_2 - !!is_oh_1) / !!is_oh_1,
+    ddv_oh_dif = (!!ddv_oh_2 - !!ddv_oh_1) / !!ddv_oh_1,
+    wkly_qty_dif = (!!wkly_qty2 - !!wkly_qty1) / !!wkly_qty1
+  ) %>% 
+  select(
+    category_nbr,
+    item_nbr,
+    item1_desc.x,
+    formato,
+    starts_with('is_oh'),
+    starts_with('ddv_oh'),
+    everything()
+  ) %>% 
+  rename(!!pretty_names) %>% 
+  knitr::kable()
+  # view
 ```
 
 ## Reporte de Seguimiento [Promo Fulfillment](https://ml.prod.walmart.com:31705/v1/deployment/shiny_2915_3966/)
@@ -402,4 +456,12 @@ Esta gráfica muestra la cantidad de tiendas que se clasifican en cada uno de lo
 
 ```{r bins_sum, echo=FALSE, fig.height=8, fig.width=19, message=FALSE, warning=FALSE}
 htmltools::tagList(grids_bins_sum)
+```
+
+## Resumen
+
+Esta tabla muestra la evolución de los indicadores clave entre la primera y última semana del estudio.
+
+```{r sum, echo=FALSE, message=FALSE, warning=FALSE}
+summary
 ```
