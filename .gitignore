@@ -12,3 +12,4 @@ packrat/lib*/
 www/notifications/
 www/season/
 rmd/*.html
+rmd/*.rds
