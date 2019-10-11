@@ -17,6 +17,7 @@ knitr::opts_chunk$set(echo = FALSE)
 library(tidyverse)
 library(ggplot2)
 library(plotly)
+library(xtable)
 ```
 
 ```{r run_queries, eval=params$run_queries, message=FALSE, warning=FALSE, include=FALSE}
@@ -395,8 +396,10 @@ summary <- metrics %>%
     starts_with('ddv_oh'),
     everything()
   ) %>% 
-  rename(!!pretty_names) %>% 
-  knitr::kable()
+  rename(!!pretty_names)
+
+  summary_table <- xtable(summary)
+  # knitr::kable()
   # view
 ```
 
@@ -462,6 +465,8 @@ htmltools::tagList(grids_bins_sum)
 
 Esta tabla muestra la evolución de los indicadores clave entre la primera y última semana del estudio.
 
-```{r sum, echo=FALSE, message=FALSE, warning=FALSE}
-summary
+```{r sum, echo=FALSE, message=FALSE, warning=FALSE, results='asis'}
+# htmltools::tagList(print(summary_table, type = 'html', scalebox = 0.7))
+# htmltools::doRenderTags()
+print(summary_table, type = 'html', scalebox = 0.2)
 ```
