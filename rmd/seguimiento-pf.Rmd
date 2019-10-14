@@ -1,5 +1,12 @@
 ---
-output: slidy_presentation
+output:
+  html_document:
+    toc: TRUE
+    toc_depth: 3
+    toc_float:
+      collapsed: FALSE
+      smooth_scroll: TRUE
+      number_sections: TRUE
 params:
   negocios: "'BODEGA','BAE'"
   old_nbrs: 4007408, 9574857
@@ -11,6 +18,17 @@ params:
   password: 'password'
   run_queries: FALSE
 ---
+
+<style type="text/css">
+div.main-container {
+  max-width: 100%;
+  margin: 0px 0px 0px 0px;
+  padding: 0px 0px 0px 0px;
+}
+#TOC {width: 10%;}
+.col-md-3 {width: 10%;}
+.col-md-9 {width: 90%;}
+</style>
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
@@ -278,7 +296,7 @@ bins_plotly <- function(data, keys){
     ) %>% 
     layout(
       annotations = list(
-        x = ifelse(keys$group_id %% 2 == 1, 0.35, 0.65),
+        x = ifelse(keys$group_id %% 2 == 1, 0.3, 0.7),
         y = 1,
         text = apply(
           keys[, !(names(keys) == 'group_id')], 1, paste, collapse = ' - '),
@@ -422,7 +440,7 @@ summary_table <- summary %>%
   kable_styling(
     bootstrap_options = c('striped', 'hover', 'condensed'),
     full_width = TRUE,
-    font_size = 17,
+    font_size = 15,
     fixed_thead = list(enabled = TRUE)
   ) %>% 
   row_spec(0, color = '#FFFFFF', background = '#0071ce') %>% 
@@ -436,7 +454,10 @@ summary_table <- summary %>%
   ))
 ```
 
-## Reporte de Seguimiento [Promo Fulfillment](https://ml.prod.walmart.com:31705/v1/deployment/shiny_2915_3966/)
+# Inicio
+
+Reporte de Seguimiento de [Promo Fulfillment](https://ml.prod.walmart.com:31705/v1/deployment/shiny_2915_3966/)
+
 [Replenishment Data Science MX](mailto:Replenishment Data Science MX <replen_ds_mx@email.wal-mart.com>
   ?subject=Promo Fulfillment&body=Usuario:    [Escribe tu usuario de Windows]%0A%0AMotivo:    [Selecciona a qué tema pertenece tu duda de entre estas opciones: Duda/Error/Solicitud/Capacitación/Otro]%0A%0ADetalles:    [Describe brevemente la situación o adjunta ejemplos/evidencia])
 
@@ -444,9 +465,9 @@ summary_table <- summary %>%
 
 Reporte de IS, Ventas y Dispersión.
 
-###### Este reporte fue generado automáticamente.
+Este reporte fue generado automáticamente.
 
-## Resumen
+# Resumen
 
 Esta tabla muestra la evolución de los indicadores clave entre la primera y última semana del estudio.
 
@@ -454,7 +475,9 @@ Esta tabla muestra la evolución de los indicadores clave entre la primera y úl
 summary_table
 ```
 
-## IS/Ventas — Item-Formato
+# IS / Ventas {.tabset .tabset-fade .tabset-pills}
+
+## Item-Formato
 
 Indicadores durante la estrategia, calculados al cierre de las semanas Walmart.
 
@@ -462,7 +485,7 @@ Indicadores durante la estrategia, calculados al cierre de las semanas Walmart.
 grids_metrics_ind
 ```
 
-## IS/Ventas — Categoría-Formato
+## Categoría-Formato
 
 Indicadores durante la estrategia, calculados al cierre de las semanas Walmart.
 
@@ -470,7 +493,11 @@ Indicadores durante la estrategia, calculados al cierre de las semanas Walmart.
 grids_metrics_sum
 ```
 
-## Dispersión — Boxplot — Item-Formato
+# Dispersión
+
+## Boxplot {.tabset .tabset-fade .tabset-pills}
+
+### Item-Formato
 
 Dispersión durante la estrategia.
 
@@ -478,7 +505,7 @@ Dispersión durante la estrategia.
 grids_box_ind
 ```
 
-## Dispersión — Boxplot — Categoría-Formato
+### Categoría-Formato
 
 Los percentiles aquí resumidos se calcularon usando el promedio de los percentiles de la base item-formato, por lo que no representan los percentiles reales del conjunto de tiendas agrupadas al nivel de resumen visto. Por ello, estas gráficas son aproximaciones y con objetivo méramente visual.
 
@@ -486,7 +513,9 @@ Los percentiles aquí resumidos se calcularon usando el promedio de los percenti
 grids_box_sum
 ```
 
-## Dispersión — Bines — Item-Formato
+## Bines {.tabset .tabset-fade .tabset-pills}
+
+### Item-Formato
 
 Esta gráfica muestra la cantidad de tiendas que se clasifican en cada uno de los bines de acuerdo a los DDV OH que presentaron en cada semana.
 
@@ -494,7 +523,7 @@ Esta gráfica muestra la cantidad de tiendas que se clasifican en cada uno de lo
 htmltools::tagList(grids_bins_ind)
 ```
 
-## Dispersión — Bines — Categoría-Formato
+### Categoría-Formato
 
 Esta gráfica muestra la cantidad de tiendas que se clasifican en cada uno de los bines de acuerdo a los DDV OH que presentaron en cada semana.
 
