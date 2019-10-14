@@ -14,10 +14,11 @@ params:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
+library(knitr)
 library(tidyverse)
 library(ggplot2)
 library(plotly)
-library(xtable)
+library(kableExtra)
 ```
 
 ```{r run_queries, eval=params$run_queries, message=FALSE, warning=FALSE, include=FALSE}
@@ -351,11 +352,11 @@ wmwk1 <- min(metrics$wm_yr_wk)
 wmwk2 <- max(metrics$wm_yr_wk)
 is_oh_1 <- rlang::sym(paste('is_oh', wmwk1, sep = '_'))
 is_oh_2 <- rlang::sym(paste('is_oh', wmwk2, sep = '_'))
-ddv_oh_1 <- rlang::sym(paste('is_oh', wmwk1, sep = '_'))
-ddv_oh_2 <- rlang::sym(paste('is_oh', wmwk2, sep = '_'))
-wkly_qty1 <- rlang::sym(paste('is_oh', wmwk1, sep = '_'))
-wkly_qty2 <- rlang::sym(paste('is_oh', wmwk2, sep = '_'))
-pretty_names <- c(categoria = 'category_nbr', articulo = 'item_nbr', descripcion = 'item1_desc.x')
+ddv_oh_1 <- rlang::sym(paste('ddv_oh', wmwk1, sep = '_'))
+ddv_oh_2 <- rlang::sym(paste('ddv_oh', wmwk2, sep = '_'))
+wkly_qty1 <- rlang::sym(paste('wkly_qty', wmwk1, sep = '_'))
+wkly_qty2 <- rlang::sym(paste('wkly_qty', wmwk2, sep = '_'))
+pretty_names <- c(articulo = 'item_nbr', descripcion = 'item1_desc.x')
 
 summary <- metrics %>% 
   left_join(
@@ -369,7 +370,7 @@ summary <- metrics %>%
   select(
     item_nbr,
     formato,
-    category_nbr,
+    # category_nbr,
     item1_desc.x,
     wm_yr_wk,
     is_oh,
@@ -388,19 +389,42 @@ summary <- metrics %>%
     wkly_qty_dif = (!!wkly_qty2 - !!wkly_qty1) / !!wkly_qty1
   ) %>% 
   select(
-    category_nbr,
+    # category_nbr,
     item_nbr,
     item1_desc.x,
     formato,
     starts_with('is_oh'),
-    starts_with('ddv_oh'),
+    starts_with('wkly_qty'),
     everything()
   ) %>% 
   rename(!!pretty_names)
 
-  summary_table <- xtable(summary)
-  # knitr::kable()
-  # view
+summary_table <- summary %>% 
+  mutate_at(vars(one_of(c(as.character(is_oh_1), as.character(is_oh_2)))), scales::percent, accuracy = 0.1) %>%
+  mutate_at(vars(one_of(c(as.character(wkly_qty1), as.character(wkly_qty2)))), scales::comma) %>% 
+  mutate_at(vars(one_of(c(as.character(ddv_oh_1), as.character(ddv_oh_2)))), scales::comma, accuracy = 0.1) %>% 
+  mutate_at(vars(ends_with('dif')), scales::percent, accuracy = 0.01) %>%
+  mutate(
+    is_oh_dif = cell_spec(is_oh_dif, 'html', color = ifelse(is_oh_dif < 0, 'red', ifelse(is_oh_dif > 0, '#35a15c', 'black'))),
+    ddv_oh_dif = cell_spec(ddv_oh_dif, 'html', color = ifelse(ddv_oh_dif < 0, '#35a15c', ifelse(ddv_oh_dif > 0, 'red', 'black'))),
+    wkly_qty_dif = cell_spec(wkly_qty_dif, 'html', color = ifelse(wkly_qty_dif < 0, 'red', ifelse(wkly_qty_dif > 0, '#35a15c', 'black')))
+  ) %>% 
+  kable(format = "html", escape = F) %>% 
+  kable_styling(
+    bootstrap_options = c('striped', 'hover', 'condensed'),
+    full_width = TRUE,
+    font_size = 17,
+    fixed_thead = list(enabled = TRUE)
+  ) %>% 
+  row_spec(0, color = '#FFFFFF', background = '#0071ce') %>% 
+  column_spec(c(3, 6, 9), border_right = T) %>% 
+  column_spec(c(6, 9, 12), bold = TRUE) %>% 
+  add_header_above(c(
+    'Llaves de combinación' = 3,
+    'In Stock' = 3,
+    'Ventas semanales (Piezas)' = 3,
+    'Días de Venta' = 3
+  ))
 ```
 
 ## Reporte de Seguimiento [Promo Fulfillment](https://ml.prod.walmart.com:31705/v1/deployment/shiny_2915_3966/)
@@ -466,7 +490,5 @@ htmltools::tagList(grids_bins_sum)
 Esta tabla muestra la evolución de los indicadores clave entre la primera y última semana del estudio.
 
 ```{r sum, echo=FALSE, message=FALSE, warning=FALSE, results='asis'}
-# htmltools::tagList(print(summary_table, type = 'html', scalebox = 0.7))
-# htmltools::doRenderTags()
-print(summary_table, type = 'html', scalebox = 0.2)
+summary_table
 ```
