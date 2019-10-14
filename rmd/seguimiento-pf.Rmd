@@ -399,17 +399,25 @@ summary <- metrics %>%
   ) %>% 
   rename(!!pretty_names)
 
+tonum <- function(percentage){
+  return(as.numeric(sub('%', '', percentage)))
+}
+
 summary_table <- summary %>% 
   mutate_at(vars(one_of(c(as.character(is_oh_1), as.character(is_oh_2)))), scales::percent, accuracy = 0.1) %>%
   mutate_at(vars(one_of(c(as.character(wkly_qty1), as.character(wkly_qty2)))), scales::comma) %>% 
   mutate_at(vars(one_of(c(as.character(ddv_oh_1), as.character(ddv_oh_2)))), scales::comma, accuracy = 0.1) %>% 
-  mutate_at(vars(ends_with('dif')), scales::percent, accuracy = 0.01) %>%
   mutate(
-    is_oh_dif = cell_spec(is_oh_dif, 'html', color = ifelse(is_oh_dif < 0, 'red', ifelse(is_oh_dif > 0, '#35a15c', 'black'))),
-    ddv_oh_dif = cell_spec(ddv_oh_dif, 'html', color = ifelse(ddv_oh_dif < 0, '#35a15c', ifelse(ddv_oh_dif > 0, 'red', 'black'))),
-    wkly_qty_dif = cell_spec(wkly_qty_dif, 'html', color = ifelse(wkly_qty_dif < 0, 'red', ifelse(wkly_qty_dif > 0, '#35a15c', 'black')))
+    is_oh_dif = scales::percent(is_oh_dif, accuracy = 0.01, prefix = ifelse(is_oh_dif > 0, '+', '')),
+    ddv_oh_dif = scales::percent(ddv_oh_dif, accuracy = 0.01, prefix = ifelse(ddv_oh_dif > 0, '+', '')),
+    wkly_qty_dif = scales::percent(wkly_qty_dif, accuracy = 0.01, prefix = ifelse(wkly_qty_dif > 0, '+', ''))
   ) %>% 
-  kable(format = "html", escape = F) %>% 
+  mutate(
+    is_oh_dif = cell_spec(is_oh_dif, 'html', color = ifelse(tonum(is_oh_dif) < 0, 'red', ifelse(tonum(is_oh_dif) > 0, '#35a15c', 'black'))),
+    wkly_qty_dif = cell_spec(wkly_qty_dif, 'html', color = ifelse(tonum(wkly_qty_dif) < 0, 'red', ifelse(tonum(wkly_qty_dif) > 0, '#35a15c', 'black'))),
+    ddv_oh_dif = cell_spec(ddv_oh_dif, 'html', color = ifelse(tonum(ddv_oh_dif) < 0, '#35a15c', ifelse(tonum(ddv_oh_dif) > 0, 'red', 'black')))
+  ) %>% 
+  kable(format = "html", escape = F, align = 'c') %>% 
   kable_styling(
     bootstrap_options = c('striped', 'hover', 'condensed'),
     full_width = TRUE,
