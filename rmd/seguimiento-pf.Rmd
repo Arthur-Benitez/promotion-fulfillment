@@ -356,7 +356,8 @@ ddv_oh_1 <- rlang::sym(paste('ddv_oh', wmwk1, sep = '_'))
 ddv_oh_2 <- rlang::sym(paste('ddv_oh', wmwk2, sep = '_'))
 wkly_qty1 <- rlang::sym(paste('wkly_qty', wmwk1, sep = '_'))
 wkly_qty2 <- rlang::sym(paste('wkly_qty', wmwk2, sep = '_'))
-pretty_names <- c(articulo = 'item_nbr', descripcion = 'item1_desc.x')
+rep_cols <- c(paste('WMWK ', wmwk1), paste('WMWK ', wmwk2), 'Diferencia')
+pretty_names <- c('Artículo', 'Descripción', 'Formato', rep.int(rep_cols, 3))
 
 summary <- metrics %>% 
   left_join(
@@ -396,8 +397,7 @@ summary <- metrics %>%
     starts_with('is_oh'),
     starts_with('wkly_qty'),
     everything()
-  ) %>% 
-  rename(!!pretty_names)
+  )
 
 tonum <- function(percentage){
   return(as.numeric(sub('%', '', percentage)))
@@ -417,6 +417,7 @@ summary_table <- summary %>%
     wkly_qty_dif = cell_spec(wkly_qty_dif, 'html', color = ifelse(tonum(wkly_qty_dif) < 0, 'red', ifelse(tonum(wkly_qty_dif) > 0, '#35a15c', 'black'))),
     ddv_oh_dif = cell_spec(ddv_oh_dif, 'html', color = ifelse(tonum(ddv_oh_dif) < 0, '#35a15c', ifelse(tonum(ddv_oh_dif) > 0, 'red', 'black')))
   ) %>% 
+  set_names(pretty_names) %>% 
   kable(format = "html", escape = F, align = 'c') %>% 
   kable_styling(
     bootstrap_options = c('striped', 'hover', 'condensed'),
@@ -445,7 +446,15 @@ Reporte de IS, Ventas y Dispersión.
 
 ###### Este reporte fue generado automáticamente.
 
-## IS/Ventas x Item-Formato
+## Resumen
+
+Esta tabla muestra la evolución de los indicadores clave entre la primera y última semana del estudio.
+
+```{r sum, echo=FALSE, message=FALSE, warning=FALSE, results='asis'}
+summary_table
+```
+
+## IS/Ventas — Item-Formato
 
 Indicadores durante la estrategia, calculados al cierre de las semanas Walmart.
 
@@ -453,7 +462,7 @@ Indicadores durante la estrategia, calculados al cierre de las semanas Walmart.
 grids_metrics_ind
 ```
 
-## IS/Ventas - Categoría-Formato
+## IS/Ventas — Categoría-Formato
 
 Indicadores durante la estrategia, calculados al cierre de las semanas Walmart.
 
@@ -461,7 +470,7 @@ Indicadores durante la estrategia, calculados al cierre de las semanas Walmart.
 grids_metrics_sum
 ```
 
-## Dispersión - Boxplot x Item-Formato
+## Dispersión — Boxplot — Item-Formato
 
 Dispersión durante la estrategia.
 
@@ -469,7 +478,7 @@ Dispersión durante la estrategia.
 grids_box_ind
 ```
 
-## Dispersión - Boxplot - Categoría-Formato
+## Dispersión — Boxplot — Categoría-Formato
 
 Los percentiles aquí resumidos se calcularon usando el promedio de los percentiles de la base item-formato, por lo que no representan los percentiles reales del conjunto de tiendas agrupadas al nivel de resumen visto. Por ello, estas gráficas son aproximaciones y con objetivo méramente visual.
 
@@ -477,7 +486,7 @@ Los percentiles aquí resumidos se calcularon usando el promedio de los percenti
 grids_box_sum
 ```
 
-## Dispersión - Bines x Item-Formato
+## Dispersión — Bines — Item-Formato
 
 Esta gráfica muestra la cantidad de tiendas que se clasifican en cada uno de los bines de acuerdo a los DDV OH que presentaron en cada semana.
 
@@ -485,18 +494,10 @@ Esta gráfica muestra la cantidad de tiendas que se clasifican en cada uno de lo
 htmltools::tagList(grids_bins_ind)
 ```
 
-## Dispersión - Bines - Categoría-Formato
+## Dispersión — Bines — Categoría-Formato
 
 Esta gráfica muestra la cantidad de tiendas que se clasifican en cada uno de los bines de acuerdo a los DDV OH que presentaron en cada semana.
 
 ```{r bins_sum, echo=FALSE, fig.height=8, fig.width=19, message=FALSE, warning=FALSE}
 htmltools::tagList(grids_bins_sum)
-```
-
-## Resumen
-
-Esta tabla muestra la evolución de los indicadores clave entre la primera y última semana del estudio.
-
-```{r sum, echo=FALSE, message=FALSE, warning=FALSE, results='asis'}
-summary_table
 ```
