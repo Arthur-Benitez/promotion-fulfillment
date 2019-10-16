@@ -80,10 +80,9 @@ res <- read_rds('../rmd/queries-res.rds')
 ```{r metrics_calc, message=FALSE, warning=FALSE, include=FALSE}
 metrics_info <- res$is %>% 
   left_join(
-    res$sales %>% 
-      select(-c(cid, old_nbr)),
+    res$sales,
     by = c(
-      'item_nbr' = 'prime_xref_item_nbr',
+      'prime_xref_item_nbr' = 'prime_xref_item_nbr',
       'formato' = 'negocio',
       'wm_yr_wk' = 'wm_yr_wk'
     )
@@ -94,7 +93,7 @@ metrics_info <- res$is %>%
     dep_nbr,
     category_nbr,
     cid,
-    item_nbr,
+    prime_xref_item_nbr,
     old_nbr,
     item1_desc,
     sell_price,
@@ -145,7 +144,7 @@ metrics_plot <- function(data, keys){
 
 ## Preparación de info por item-negocio
 graph_metrics_ind <- metrics_info %>% 
-  group_by(item_nbr, item1_desc, formato) %>% 
+  group_by(prime_xref_item_nbr, item1_desc, formato) %>% 
   group_map(~metrics_plot(.x, .y))
 
 ## Grid por item-negocio
@@ -193,7 +192,7 @@ box_info <- res$stats  %>%
   left_join(
     y = res$is,
     by = c(
-      'prime_xref_item_nbr' = 'item_nbr',
+      'prime_xref_item_nbr' = 'prime_xref_item_nbr',
       'negocio' = 'formato',
       'wm_yr_wk' = 'wm_yr_wk'
     )
@@ -273,9 +272,8 @@ grids_box_ind <- gridExtra::marrangeGrob(
 
 ## Preparación de info por categoría-negocio
 box_sum <- box_info  %>%
-  group_by(category, negocio, wm_yr_wk) %>%
+  group_by(category, category_name, negocio, wm_yr_wk) %>%
   summarise(
-    category_name = first(category_name),
     oh = sum(oh),
     sales = sum(sales),
     ddv_oh = ifelse(sales <= 0, 1000, oh / (sales / 7)),
@@ -313,7 +311,7 @@ bins_info <- res$ddv %>%
   left_join(
     y = res$is,
     by = c(
-      'prime_xref_item_nbr' = 'item_nbr',
+      'prime_xref_item_nbr' = 'prime_xref_item_nbr',
       'negocio' = 'formato',
       'wm_yr_wk' = 'wm_yr_wk'
     )
@@ -483,13 +481,13 @@ item_info <- metrics_info %>%
     y = box_info %>% 
       select(-item1_desc),
     by = c(
-      'item_nbr' = 'prime_xref_item_nbr',
+      'prime_xref_item_nbr' = 'prime_xref_item_nbr',
       'formato' = 'negocio',
       'wm_yr_wk' = 'wm_yr_wk'
     )
   ) %>% 
   select(
-    item_nbr,
+    prime_xref_item_nbr,
     formato,
     item1_desc,
     wm_yr_wk,
@@ -498,7 +496,7 @@ item_info <- metrics_info %>%
     ddv_oh
   ) %>% 
   filter(wm_yr_wk %in% c(wmwk1, wmwk2)) %>% 
-  gather(variable, value, -(item_nbr:wm_yr_wk)) %>% 
+  gather(variable, value, -(prime_xref_item_nbr:wm_yr_wk)) %>% 
   unite(temp, variable, wm_yr_wk) %>% 
   spread(temp, value) %>% 
   mutate(
@@ -507,7 +505,7 @@ item_info <- metrics_info %>%
     wkly_qty_dif = (!!objects$wkly_qty2 - !!objects$wkly_qty1) / !!objects$wkly_qty1
   ) %>% 
   select(
-    item_nbr,
+    prime_xref_item_nbr,
     item1_desc,
     formato,
     starts_with('is_oh'),
