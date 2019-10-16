@@ -2,11 +2,11 @@
 output:
   html_document:
     toc: TRUE
-    toc_depth: 3
+    toc_depth: 4
+    number_sections: TRUE
     toc_float:
       collapsed: FALSE
       smooth_scroll: TRUE
-      number_sections: TRUE
 params:
   negocios: "'BODEGA','BAE'"
   old_nbrs: 4007408, 9574857
@@ -673,7 +673,7 @@ Reporte de Seguimiento de [Promo Fulfillment](https://ml.prod.walmart.com:31705/
 
 `r Sys.Date()`
 
-Reporte de IS, Ventas y Dispersión.
+Reporte de IS, Ventas, DDV y Dispersión. Todos los DDV fueron calculados con base en el promedio de venta las mismas semanas, lo que implica que las variaciones de los mismos son directamente proporcionales a las variaciones en el OH.
 
 Este reporte fue generado automáticamente.
 
