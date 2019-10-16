@@ -187,6 +187,113 @@ grids_metrics_sum <- gridExtra::marrangeGrob(
 )
 ```
 
+```{r inv_calc, message=FALSE, warning=FALSE, include=FALSE}
+inv_info <- res$stats %>% 
+  left_join(
+    res$sales %>% 
+      select(-item1_desc),
+    by = c('prime_xref_item_nbr', 'negocio', 'wm_yr_wk')
+  ) %>% 
+  left_join(
+    res$is,
+    by = c(
+      'prime_xref_item_nbr' = 'prime_xref_item_nbr',
+      'negocio' = 'formato',
+      'wm_yr_wk' = 'wm_yr_wk'
+    )
+  ) %>% 
+  select(
+    prime_xref_item_nbr,
+    item1_desc,
+    negocio,
+    wm_yr_wk,
+    dep_nbr,
+    category_nbr,
+    category_name,
+    wkly_qty,
+    oh,
+    sales,
+    ddv_oh
+  )
+
+inv_plot <- function(data, keys){
+  data %>% 
+    mutate(
+      scaled_sales = scales::rescale(
+        wkly_qty,
+        to = c(
+          min(ddv_oh) - 1,
+          max(ddv_oh) + 1
+        )
+      )
+    ) %>% 
+    ggplot(aes(x = wm_yr_wk)) + 
+    geom_line( aes(y = ddv_oh,       colour = 'DDV OH'), size = 1) + 
+    geom_line( aes(y = scaled_sales, colour = 'Ventas'), size = 1) + 
+    geom_point(aes(y = ddv_oh,       colour = 'DDV OH'), size = 2) + 
+    geom_point(aes(y = scaled_sales, colour = 'Ventas'), size = 2) + 
+    scale_y_continuous(
+      labels = scales::comma,
+      sec.axis = sec_axis(
+        ~scales::rescale(
+          .,
+          to = c(min(data$wkly_qty), max(data$wkly_qty))
+        ),
+        name = 'Piezas',
+        labels = scales::comma
+      )
+    ) + 
+    ggthemes::scale_color_colorblind() + 
+    labs(
+      title = apply(keys, 1, paste, collapse = ' - '),
+      x = 'Semanas Walmart',
+      y = 'Días de Venta',
+      colour = ''
+    ) + 
+    theme(
+      plot.title = element_text(hjust = 0.5),
+      legend.position = 'bottom'
+    )
+}
+
+## Preparación de info por item-negocio
+graph_inv_ind <- inv_info %>% 
+  group_by(prime_xref_item_nbr, item1_desc, negocio) %>% 
+  group_map(~inv_plot(.x, .y))
+
+## Grid por item-negocio
+grids_inv_ind <- gridExtra::marrangeGrob(
+  grobs = graph_inv_ind,
+  nrow = 2,
+  ncol = 2,
+  top =  ''
+)
+
+## Preparación de info por categoría-negocio
+inv_sum <- inv_info %>% 
+  group_by(dep_nbr, category_nbr, category_name, negocio, wm_yr_wk) %>% 
+  summarise(
+    wkly_qty = sum(wkly_qty),
+    oh = sum(oh),
+    sales = sum(sales),
+    ddv_oh = oh / (sales / 7)
+  ) %>% 
+  ungroup
+
+## Gráfica por categoría-negocio
+graph_inv_sum <- inv_sum %>% 
+  group_by(dep_nbr, category_nbr, category_name, negocio) %>% 
+  group_map(~inv_plot(.x, .y))
+
+## Grid por categoría-negocio
+grids_inv_sum <- gridExtra::marrangeGrob(
+  grobs = graph_inv_sum,
+  nrow = 2,
+  ncol = 2,
+  top =  ''
+)
+```
+
 ```{r box_calc, message=FALSE, warning=FALSE, include=FALSE}
 box_info <- res$stats  %>% 
   left_join(
@@ -586,9 +693,11 @@ item_table
 cat_table
 ```
 
-# IS / Ventas {.tabset .tabset-fade .tabset-pills}
+# Indicadores básicos
 
-## Item-Formato
+## IS / Ventas {.tabset .tabset-fade .tabset-pills}
+
+### Item-Formato
 
 Indicadores durante la estrategia, calculados al cierre de las semanas Walmart.
 
@@ -596,12 +705,30 @@ Indicadores durante la estrategia, calculados al cierre de las semanas Walmart.
 grids_metrics_ind
 ```
 
-## Categoría-Formato
+### Categoría-Formato
 
 Indicadores durante la estrategia, calculados al cierre de las semanas Walmart.
 
 ```{r metrics_sum, echo=FALSE, fig.height=8, fig.width=19, message=FALSE, warning=FALSE}
 grids_metrics_sum
+```
+
+## DDV / Ventas {.tabset .tabset-fade .tabset-pills}
+
+### Item-Formato
+
+Indicadores durante la estrategia, calculados al cierre de las semanas Walmart.
+
+```{r inv_ind, echo=FALSE, fig.height=8, fig.width=19, message=FALSE, warning=FALSE}
+grids_inv_ind
+```
+
+### Categoría-Formato
+
+Indicadores durante la estrategia, calculados al cierre de las semanas Walmart.
+
+```{r inv_sum, echo=FALSE, fig.height=8, fig.width=19, message=FALSE, warning=FALSE}
+grids_inv_sum
 ```
 
 # Dispersión
