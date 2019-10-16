@@ -25,6 +25,7 @@ div.main-container {
   margin: 0px 0px 0px 0px;
   padding: 0px 0px 0px 0px;
 }
+.toc-content {padding-right: 10px;}
 #TOC {width: 10%;}
 .col-md-3 {width: 10%;}
 .col-md-9 {width: 90%;}
@@ -699,7 +700,7 @@ item_table
 cat_table
 ```
 
-# Indicadores básicos
+# Básicos
 
 ## IS / Ventas {.tabset .tabset-fade .tabset-pills}
 
