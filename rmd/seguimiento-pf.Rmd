@@ -129,7 +129,10 @@ metrics_plot <- function(data, keys){
         labels = scales::comma
       )
     ) + 
-    ggthemes::scale_color_colorblind() + 
+    scale_color_manual(
+      values = ggthemes::colorblind_pal()(3) %>% 
+        set_names(c('Ventas', 'In Stock Cadena', 'In Stock OH'))
+    ) + 
     labs(
       title = apply(keys, 1, paste, collapse = ' - '),
       x = 'Semanas Walmart',
@@ -243,7 +246,10 @@ inv_plot <- function(data, keys){
         labels = scales::comma
       )
     ) + 
-    ggthemes::scale_color_colorblind() + 
+    scale_color_manual(
+      values = ggthemes::colorblind_pal()(2) %>% 
+        set_names(c('Ventas', 'DDV OH'))
+    ) + 
     labs(
       title = apply(keys, 1, paste, collapse = ' - '),
       x = 'Semanas Walmart',
