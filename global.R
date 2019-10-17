@@ -115,11 +115,11 @@ gl <- list(
       'dev'
     }
   },
-  app_version = '1.4.2',
-  app_version_date = '2019-09-12',
+  app_version = '1.5.1',
+  app_version_date = '2019-09-19',
   ## Compute promotions
   cols = tryCatch({
-    read_tsv('data/column-info.txt', col_types = 'ccllcncc')
+    read_tsv('data/column-info.txt', col_types = 'ccllccncc')
   }, error = function(e){
     tribble(~name, ~type, ~is_constant_by_feature, ~pretty_name, ~description)
   }),
@@ -135,6 +135,7 @@ gl <- list(
   max_input_rows = 500,
   max_output_rows = 100000,
   max_input_queries = 15,
+  timeout_warning_duration = 300,
   plotly_height = '40vh',
   table_height = list(
     short = '30vh',
