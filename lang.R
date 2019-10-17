@@ -63,11 +63,14 @@ lang <- list(
   user_level_icon = '¡Hola %s!',
   ## Compute Promotions
   compute_promotions_inputs = 'Inputs',
+  compute_promotions_basic_intructions = 'Uso básico',
+  compute_promotions_columns_glossary = 'Glosario de columnas',
   compute_promotions_inputs_title = 'Controles principales. Para más ayuda haz click en "(?) Instrucciones".',
   compute_promotions_computation_parameters = 'Exhibiciones',
   compute_promotions_computation_parameters_title = 'Parámetros que afectan el cálculo de las exhibiciones.',
   compute_promotions_impact_parameters = 'Impacto',
   compute_promotions_impact_parameters_title = 'Parámetros que afectan el cálculo de impacto.',
+  compute_promotions_stores_lists = 'Tiendas Especiales',
   date_format = 'Formato de fechas en los archivos descargados',
   grafica_ventas = 'Combinación a visualizar',
   no_info = 'SIN INFORMACIÓN',
@@ -89,6 +92,8 @@ lang <- list(
   tab_output_histogram = 'Alcance',
   tab_output_summary = 'Resultados',
   tab_output_table = 'Cálculos',
+  tab_input_graph = 'Tabla & Gráfica',
+  tab_stores_lists = 'Tiendas especiales',
   feature = 'Promoción',
   quantity_histogram = 'Alcance a exhibición',
   histogram_selection = 'Histograma a desplegar',
@@ -97,6 +102,8 @@ lang <- list(
   dispersion_bin_selection = 'Distribución de barras',
   dispersion_fixed_bins = 'Barras estándar',
   dispersion_calculated_bins = 'Barras móviles',
+  dispersion_histogram_stock_toggle = 'Inventario graficado',
+  dispersion_histogram_stock_toggle_title = '¿Mostrar la dispersión de inventario sólo de la promoción o total (promoción + OH actual)?',
   summary_groups = 'Nivel de detalle',
   running_query = 'Ejecutando consulta...',
   running_computations = 'Realizando cálculos...',
@@ -124,6 +131,7 @@ lang <- list(
   need_auth = 'Iniciar sesión para continuar.',
   need_input_format = 'Descarga el formato de ejemplo para más información.',
   need_run = 'Click en *Correr* para empezar.',
+  need_finish_running = 'Corriendo query...',
   need_query_result = 'El query falló :(',
   need_final_result = 'Los cálculos fallaron :(',
   need_select_feature = 'Selecciona una promoción para continuar.',
@@ -162,6 +170,7 @@ lang <- list(
 )
 
 lang$need_valid_input <- paste0('El archivo de items no está en el formato correcto.\n', lang$need_input_format)
+lang$no_stores_lists <- paste0('Tu archivo no tiene listas de tiendas especiales para incluir o excluir, por lo que las promociones se calcularán para todas las tiendas válidas de los formatos especificados.\n', lang$need_input_format)
 lang$email_name <- 'Replenishment Data Science MX'
 lang$email <- 'replen_ds_mx@email.wal-mart.com'
 lang$email_subject <- 'Solicitud de activación de Promo Fulfillment'
