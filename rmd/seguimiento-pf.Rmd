@@ -688,29 +688,21 @@ Este reporte fue generado automáticamente.
 
 Estas tablas muestra la evolución de los indicadores clave entre la primera y última semana del estudio.
 
-## Item-Formato
-
-```{r tbl_ind, echo=FALSE, message=FALSE, warning=FALSE, results='asis'}
-item_table
-```
-
 ## Categoría-Formato
 
 ```{r tbl_sum, echo=FALSE, message=FALSE, warning=FALSE, results='asis'}
 cat_table
 ```
 
+## Item-Formato
+
+```{r tbl_ind, echo=FALSE, message=FALSE, warning=FALSE, results='asis'}
+item_table
+```
+
 # Básicos
 
 ## IS / Ventas {.tabset .tabset-fade .tabset-pills}
-
-### Item-Formato
-
-Indicadores durante la estrategia, calculados al cierre de las semanas Walmart.
-
-```{r metrics_ind, echo=FALSE, fig.height=8, fig.width=19, message=FALSE, warning=FALSE}
-grids_metrics_ind
-```
 
 ### Categoría-Formato
 
@@ -720,15 +712,15 @@ Indicadores durante la estrategia, calculados al cierre de las semanas Walmart.
 grids_metrics_sum
 ```
 
-## DDV / Ventas {.tabset .tabset-fade .tabset-pills}
-
 ### Item-Formato
 
 Indicadores durante la estrategia, calculados al cierre de las semanas Walmart.
 
-```{r inv_ind, echo=FALSE, fig.height=8, fig.width=19, message=FALSE, warning=FALSE}
-grids_inv_ind
+```{r metrics_ind, echo=FALSE, fig.height=8, fig.width=19, message=FALSE, warning=FALSE}
+grids_metrics_ind
 ```
+
+## DDV / Ventas {.tabset .tabset-fade .tabset-pills}
 
 ### Categoría-Formato
 
@@ -738,17 +730,17 @@ Indicadores durante la estrategia, calculados al cierre de las semanas Walmart.
 grids_inv_sum
 ```
 
+### Item-Formato
+
+Indicadores durante la estrategia, calculados al cierre de las semanas Walmart.
+
+```{r inv_ind, echo=FALSE, fig.height=8, fig.width=19, message=FALSE, warning=FALSE}
+grids_inv_ind
+```
+
 # Dispersión
 
 ## Boxplot {.tabset .tabset-fade .tabset-pills}
-
-### Item-Formato
-
-Dispersión durante la estrategia.
-
-```{r box_ind, echo=FALSE, fig.height=8, fig.width=19, message=FALSE, warning=FALSE}
-grids_box_ind
-```
 
 ### Categoría-Formato
 
@@ -758,15 +750,15 @@ Los percentiles aquí resumidos se calcularon usando el promedio de los percenti
 grids_box_sum
 ```
 
-## Bines {.tabset .tabset-fade .tabset-pills}
-
 ### Item-Formato
 
-Esta gráfica muestra la cantidad de tiendas que se clasifican en cada uno de los bines de acuerdo a los DDV OH que presentaron en cada semana.
+Dispersión durante la estrategia.
 
-```{r bins_ind, echo=FALSE, fig.height=8, fig.width=19, message=FALSE, warning=FALSE}
-htmltools::tagList(grids_bins_ind)
+```{r box_ind, echo=FALSE, fig.height=8, fig.width=19, message=FALSE, warning=FALSE}
+grids_box_ind
 ```
+
+## Bines {.tabset .tabset-fade .tabset-pills}
 
 ### Categoría-Formato
 
@@ -774,4 +766,12 @@ Esta gráfica muestra la cantidad de tiendas que se clasifican en cada uno de lo
 
 ```{r bins_sum, echo=FALSE, fig.height=8, fig.width=19, message=FALSE, warning=FALSE}
 htmltools::tagList(grids_bins_sum)
+```
+
+### Item-Formato
+
+Esta gráfica muestra la cantidad de tiendas que se clasifican en cada uno de los bines de acuerdo a los DDV OH que presentaron en cada semana.
+
+```{r bins_ind, echo=FALSE, fig.height=8, fig.width=19, message=FALSE, warning=FALSE}
+htmltools::tagList(grids_bins_ind)
 ```
