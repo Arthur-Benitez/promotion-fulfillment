@@ -40,6 +40,30 @@ library(plotly)
 library(kableExtra)
 ```
 
+```{r functions, message=FALSE, warning=FALSE, include=FALSE}
+re_order <- function(data, cat_flag){
+  if(cat_flag){
+    data %>%
+      data.table::setorder(
+        dep_nbr,
+        category_nbr,
+        formato,
+        wm_yr_wk
+      )
+  } else {
+    data %>%
+      data.table::setorder(
+        dep_nbr,
+        category_nbr,
+        repl_group_nbr,
+        prime_xref_item_nbr,
+        formato,
+        wm_yr_wk
+      )
+  }
+}
+```
+
 ```{r run_queries, eval=params$run_queries, message=FALSE, warning=FALSE, include=FALSE}
 prepare_query <- function(query, params) {
   query %>% 
@@ -67,7 +91,8 @@ res <- map(
   function(x){
     RODBC::sqlQuery(ch, x, stringsAsFactors = FALSE) %>% 
       as_tibble() %>% 
-      set_names(tolower(names(.)))
+      set_names(tolower(names(.))) %>%
+      re_order(cat_flag = FALSE)
   })
 write_rds(res, '../rmd/queries-res.rds')
 ```
@@ -130,7 +155,7 @@ graph_metrics_ind <- res$base %>%
 ## Grid por item-negocio
 grids_metrics_ind <- gridExtra::marrangeGrob(
   grobs = graph_metrics_ind,
-  nrow = 2,
+  nrow = 1,
   ncol = 2,
   top =  ''
 )
@@ -147,7 +172,8 @@ metrics_sum <- res$base %>%
     is_ttl = 1 - (falt_ttl / catalogo),
     wkly_qty = sum(wkly_qty)
   ) %>% 
-  ungroup
+  ungroup %>% 
+  re_order(cat_flag = TRUE)
 
 ## Gráfica por categoría-negocio
 graph_metrics_sum <- metrics_sum %>% 
@@ -157,7 +183,7 @@ graph_metrics_sum <- metrics_sum %>%
 ## Grid por categoría-negocio
 grids_metrics_sum <- gridExtra::marrangeGrob(
   grobs = graph_metrics_sum,
-  nrow = 2,
+  nrow = 1,
   ncol = 2,
   top =  ''
 )
@@ -215,7 +241,7 @@ graph_inv_ind <- res$base %>%
 ## Grid por item-negocio
 grids_inv_ind <- gridExtra::marrangeGrob(
   grobs = graph_inv_ind,
-  nrow = 2,
+  nrow = 1,
   ncol = 2,
   top =  ''
 )
@@ -229,7 +255,8 @@ inv_sum <- res$base %>%
     sales = sum(sales),
     ddv_oh = oh / (sales / 7)
   ) %>% 
-  ungroup
+  ungroup %>% 
+  re_order(cat_flag = TRUE)
 
 ## Gráfica por categoría-negocio
 graph_inv_sum <- inv_sum %>% 
@@ -239,7 +266,7 @@ graph_inv_sum <- inv_sum %>%
 ## Grid por categoría-negocio
 grids_inv_sum <- gridExtra::marrangeGrob(
   grobs = graph_inv_sum,
-  nrow = 2,
+  nrow = 1,
   ncol = 2,
   top =  ''
 )
@@ -295,14 +322,14 @@ graph_box_ind <- box_info  %>%
 ## Grid por item-negocio
 grids_box_ind <- gridExtra::marrangeGrob(
   grobs = graph_box_ind,
-  nrow = 2,
+  nrow = 1,
   ncol = 2,
   top =  ''
 )
 
 ## Preparación de info por categoría-negocio
 box_sum <- box_info  %>%
-  group_by(category_nbr, category_name, formato, wm_yr_wk) %>%
+  group_by(dep_nbr, category_nbr, category_name, formato, wm_yr_wk) %>%
   summarise(
     oh = sum(oh),
     sales = sum(sales),
@@ -318,7 +345,8 @@ box_sum <- box_info  %>%
     up_whisk = ifelse(perc_100 == perc_75, perc_100, perc_75 + 1.5 * iqr),
     low_whisk = ifelse(perc_00 == perc_25, perc_00, pmax(perc_25 - 1.5 * iqr, 0))
   ) %>% 
-  ungroup
+  ungroup %>% 
+  re_order(cat_flag = TRUE)
 
 ## Gráfica por categoría-negocio
 graph_box_sum <- box_sum %>% 
@@ -328,7 +356,7 @@ graph_box_sum <- box_sum %>%
 ## Grid por categoría-negocio
 grids_box_sum <- gridExtra::marrangeGrob(
   grobs = graph_box_sum,
-  nrow = 2,
+  nrow = 1,
   ncol = 2,
   top =  ''
 )
@@ -347,11 +375,7 @@ bins_info <- res$ddv %>%
         dep_nbr,
         category_name,
       ),
-    by = c(
-      'prime_xref_item_nbr' = 'prime_xref_item_nbr',
-      'negocio' = 'formato',
-      'wm_yr_wk' = 'wm_yr_wk'
-    )
+    by = c('prime_xref_item_nbr', 'formato', 'wm_yr_wk')
   ) %>% 
   mutate(
     category_name = ifelse(is.na(category_name), 'Unspecified', category_name),
@@ -392,8 +416,8 @@ bins_plotly <- function(data, keys){
 
 ## Preparación de info por item-negocio
 graph_ddv_ind <- bins_info  %>% 
-  mutate(group_id = group_indices(., prime_xref_item_nbr, item1_desc, negocio)) %>% 
-  group_by(prime_xref_item_nbr, item1_desc, negocio, group_id) %>% 
+  mutate(group_id = group_indices(., prime_xref_item_nbr, item1_desc, formato)) %>% 
+  group_by(prime_xref_item_nbr, item1_desc, formato, group_id) %>% 
   complete(
     wm_yr_wk,
     bin = bines,
@@ -405,6 +429,7 @@ graph_ddv_ind <- bins_info  %>%
       n_stores = 0
     )
   ) %>% 
+  re_order(cat_flag = FALSE) %>% 
   group_map(~bins_plotly(.x, .y))
 
 ## Grid por item-negocio
@@ -414,7 +439,7 @@ grids_bins_ind <- graph_ddv_ind %>%
 
 ## Preparación de info por categoría-negocio
 graph_ddv_sum <- bins_info  %>%
-  group_by(dep_nbr, category, category_name, negocio, wm_yr_wk, bin) %>% 
+  group_by(dep_nbr, category_nbr, category_name, formato, wm_yr_wk, bin) %>% 
   summarise(
     oh = sum(oh),
     cost_oh = sum(cost_oh),
@@ -423,8 +448,8 @@ graph_ddv_sum <- bins_info  %>%
     n_stores = sum(n_stores)
   ) %>% 
   ungroup() %>% 
-  mutate(group_id = group_indices(., category, negocio)) %>% 
-  group_by(dep_nbr, category, category_name, negocio, group_id) %>% 
+  mutate(group_id = group_indices(., category_nbr, formato)) %>% 
+  group_by(dep_nbr, category_nbr, category_name, formato, group_id) %>% 
   complete(
     wm_yr_wk,
     bin = bines,
@@ -436,6 +461,7 @@ graph_ddv_sum <- bins_info  %>%
       n_stores = 0
     )
   ) %>% 
+  re_order(cat_flag = TRUE) %>% 
   group_map(~bins_plotly(.x, .y))
 
 ## Grid por categoria-negocio
@@ -602,7 +628,7 @@ item_table
 
 Indicadores durante la estrategia, calculados al cierre de las semanas Walmart.
 
-```{r metrics_sum, echo=FALSE, fig.height=8, fig.width=19, message=FALSE, warning=FALSE}
+```{r metrics_sum, echo=FALSE, fig.height=4, fig.width=19, message=FALSE, warning=FALSE}
 grids_metrics_sum
 ```
 
@@ -610,7 +636,7 @@ grids_metrics_sum
 
 Indicadores durante la estrategia, calculados al cierre de las semanas Walmart.
 
-```{r metrics_ind, echo=FALSE, fig.height=8, fig.width=19, message=FALSE, warning=FALSE}
+```{r metrics_ind, echo=FALSE, fig.height=4, fig.width=19, message=FALSE, warning=FALSE}
 grids_metrics_ind
 ```
 
@@ -620,7 +646,7 @@ grids_metrics_ind
 
 Indicadores durante la estrategia, calculados al cierre de las semanas Walmart.
 
-```{r inv_sum, echo=FALSE, fig.height=8, fig.width=19, message=FALSE, warning=FALSE}
+```{r inv_sum, echo=FALSE, fig.height=4, fig.width=19, message=FALSE, warning=FALSE}
 grids_inv_sum
 ```
 
@@ -628,7 +654,7 @@ grids_inv_sum
 
 Indicadores durante la estrategia, calculados al cierre de las semanas Walmart.
 
-```{r inv_ind, echo=FALSE, fig.height=8, fig.width=19, message=FALSE, warning=FALSE}
+```{r inv_ind, echo=FALSE, fig.height=4, fig.width=19, message=FALSE, warning=FALSE}
 grids_inv_ind
 ```
 
@@ -640,7 +666,7 @@ grids_inv_ind
 
 Los percentiles aquí resumidos se calcularon usando el promedio de los percentiles de la base item-formato, por lo que no representan los percentiles reales del conjunto de tiendas agrupadas al nivel de resumen visto. Por ello, estas gráficas son aproximaciones y con objetivo méramente visual.
 
-```{r box_sum, echo=FALSE, fig.height=8, fig.width=19, message=FALSE, warning=FALSE}
+```{r box_sum, echo=FALSE, fig.height=4, fig.width=19, message=FALSE, warning=FALSE}
 grids_box_sum
 ```
 
@@ -648,7 +674,7 @@ grids_box_sum
 
 Dispersión durante la estrategia.
 
-```{r box_ind, echo=FALSE, fig.height=8, fig.width=19, message=FALSE, warning=FALSE}
+```{r box_ind, echo=FALSE, fig.height=4, fig.width=19, message=FALSE, warning=FALSE}
 grids_box_ind
 ```
 
