@@ -493,9 +493,9 @@ create_table <- function(data, wmwk1, wmwk2, objects, cat_flag){
   pretty_names <- c(ifelse(cat_flag, 'Categoría', 'Artículo'), 'Descripción', 'Formato', rep.int(rep_cols, 3))
   
   data %>% 
-    mutate_at(vars(one_of(c(as.character(objects$is_oh_1), as.character(objects$is_oh_2)))), scales::percent, accuracy = 0.1) %>%
-    mutate_at(vars(one_of(c(as.character(objects$wkly_qty1), as.character(objects$wkly_qty2)))), scales::comma) %>% 
-    mutate_at(vars(one_of(c(as.character(objects$ddv_oh_1), as.character(objects$ddv_oh_2)))), scales::comma, accuracy = 0.1) %>% 
+    mutate_at(vars(!!objects$is_oh_1,   !!objects$is_oh_2),   scales::percent, accuracy = 0.1) %>% 
+    mutate_at(vars(!!objects$wkly_qty1, !!objects$wkly_qty2), scales::comma) %>% 
+    mutate_at(vars(!!objects$ddv_oh_1,  !!objects$ddv_oh_2),  scales::comma,   accuracy = 0.1) %>% 
     mutate(
       is_oh_dif = toperc(is_oh_dif),
       ddv_oh_dif = toperc(ddv_oh_dif),
