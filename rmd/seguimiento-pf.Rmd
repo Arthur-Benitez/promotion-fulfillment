@@ -250,8 +250,8 @@ box_info <- res$base  %>%
   mutate(
     category_name = ifelse(is.na(category_name), 'Unspecified', category_name),
     iqr = perc_75 - perc_25,
-    up_whisk = perc_75 + 1.5 * iqr,
-    low_whisk = ifelse(perc_25 - 1.5 * iqr < 0, 0, perc_25 - 1.5 * iqr)
+    up_whisk = ifelse(perc_100 == perc_75, perc_100, perc_75 + 1.5 * iqr),
+    low_whisk = ifelse(perc_00 == perc_25, perc_00, pmax(perc_25 - 1.5 * iqr, 0))
   )
 
 box_plot <- function(data, keys){
@@ -263,11 +263,11 @@ box_plot <- function(data, keys){
     ggplot(
       aes(
         x = wm_yr_wk,
-        ymin = ifelse(perc_00 == perc_25, perc_00, low_whisk),
+        ymin = low_whisk,
         lower = perc_25,
         middle = perc_50,
         upper = perc_75,
-        ymax = ifelse(perc_100 == perc_75, perc_100, up_whisk)
+        ymax = up_whisk
       )
     ) + 
     geom_errorbar(width = 0.4, size = 0.8) + 
@@ -315,8 +315,8 @@ box_sum <- box_info  %>%
     perc_75 = mean(perc_75),
     perc_100 = mean(perc_100),
     iqr = perc_75 - perc_25,
-    up_whisk = perc_75 + 1.5 * iqr,
-    low_whisk = ifelse(perc_25 - 1.5 * iqr < 0, 0, perc_25 - 1.5 * iqr)
+    up_whisk = ifelse(perc_100 == perc_75, perc_100, perc_75 + 1.5 * iqr),
+    low_whisk = ifelse(perc_00 == perc_25, perc_00, pmax(perc_25 - 1.5 * iqr, 0))
   ) %>% 
   ungroup
 
