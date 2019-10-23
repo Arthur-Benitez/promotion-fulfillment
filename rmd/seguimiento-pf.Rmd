@@ -5,7 +5,7 @@ output:
     toc_depth: 4
     number_sections: TRUE
     toc_float:
-      collapsed: FALSE
+      collapsed: TRUE
       smooth_scroll: TRUE
 params:
   negocios: "'BODEGA','BAE'"
@@ -41,7 +41,7 @@ library(kableExtra)
 ```
 
 ```{r run_queries, eval=params$run_queries, message=FALSE, warning=FALSE, include=FALSE}
-prepare_queries <- function(query, params) {
+prepare_query <- function(query, params) {
   query %>% 
     str_replace_all('\\?NEGOCIOS', params$negocios) %>%
     str_replace_all('\\?OLD_NBRS', paste(params$old_nbrs, collapse = ',')) %>%
@@ -58,7 +58,7 @@ queries <- list(
   ddv = readLines('../sql/item-business-week-ddv.sql'),
   base = readLines('../sql/item-business-week-is-sales-ddv.sql')
   ) %>%
-  map(~prepare_queries(.x, params))
+  map(~prepare_query(.x, params))
 
 ch <- RODBC::odbcDriverConnect(sprintf("Driver={Teradata};DBCName=WM3;AUTHENTICATION=ldap;AUTHENTICATIONPARAMETER=%s@@%s", params$user, params$password))
 
