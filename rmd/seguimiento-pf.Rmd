@@ -163,14 +163,10 @@ grids_metrics_ind <- gridExtra::marrangeGrob(
 ## Preparación de info por categoría-negocio
 metrics_sum <- res$base %>% 
   group_by(dep_nbr, category_nbr, category_name, formato, wm_yr_wk) %>% 
-  summarise(
-    sell_price = sum(sell_price * wkly_qty, na.rm = TRUE) / sum(wkly_qty, na.rm = TRUE),
-    catalogo = sum(catalogo),
-    falt_oh = sum(falt_oh),
-    falt_ttl = sum(falt_ttl),
+  summarise_at(vars(catalogo, falt_oh, falt_ttl, wkly_qty), sum) %>% 
+  mutate(
     is_oh = 1 - (falt_oh / catalogo),
-    is_ttl = 1 - (falt_ttl / catalogo),
-    wkly_qty = sum(wkly_qty)
+    is_ttl = 1 - (falt_ttl / catalogo)
   ) %>% 
   ungroup %>% 
   re_order(cat_flag = TRUE)
@@ -474,9 +470,26 @@ grids_bins_sum <- graph_ddv_sum %>%
 tonum <- function(percentage){
   return(as.numeric(sub('%', '', percentage)))
 }
+toperc <- function(number){
+  return(scales::percent(
+    number,
+    accuracy = 0.01,
+    prefix = ifelse(number > 0, '+', '')
+  ))
+}
+colorize <- function(number, inverse = FALSE){
+  if(number < 0){
+    color <- ifelse(inverse, '#35a15c', 'red')
+  } else if(number > 0){
+    color <- ifelse(inverse, 'red', '#35a15c')
+  } else {
+    color <- 'black'
+  }
+  return(color)
+}
 
 create_table <- function(data, wmwk1, wmwk2, objects, cat_flag){
-  rep_cols <- c(paste('WMWK ', wmwk1), paste('WMWK ', wmwk2), 'Diferencia')
+  rep_cols <- c(paste('WMWK ', wmwk1), paste('WMWK ', wmwk2), 'Diferencia en %')
   pretty_names <- c(ifelse(cat_flag, 'Categoría', 'Artículo'), 'Descripción', 'Formato', rep.int(rep_cols, 3))
   
   data %>% 
@@ -484,14 +497,14 @@ create_table <- function(data, wmwk1, wmwk2, objects, cat_flag){
     mutate_at(vars(one_of(c(as.character(objects$wkly_qty1), as.character(objects$wkly_qty2)))), scales::comma) %>% 
     mutate_at(vars(one_of(c(as.character(objects$ddv_oh_1), as.character(objects$ddv_oh_2)))), scales::comma, accuracy = 0.1) %>% 
     mutate(
-      is_oh_dif = scales::percent(is_oh_dif, accuracy = 0.01, prefix = ifelse(is_oh_dif > 0, '+', '')),
-      ddv_oh_dif = scales::percent(ddv_oh_dif, accuracy = 0.01, prefix = ifelse(ddv_oh_dif > 0, '+', '')),
-      wkly_qty_dif = scales::percent(wkly_qty_dif, accuracy = 0.01, prefix = ifelse(wkly_qty_dif > 0, '+', ''))
+      is_oh_dif = toperc(is_oh_dif),
+      ddv_oh_dif = toperc(ddv_oh_dif),
+      wkly_qty_dif = toperc(wkly_qty_dif)
     ) %>% 
     mutate(
-      is_oh_dif = cell_spec(is_oh_dif, 'html', color = ifelse(tonum(is_oh_dif) < 0, 'red', ifelse(tonum(is_oh_dif) > 0, '#35a15c', 'black'))),
-      wkly_qty_dif = cell_spec(wkly_qty_dif, 'html', color = ifelse(tonum(wkly_qty_dif) < 0, 'red', ifelse(tonum(wkly_qty_dif) > 0, '#35a15c', 'black'))),
-      ddv_oh_dif = cell_spec(ddv_oh_dif, 'html', color = ifelse(tonum(ddv_oh_dif) < 0, '#35a15c', ifelse(tonum(ddv_oh_dif) > 0, 'red', 'black')))
+      is_oh_dif = cell_spec(is_oh_dif, 'html', color = colorize(is_oh_dif)),
+      wkly_qty_dif = cell_spec(wkly_qty_dif, 'html',  color = colorize(wkly_qty_dif)),
+      ddv_oh_dif = cell_spec(ddv_oh_dif, 'html', color = colorize(ddv_oh_dif))
     ) %>% 
     set_names(pretty_names) %>% 
     kable(format = "html", escape = FALSE, align = 'c') %>% 
@@ -520,7 +533,7 @@ objects <- list(
   ddv_oh_1 = rlang::sym(paste('ddv_oh', wmwk1, sep = '_')),
   ddv_oh_2 = rlang::sym(paste('ddv_oh', wmwk2, sep = '_')),
   wkly_qty1 = rlang::sym(paste('wkly_qty', wmwk1, sep = '_')),
-  wkly_qty2 = rlang::sym(paste('wkly_qty', wmwk2, sep = '_')) 
+  wkly_qty2 = rlang::sym(paste('wkly_qty', wmwk2, sep = '_'))
 )
 
 item_info <- res$base %>% 
