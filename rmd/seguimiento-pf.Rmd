@@ -45,7 +45,7 @@ re_order <- function(data, cat_flag){
   if(cat_flag){
     data %>%
       data.table::setorder(
-        dep_nbr,
+        dept_nbr,
         category_nbr,
         formato,
         wm_yr_wk
@@ -53,7 +53,7 @@ re_order <- function(data, cat_flag){
   } else {
     data %>%
       data.table::setorder(
-        dep_nbr,
+        dept_nbr,
         category_nbr,
         repl_group_nbr,
         prime_xref_item_nbr,
@@ -162,7 +162,7 @@ grids_metrics_ind <- gridExtra::marrangeGrob(
 
 ## Preparación de info por categoría-negocio
 metrics_sum <- res$base %>% 
-  group_by(dep_nbr, category_nbr, category_name, formato, wm_yr_wk) %>% 
+  group_by(dept_nbr, category_nbr, category_name, formato, wm_yr_wk) %>% 
   summarise_at(vars(catalogo, falt_oh, falt_ttl, wkly_qty), sum) %>% 
   mutate(
     is_oh = 1 - (falt_oh / catalogo),
@@ -173,7 +173,7 @@ metrics_sum <- res$base %>%
 
 ## Gráfica por categoría-negocio
 graph_metrics_sum <- metrics_sum %>% 
-  group_by(dep_nbr, category_nbr, category_name, formato) %>% 
+  group_by(dept_nbr, category_nbr, category_name, formato) %>% 
   group_map(~metrics_plot(.x, .y))
 
 ## Grid por categoría-negocio
@@ -244,7 +244,7 @@ grids_inv_ind <- gridExtra::marrangeGrob(
 
 ## Preparación de info por categoría-negocio
 inv_sum <- res$base %>% 
-  group_by(dep_nbr, category_nbr, category_name, formato, wm_yr_wk) %>% 
+  group_by(dept_nbr, category_nbr, category_name, formato, wm_yr_wk) %>% 
   summarise(
     wkly_qty = sum(wkly_qty),
     oh = sum(oh),
@@ -256,7 +256,7 @@ inv_sum <- res$base %>%
 
 ## Gráfica por categoría-negocio
 graph_inv_sum <- inv_sum %>% 
-  group_by(dep_nbr, category_nbr, category_name, formato) %>% 
+  group_by(dept_nbr, category_nbr, category_name, formato) %>% 
   group_map(~inv_plot(.x, .y))
 
 ## Grid por categoría-negocio
@@ -325,7 +325,7 @@ grids_box_ind <- gridExtra::marrangeGrob(
 
 ## Preparación de info por categoría-negocio
 box_sum <- box_info  %>%
-  group_by(dep_nbr, category_nbr, category_name, formato, wm_yr_wk) %>%
+  group_by(dept_nbr, category_nbr, category_name, formato, wm_yr_wk) %>%
   summarise(
     oh = sum(oh),
     sales = sum(sales),
@@ -369,7 +369,7 @@ bins_info <- res$ddv %>%
         prime_xref_item_nbr,
         formato,
         wm_yr_wk,
-        dep_nbr,
+        dept_nbr,
         category_name,
       ),
     by = c('prime_xref_item_nbr', 'formato', 'wm_yr_wk')
@@ -410,7 +410,7 @@ bins_plotly <- function(data, keys){
     )
 }
 
-group_vars_item <- c('prime_xref_item_nbr', 'formato', 'repl_group_nbr', 'item1_desc', 'dep_nbr', 'category_nbr', 'category_name', 'group_id')
+group_vars_item <- c('prime_xref_item_nbr', 'formato', 'repl_group_nbr', 'item1_desc', 'dept_nbr', 'category_nbr', 'category_name', 'group_id')
 
 ## Preparación de info por item-negocio
 graph_ddv_ind <- bins_info  %>% 
@@ -438,7 +438,7 @@ grids_bins_ind <- graph_ddv_ind %>%
   split(ceiling(seq_along(.)/2)) %>% 
   lapply(subplot, titleX = TRUE, titleY = TRUE)
 
-group_vars_cat <- c('dep_nbr', 'category_nbr', 'category_name', 'formato')
+group_vars_cat <- c('dept_nbr', 'category_nbr', 'category_name', 'formato')
 
 ## Preparación de info por categoría-negocio
 graph_ddv_sum <- bins_info  %>% 
