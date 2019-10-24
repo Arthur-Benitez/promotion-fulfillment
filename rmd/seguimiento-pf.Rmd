@@ -478,6 +478,7 @@ toperc <- function(number){
   ))
 }
 colorize <- function(number, inverse = FALSE){
+  number <- tonum(number)
   if(number < 0){
     color <- ifelse(inverse, '#35a15c', 'red')
   } else if(number > 0){
@@ -504,7 +505,7 @@ create_table <- function(data, wmwk1, wmwk2, objects, cat_flag){
     mutate(
       is_oh_dif = cell_spec(is_oh_dif, 'html', color = colorize(is_oh_dif)),
       wkly_qty_dif = cell_spec(wkly_qty_dif, 'html',  color = colorize(wkly_qty_dif)),
-      ddv_oh_dif = cell_spec(ddv_oh_dif, 'html', color = colorize(ddv_oh_dif))
+      ddv_oh_dif = cell_spec(ddv_oh_dif, 'html', color = colorize(ddv_oh_dif, inverse = TRUE))
     ) %>% 
     set_names(pretty_names) %>% 
     kable(format = "html", escape = FALSE, align = 'c') %>% 
