@@ -91,14 +91,15 @@ res <- map(
   function(x){
     RODBC::sqlQuery(ch, x, stringsAsFactors = FALSE) %>% 
       as_tibble() %>% 
-      set_names(tolower(names(.))) %>%
-      re_order(cat_flag = FALSE)
+      set_names(tolower(names(.)))
   })
 write_rds(res, '../rmd/queries-res.rds')
+res$base %>% re_order(cat_flag = FALSE)
 ```
 
 ```{r read_info, eval=!params$run_queries, message=FALSE, warning=FALSE, include=FALSE}
 res <- read_rds('../rmd/queries-res.rds')
+res$base %>% re_order(cat_flag = FALSE)
 ```
 
 ```{r metrics_calc, message=FALSE, warning=FALSE, include=FALSE}
@@ -245,12 +246,8 @@ grids_inv_ind <- gridExtra::marrangeGrob(
 ## Preparación de info por categoría-negocio
 inv_sum <- res$base %>% 
   group_by(dept_nbr, category_nbr, category_name, formato, wm_yr_wk) %>% 
-  summarise(
-    wkly_qty = sum(wkly_qty),
-    oh = sum(oh),
-    sales = sum(sales),
-    ddv_oh = oh / (sales / 7)
-  ) %>% 
+  summarise_at(vars(wkly_qty, oh, sales), sum) %>% 
+  mutate(ddv_oh = ifelse(sales <= 0, 1000, oh / (sales / 7))) %>% 
   ungroup %>% 
   re_order(cat_flag = TRUE)
 
