@@ -360,6 +360,7 @@ grids_box_sum <- gridExtra::marrangeGrob(
 
 ```{r bins_calc, message=FALSE, warning=FALSE, include=FALSE}
 bines <- c('DDV00_IG_000', 'DDV01_MN_003', 'DDV02_MN_007', 'DDV03_MN_014', 'DDV04_MN_021', 'DDV05_MN_028', 'DDV06_MN_035', 'DDV07_MN_050', 'DDV08_MN_075', 'DDV09_MN_100', 'DDV10_MN_150', 'DDV11_MN_250', 'DDV12_MN_350', 'DDV13_MN_450', 'DDV14_MY_450')
+bins_labels <- c('DDV = 0', 'DDV < 3', 'DDV < 7', 'DDV < 14', 'DDV < 21', 'DDV < 28', 'DDV < 35', 'DDV < 50', 'DDV < 75', 'DDV < 100', 'DDV < 150', 'DDV < 250', 'DDV < 350', 'DDV < 450', 'DDV >= 450')
 
 bins_info <- res$ddv %>% 
   left_join(
@@ -375,7 +376,6 @@ bins_info <- res$ddv %>%
   ) %>% 
   mutate(
     category_name = ifelse(is.na(category_name), 'Unspecified', category_name),
-    bin = as.factor(bin),
     cost_oh = cost * oh
   )
 
@@ -410,22 +410,27 @@ bins_plotly <- function(data, keys){
     )
 }
 
+group_vars_item <- c('prime_xref_item_nbr', 'formato', 'repl_group_nbr', 'item1_desc', 'dep_nbr', 'category_nbr', 'category_name', 'group_id')
+
 ## Preparación de info por item-negocio
 graph_ddv_ind <- bins_info  %>% 
   mutate(group_id = group_indices(., prime_xref_item_nbr, item1_desc, formato)) %>% 
-  group_by(prime_xref_item_nbr, item1_desc, formato, group_id) %>% 
+  group_by(!!!syms(group_vars_item)) %>% 
   complete(
     wm_yr_wk,
     bin = bines,
     fill = list(
       oh = 0,
+      cost = 0,
       cost_oh = 0,
       sales = 0,
       ddv_oh = 0,
       n_stores = 0
     )
   ) %>% 
+  mutate(bin = factor(bin, labels = bins_labels)) %>% 
   re_order(cat_flag = FALSE) %>% 
+  group_by(prime_xref_item_nbr, item1_desc, formato, group_id) %>% 
   group_map(~bins_plotly(.x, .y))
 
 ## Grid por item-negocio
@@ -433,19 +438,16 @@ grids_bins_ind <- graph_ddv_ind %>%
   split(ceiling(seq_along(.)/2)) %>% 
   lapply(subplot, titleX = TRUE, titleY = TRUE)
 
+group_vars_cat <- c('dep_nbr', 'category_nbr', 'category_name', 'formato')
+
 ## Preparación de info por categoría-negocio
-graph_ddv_sum <- bins_info  %>%
-  group_by(dep_nbr, category_nbr, category_name, formato, wm_yr_wk, bin) %>% 
-  summarise(
-    oh = sum(oh),
-    cost_oh = sum(cost_oh),
-    sales = sum(sales),
-    ddv_oh = ifelse(sales <= 0, 1000, oh / (sales / 7)),
-    n_stores = sum(n_stores)
-  ) %>% 
+graph_ddv_sum <- bins_info  %>% 
+  group_by(!!!syms(group_vars_cat), wm_yr_wk, bin) %>% 
+  summarise_at(vars(oh, cost_oh, sales, n_stores), sum) %>% 
+  mutate(ddv_oh = ifelse(sales <= 0, 1000, oh / (sales / 7))) %>% 
   ungroup() %>% 
   mutate(group_id = group_indices(., category_nbr, formato)) %>% 
-  group_by(dep_nbr, category_nbr, category_name, formato, group_id) %>% 
+  group_by(!!!syms(group_vars_cat), group_id) %>% 
   complete(
     wm_yr_wk,
     bin = bines,
@@ -457,6 +459,7 @@ graph_ddv_sum <- bins_info  %>%
       n_stores = 0
     )
   ) %>% 
+  mutate(bin = factor(bin, labels = bins_labels)) %>% 
   re_order(cat_flag = TRUE) %>% 
   group_map(~bins_plotly(.x, .y))
 
