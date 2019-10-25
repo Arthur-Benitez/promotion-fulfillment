@@ -462,15 +462,14 @@ toperc <- function(number){
   )
 }
 colorize <- function(number, inverse = FALSE){
-  number <- tonum(number)
-  if(number < 0){
-    color <- ifelse(inverse, '#35a15c', 'red')
-  } else if(number > 0){
-    color <- ifelse(inverse, 'red', '#35a15c')
-  } else {
-    color <- 'black'
-  }
-  return(color)
+  inverse <- ifelse(inverse, -1, 1)
+  cond <- inverse * sign(number)
+  dplyr::case_when(
+    cond == 1 ~ '#35a15c',
+    cond == 0 ~ 'black',
+    cond == -1 ~ 'red',
+    TRUE ~ 'gray'
+  )
 }
 
 create_table <- function(data, wmwk1, wmwk2, objects, cat_flag){
@@ -482,14 +481,9 @@ create_table <- function(data, wmwk1, wmwk2, objects, cat_flag){
     mutate_at(vars(!!objects$wkly_qty1, !!objects$wkly_qty2), scales::comma) %>% 
     mutate_at(vars(!!objects$ddv_oh_1,  !!objects$ddv_oh_2),  scales::comma,   accuracy = 0.1) %>% 
     mutate(
-      is_oh_dif = toperc(is_oh_dif),
-      ddv_oh_dif = toperc(ddv_oh_dif),
-      wkly_qty_dif = toperc(wkly_qty_dif)
-    ) %>% 
-    mutate(
-      is_oh_dif = cell_spec(is_oh_dif, 'html', color = colorize(is_oh_dif)),
-      wkly_qty_dif = cell_spec(wkly_qty_dif, 'html',  color = colorize(wkly_qty_dif)),
-      ddv_oh_dif = cell_spec(ddv_oh_dif, 'html', color = colorize(ddv_oh_dif, inverse = TRUE))
+      is_oh_dif = cell_spec(toperc(is_oh_dif), 'html', color = colorize(is_oh_dif)),
+      wkly_qty_dif = cell_spec(toperc(wkly_qty_dif), 'html',  color = colorize(wkly_qty_dif)),
+      ddv_oh_dif = cell_spec(toperc(ddv_oh_dif), 'html', color = colorize(ddv_oh_dif, inverse = TRUE))
     ) %>% 
     set_names(pretty_names) %>% 
     kable(format = "html", escape = FALSE, align = 'c') %>% 
