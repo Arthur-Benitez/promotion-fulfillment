@@ -310,14 +310,16 @@ box_sum <- box_info  %>%
   summarise(
     oh = sum(oh),
     sales = sum(sales),
-    ddv_oh = ifelse(sales <= 0, 1000, oh / (sales / 7)),
     n_stores = sum(n_stores),
     ddv_oh_avg = mean(ddv_oh_avg),
     perc_00 = mean(perc_00),
     perc_25 = mean(perc_25),
     perc_50 = mean(perc_50),
     perc_75 = mean(perc_75),
-    perc_100 = mean(perc_100),
+    perc_100 = mean(perc_100)
+  ) %>% 
+  mutate(
+    ddv_oh = ifelse(sales <= 0, 1000, oh / (sales / 7)),
     iqr = perc_75 - perc_25,
     up_whisk = ifelse(perc_100 == perc_75, perc_100, perc_75 + 1.5 * iqr),
     low_whisk = ifelse(perc_00 == perc_25, perc_00, pmax(perc_25 - 1.5 * iqr, 0))
@@ -391,12 +393,10 @@ bins_plotly <- function(data, keys){
     )
 }
 
-group_vars_item <- c('prime_xref_item_nbr', 'formato', 'repl_group_nbr', 'item1_desc', 'dept_nbr', 'category_nbr', 'category_name', 'group_id')
-
 ## Preparación de info por item-negocio
 graph_ddv_ind <- bins_info  %>% 
   mutate(group_id = group_indices(., prime_xref_item_nbr, item1_desc, formato)) %>% 
-  group_by(!!!syms(group_vars_item)) %>% 
+  group_by(prime_xref_item_nbr, formato, repl_group_nbr, item1_desc, dept_nbr, category_nbr, category_name, group_id) %>% 
   complete(
     wm_yr_wk,
     bin = bines,
@@ -440,7 +440,7 @@ graph_ddv_sum <- bins_info  %>%
       n_stores = 0
     )
   ) %>% 
-  mutate(bin = factor(bin, labels = bins_labels)) %>% 
+  mutate(bin = factor(bin, levels = bines, labels = bins_labels)) %>% 
   re_order %>% 
   group_map(~bins_plotly(.x, .y))
 
@@ -452,14 +452,14 @@ grids_bins_sum <- graph_ddv_sum %>%
 
 ```{r sum_calc, echo=FALSE, message=FALSE, warning=FALSE}
 tonum <- function(percentage){
-  return(as.numeric(sub('%', '', percentage)))
+  as.numeric(sub('%', '', percentage))
 }
 toperc <- function(number){
-  return(scales::percent(
+  scales::percent(
     number,
     accuracy = 0.01,
     prefix = ifelse(number > 0, '+', '')
-  ))
+  )
 }
 colorize <- function(number, inverse = FALSE){
   number <- tonum(number)
