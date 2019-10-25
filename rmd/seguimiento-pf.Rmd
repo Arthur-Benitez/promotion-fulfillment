@@ -41,26 +41,10 @@ library(kableExtra)
 ```
 
 ```{r functions, message=FALSE, warning=FALSE, include=FALSE}
-re_order <- function(data, cat_flag){
-  if(cat_flag){
-    data %>%
-      data.table::setorder(
-        dept_nbr,
-        category_nbr,
-        formato,
-        wm_yr_wk
-      )
-  } else {
-    data %>%
-      data.table::setorder(
-        dept_nbr,
-        category_nbr,
-        repl_group_nbr,
-        prime_xref_item_nbr,
-        formato,
-        wm_yr_wk
-      )
-  }
+re_order <- function(data){
+  vs <- c('dept_nbr', 'category_nbr', 'repl_group_nbr', 'prime_xref_item_nbr', 'formato', 'wm_yr_wk')
+  data %>%
+    arrange(!!!syms(intersect(vs, names(.))))
 }
 ```
 
@@ -94,12 +78,12 @@ res <- map(
       set_names(tolower(names(.)))
   })
 write_rds(res, '../rmd/queries-res.rds')
-res$base %>% re_order(cat_flag = FALSE)
+res$base <- res$base %>% re_order
 ```
 
 ```{r read_info, eval=!params$run_queries, message=FALSE, warning=FALSE, include=FALSE}
 res <- read_rds('../rmd/queries-res.rds')
-res$base %>% re_order(cat_flag = FALSE)
+res$base <- res$base %>% re_order
 ```
 
 ```{r metrics_calc, message=FALSE, warning=FALSE, include=FALSE}
@@ -170,7 +154,7 @@ metrics_sum <- res$base %>%
     is_ttl = 1 - (falt_ttl / catalogo)
   ) %>% 
   ungroup %>% 
-  re_order(cat_flag = TRUE)
+  re_order
 
 ## Gráfica por categoría-negocio
 graph_metrics_sum <- metrics_sum %>% 
@@ -249,7 +233,7 @@ inv_sum <- res$base %>%
   summarise_at(vars(wkly_qty, oh, sales), sum) %>% 
   mutate(ddv_oh = ifelse(sales <= 0, 1000, oh / (sales / 7))) %>% 
   ungroup %>% 
-  re_order(cat_flag = TRUE)
+  re_order
 
 ## Gráfica por categoría-negocio
 graph_inv_sum <- inv_sum %>% 
@@ -339,7 +323,7 @@ box_sum <- box_info  %>%
     low_whisk = ifelse(perc_00 == perc_25, perc_00, pmax(perc_25 - 1.5 * iqr, 0))
   ) %>% 
   ungroup %>% 
-  re_order(cat_flag = TRUE)
+  re_order
 
 ## Gráfica por categoría-negocio
 graph_box_sum <- box_sum %>% 
@@ -426,7 +410,7 @@ graph_ddv_ind <- bins_info  %>%
     )
   ) %>% 
   mutate(bin = factor(bin, labels = bins_labels)) %>% 
-  re_order(cat_flag = FALSE) %>% 
+  re_order %>% 
   group_by(prime_xref_item_nbr, item1_desc, formato, group_id) %>% 
   group_map(~bins_plotly(.x, .y))
 
@@ -457,7 +441,7 @@ graph_ddv_sum <- bins_info  %>%
     )
   ) %>% 
   mutate(bin = factor(bin, labels = bins_labels)) %>% 
-  re_order(cat_flag = TRUE) %>% 
+  re_order %>% 
   group_map(~bins_plotly(.x, .y))
 
 ## Grid por categoria-negocio
