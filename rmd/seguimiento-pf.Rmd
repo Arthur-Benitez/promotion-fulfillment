@@ -1,0 +1,689 @@
+---
+output:
+  html_document:
+    toc: TRUE
+    toc_depth: 4
+    number_sections: TRUE
+    toc_float:
+      collapsed: TRUE
+      smooth_scroll: TRUE
+params:
+  negocios: "'BODEGA','BAE'"
+  old_nbrs: 4007408, 9574857
+  wk_ini_stud: 11930
+  wk_fin_stud: 11935
+  wk_ini_vtas: 11926
+  wk_fin_vtas: 11929
+  user: 'user'
+  password: 'password'
+  run_queries: FALSE
+---
+
+<style type="text/css">
+div.main-container {
+  max-width: 100%;
+  margin: 0px 0px 0px 0px;
+  padding: 0px 0px 0px 0px;
+}
+.toc-content {padding-right: 10px;}
+#TOC {width: 10%;}
+.col-md-3 {width: 10%;}
+.col-md-9 {width: 90%;}
+</style>
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(knitr)
+library(tidyverse)
+library(ggplot2)
+library(plotly)
+library(kableExtra)
+```
+
+```{r functions, message=FALSE, warning=FALSE, include=FALSE}
+re_order <- function(data){
+  vs <- c('dept_nbr', 'category_nbr', 'repl_group_nbr', 'prime_xref_item_nbr', 'formato', 'wm_yr_wk')
+  data %>%
+    arrange(!!!syms(intersect(vs, names(.))))
+}
+```
+
+```{r run_queries, eval=params$run_queries, message=FALSE, warning=FALSE, include=FALSE}
+prepare_query <- function(query, params) {
+  query %>% 
+    str_replace_all('\\?NEGOCIOS', params$negocios) %>%
+    str_replace_all('\\?OLD_NBRS', paste(params$old_nbrs, collapse = ',')) %>%
+    str_replace_all('\\?WK_INI_STUD', as.character(params$wk_ini_stud)) %>%
+    str_replace_all('\\?WK_FIN_STUD', as.character(params$wk_fin_stud)) %>%
+    str_replace_all('\\?WK_INI_VTAS', as.character(params$wk_ini_vtas)) %>%
+    str_replace_all('\\?WK_FIN_VTAS', as.character(params$wk_fin_vtas)) %>%
+    str_subset('^\\s*--', negate = TRUE) %>%  #quitar lineas de comentarios
+    stringi::stri_trans_general('ASCII') %>% # quitar no ASCII porque truena en producción
+    paste(collapse = '\n')
+}
+
+queries <- list(
+  ddv = readLines('../sql/item-business-week-ddv.sql'),
+  base = readLines('../sql/item-business-week-is-sales-ddv.sql')
+  ) %>%
+  map(~prepare_query(.x, params))
+
+ch <- RODBC::odbcDriverConnect(sprintf("Driver={Teradata};DBCName=WM3;AUTHENTICATION=ldap;AUTHENTICATIONPARAMETER=%s@@%s", params$user, params$password))
+
+res <- map(
+  queries,
+  function(x){
+    RODBC::sqlQuery(ch, x, stringsAsFactors = FALSE) %>% 
+      as_tibble() %>% 
+      set_names(tolower(names(.)))
+  })
+write_rds(res, '../rmd/queries-res.rds')
+res$base <- res$base %>% re_order
+```
+
+```{r read_info, eval=!params$run_queries, message=FALSE, warning=FALSE, include=FALSE}
+res <- read_rds('../rmd/queries-res.rds')
+res$base <- res$base %>% re_order
+```
+
+```{r metrics_calc, message=FALSE, warning=FALSE, include=FALSE}
+metrics_plot <- function(data, keys){
+  data %>% 
+    mutate(
+      scaled_sales = scales::rescale(
+        wkly_qty,
+        to = c(
+          min(c(is_oh, is_ttl)) - 0.01,
+          max(c(is_oh, is_ttl)) + 0.01
+        )
+      )
+    ) %>% 
+    ggplot(aes(x = wm_yr_wk)) + 
+    geom_line( aes(y = is_oh,        colour = 'In Stock OH'    ), size = 1) + 
+    geom_line( aes(y = is_ttl,       colour = 'In Stock Cadena'), size = 1) + 
+    geom_line( aes(y = scaled_sales, colour = 'Ventas'         ), size = 1) + 
+    geom_point(aes(y = is_oh,        colour = 'In Stock OH'    ), size = 2) + 
+    geom_point(aes(y = is_ttl,       colour = 'In Stock Cadena'), size = 2) + 
+    geom_point(aes(y = scaled_sales, colour = 'Ventas'         ), size = 2) + 
+    scale_y_continuous(
+      labels = scales::percent_format(accuracy = 0.1),
+      sec.axis = sec_axis(
+        ~scales::rescale(
+          .,
+          to = c(min(data$wkly_qty), max(data$wkly_qty))
+        ),
+        name = 'Piezas',
+        labels = scales::comma
+      )
+    ) + 
+    scale_color_manual(
+      values = ggthemes::colorblind_pal()(3) %>% 
+        set_names(c('Ventas', 'In Stock Cadena', 'In Stock OH'))
+    ) + 
+    labs(
+      title = apply(keys, 1, paste, collapse = ' - '),
+      x = 'Semanas Walmart',
+      y = 'Porcentaje (%)',
+      colour = ''
+    ) + 
+    theme(
+      plot.title = element_text(hjust = 0.5),
+      legend.position = 'bottom'
+    )
+}
+
+## Preparación de info por item-negocio
+graph_metrics_ind <- res$base %>% 
+  group_by(prime_xref_item_nbr, item1_desc, formato) %>% 
+  group_map(~metrics_plot(.x, .y))
+
+## Grid por item-negocio
+grids_metrics_ind <- gridExtra::marrangeGrob(
+  grobs = graph_metrics_ind,
+  nrow = 1,
+  ncol = 2,
+  top =  ''
+)
+
+## Preparación de info por categoría-negocio
+metrics_sum <- res$base %>% 
+  group_by(dept_nbr, category_nbr, category_name, formato, wm_yr_wk) %>% 
+  summarise_at(vars(catalogo, falt_oh, falt_ttl, wkly_qty), sum) %>% 
+  mutate(
+    is_oh = 1 - (falt_oh / catalogo),
+    is_ttl = 1 - (falt_ttl / catalogo)
+  ) %>% 
+  ungroup %>% 
+  re_order
+
+## Gráfica por categoría-negocio
+graph_metrics_sum <- metrics_sum %>% 
+  group_by(dept_nbr, category_nbr, category_name, formato) %>% 
+  group_map(~metrics_plot(.x, .y))
+
+## Grid por categoría-negocio
+grids_metrics_sum <- gridExtra::marrangeGrob(
+  grobs = graph_metrics_sum,
+  nrow = 1,
+  ncol = 2,
+  top =  ''
+)
+```
+
+```{r inv_calc, message=FALSE, warning=FALSE, include=FALSE}
+inv_plot <- function(data, keys){
+  data %>% 
+    mutate(
+      scaled_sales = scales::rescale(
+        wkly_qty,
+        to = c(
+          min(ddv_oh) - 1,
+          max(ddv_oh) + 1
+        )
+      )
+    ) %>% 
+    ggplot(aes(x = wm_yr_wk)) + 
+    geom_line( aes(y = ddv_oh,       colour = 'DDV OH'), size = 1) + 
+    geom_line( aes(y = scaled_sales, colour = 'Ventas'), size = 1) + 
+    geom_point(aes(y = ddv_oh,       colour = 'DDV OH'), size = 2) + 
+    geom_point(aes(y = scaled_sales, colour = 'Ventas'), size = 2) + 
+    scale_y_continuous(
+      labels = scales::comma,
+      sec.axis = sec_axis(
+        ~scales::rescale(
+          .,
+          to = c(min(data$wkly_qty), max(data$wkly_qty))
+        ),
+        name = 'Piezas',
+        labels = scales::comma
+      )
+    ) + 
+    scale_color_manual(
+      values = ggthemes::colorblind_pal()(2) %>% 
+        set_names(c('Ventas', 'DDV OH'))
+    ) + 
+    labs(
+      title = apply(keys, 1, paste, collapse = ' - '),
+      x = 'Semanas Walmart',
+      y = 'Días de Venta',
+      colour = ''
+    ) + 
+    theme(
+      plot.title = element_text(hjust = 0.5),
+      legend.position = 'bottom'
+    )
+}
+
+## Preparación de info por item-negocio
+graph_inv_ind <- res$base %>% 
+  group_by(prime_xref_item_nbr, item1_desc, formato) %>% 
+  group_map(~inv_plot(.x, .y))
+
+## Grid por item-negocio
+grids_inv_ind <- gridExtra::marrangeGrob(
+  grobs = graph_inv_ind,
+  nrow = 1,
+  ncol = 2,
+  top =  ''
+)
+
+## Preparación de info por categoría-negocio
+inv_sum <- res$base %>% 
+  group_by(dept_nbr, category_nbr, category_name, formato, wm_yr_wk) %>% 
+  summarise_at(vars(wkly_qty, oh, sales), sum) %>% 
+  mutate(ddv_oh = ifelse(sales <= 0, 1000, oh / (sales / 7))) %>% 
+  ungroup %>% 
+  re_order
+
+## Gráfica por categoría-negocio
+graph_inv_sum <- inv_sum %>% 
+  group_by(dept_nbr, category_nbr, category_name, formato) %>% 
+  group_map(~inv_plot(.x, .y))
+
+## Grid por categoría-negocio
+grids_inv_sum <- gridExtra::marrangeGrob(
+  grobs = graph_inv_sum,
+  nrow = 1,
+  ncol = 2,
+  top =  ''
+)
+```
+
+```{r box_calc, message=FALSE, warning=FALSE, include=FALSE}
+box_info <- res$base  %>% 
+  mutate(
+    category_name = ifelse(is.na(category_name), 'Unspecified', category_name),
+    iqr = perc_75 - perc_25,
+    up_whisk = ifelse(perc_100 == perc_75, perc_100, perc_75 + 1.5 * iqr),
+    low_whisk = ifelse(perc_00 == perc_25, perc_00, pmax(perc_25 - 1.5 * iqr, 0))
+  )
+
+box_plot <- function(data, keys){
+  label_values <- data %>% 
+    select(wm_yr_wk, ddv_oh, low_whisk, perc_25, perc_50, perc_75, up_whisk) %>% 
+    mutate_at(vars(-wm_yr_wk), round) %>% 
+    gather(key = 'label', value = 'percentile', -wm_yr_wk)
+  data %>% 
+    ggplot(
+      aes(
+        x = wm_yr_wk,
+        ymin = low_whisk,
+        lower = perc_25,
+        middle = perc_50,
+        upper = perc_75,
+        ymax = up_whisk
+      )
+    ) + 
+    geom_errorbar(width = 0.4, size = 0.8) + 
+    geom_boxplot(stat = 'identity', size = 1, width = 0.4) + 
+    geom_point(aes(y = ddv_oh), size = 3, color = 'blue') + 
+    annotate(
+      geom = 'text',
+      x = label_values$wm_yr_wk + 0.3,
+      y = label_values$percentile,
+      label = label_values$percentile
+    ) + 
+    labs(
+      title = apply(keys, 1, paste, collapse = ' - '),
+      x = 'Semanas Walmart',
+      y = 'DDV'
+    ) + 
+    theme(plot.title = element_text(hjust = 0.5))
+}
+
+## Preparación de info por item-negocio
+graph_box_ind <- box_info  %>% 
+  group_by(prime_xref_item_nbr, item1_desc, formato) %>% 
+  group_map(~box_plot(.x, .y))
+
+## Grid por item-negocio
+grids_box_ind <- gridExtra::marrangeGrob(
+  grobs = graph_box_ind,
+  nrow = 1,
+  ncol = 2,
+  top =  ''
+)
+
+## Preparación de info por categoría-negocio
+box_sum <- box_info  %>%
+  group_by(dept_nbr, category_nbr, category_name, formato, wm_yr_wk) %>%
+  summarise(
+    oh = sum(oh),
+    sales = sum(sales),
+    n_stores = sum(n_stores),
+    ddv_oh_avg = mean(ddv_oh_avg),
+    perc_00 = mean(perc_00),
+    perc_25 = mean(perc_25),
+    perc_50 = mean(perc_50),
+    perc_75 = mean(perc_75),
+    perc_100 = mean(perc_100)
+  ) %>% 
+  mutate(
+    ddv_oh = ifelse(sales <= 0, 1000, oh / (sales / 7)),
+    iqr = perc_75 - perc_25,
+    up_whisk = ifelse(perc_100 == perc_75, perc_100, perc_75 + 1.5 * iqr),
+    low_whisk = ifelse(perc_00 == perc_25, perc_00, pmax(perc_25 - 1.5 * iqr, 0))
+  ) %>% 
+  ungroup %>% 
+  re_order
+
+## Gráfica por categoría-negocio
+graph_box_sum <- box_sum %>% 
+  group_by(category_nbr, category_name, formato) %>% 
+  group_map(~box_plot(.x, .y))
+
+## Grid por categoría-negocio
+grids_box_sum <- gridExtra::marrangeGrob(
+  grobs = graph_box_sum,
+  nrow = 1,
+  ncol = 2,
+  top =  ''
+)
+```
+
+```{r bins_calc, message=FALSE, warning=FALSE, include=FALSE}
+bines <- c('DDV00_IG_000', 'DDV01_MN_003', 'DDV02_MN_007', 'DDV03_MN_014', 'DDV04_MN_021', 'DDV05_MN_028', 'DDV06_MN_035', 'DDV07_MN_050', 'DDV08_MN_075', 'DDV09_MN_100', 'DDV10_MN_150', 'DDV11_MN_250', 'DDV12_MN_350', 'DDV13_MN_450', 'DDV14_MY_450')
+bins_labels <- c('DDV = 0', 'DDV < 3', 'DDV < 7', 'DDV < 14', 'DDV < 21', 'DDV < 28', 'DDV < 35', 'DDV < 50', 'DDV < 75', 'DDV < 100', 'DDV < 150', 'DDV < 250', 'DDV < 350', 'DDV < 450', 'DDV >= 450')
+
+bins_info <- res$ddv %>% 
+  left_join(
+    y = res$base %>% 
+      select(
+        prime_xref_item_nbr,
+        formato,
+        wm_yr_wk,
+        dept_nbr,
+        category_name,
+      ),
+    by = c('prime_xref_item_nbr', 'formato', 'wm_yr_wk')
+  ) %>% 
+  mutate(
+    category_name = ifelse(is.na(category_name), 'Unspecified', category_name),
+    cost_oh = cost * oh
+  )
+
+bins_plotly <- function(data, keys){
+  data %>% 
+    plot_ly(
+      x = ~as.character(wm_yr_wk),
+      y = ~n_stores,
+      type = 'bar',
+      color = ~bin,
+      colors = c(ggthemes::colorblind_pal()(8), 'darkblue', 'gray30', '#ff05c5', 'gray70', 'darkgreen', 'gray 90', '#f27979'),
+      hoverinfo = 'text',
+      text = ~sprintf(
+        '%s<br>Tiendas: %s<br>Piezas OH: %s<br>Costo OH: $%s',
+        bin, n_stores, scales::comma(oh), scales::comma(cost_oh)
+      ),
+      showlegend = (keys$group_id %% 2 == 1),
+      legendgroup = ~bin
+    ) %>% 
+    layout(
+      annotations = list(
+        x = ifelse(keys$group_id %% 2 == 1, 0.3, 0.7),
+        y = 1,
+        text = apply(
+          keys[, !(names(keys) == 'group_id')], 1, paste, collapse = ' - '),
+        showarrow = F, xref = 'paper', yref = 'paper'
+      ),
+      xaxis = list(title = 'Semanas WM'),
+      yaxis = list(title = 'Número de tiendas'),
+      barmode = 'stack',
+      legend = list(traceorder = 'reversed')
+    )
+}
+
+## Preparación de info por item-negocio
+graph_ddv_ind <- bins_info  %>% 
+  mutate(group_id = group_indices(., prime_xref_item_nbr, item1_desc, formato)) %>% 
+  group_by(prime_xref_item_nbr, formato, repl_group_nbr, item1_desc, dept_nbr, category_nbr, category_name, group_id) %>% 
+  complete(
+    wm_yr_wk,
+    bin = bines,
+    fill = list(
+      oh = 0,
+      cost = 0,
+      cost_oh = 0,
+      sales = 0,
+      ddv_oh = 0,
+      n_stores = 0
+    )
+  ) %>% 
+  mutate(bin = factor(bin, labels = bins_labels)) %>% 
+  re_order %>% 
+  group_by(prime_xref_item_nbr, item1_desc, formato, group_id) %>% 
+  group_map(~bins_plotly(.x, .y))
+
+## Grid por item-negocio
+grids_bins_ind <- graph_ddv_ind %>% 
+  split(ceiling(seq_along(.)/2)) %>% 
+  lapply(subplot, titleX = TRUE, titleY = TRUE)
+
+group_vars_cat <- c('dept_nbr', 'category_nbr', 'category_name', 'formato')
+
+## Preparación de info por categoría-negocio
+graph_ddv_sum <- bins_info  %>% 
+  group_by(!!!syms(group_vars_cat), wm_yr_wk, bin) %>% 
+  summarise_at(vars(oh, cost_oh, sales, n_stores), sum) %>% 
+  mutate(ddv_oh = ifelse(sales <= 0, 1000, oh / (sales / 7))) %>% 
+  ungroup() %>% 
+  mutate(group_id = group_indices(., category_nbr, formato)) %>% 
+  group_by(!!!syms(group_vars_cat), group_id) %>% 
+  complete(
+    wm_yr_wk,
+    bin = bines,
+    fill = list(
+      oh = 0,
+      cost_oh = 0,
+      sales = 0,
+      ddv_oh = 0,
+      n_stores = 0
+    )
+  ) %>% 
+  mutate(bin = factor(bin, levels = bines, labels = bins_labels)) %>% 
+  re_order %>% 
+  group_map(~bins_plotly(.x, .y))
+
+## Grid por categoria-negocio
+grids_bins_sum <- graph_ddv_sum %>% 
+  split(ceiling(seq_along(.)/2)) %>% 
+  lapply(subplot, titleX = TRUE, titleY = TRUE)
+```
+
+```{r sum_calc, echo=FALSE, message=FALSE, warning=FALSE}
+tonum <- function(percentage){
+  as.numeric(sub('%', '', percentage))
+}
+toperc <- function(number){
+  scales::percent(
+    number,
+    accuracy = 0.01,
+    prefix = ifelse(number > 0, '+', '')
+  )
+}
+colorize <- function(number, inverse = FALSE){
+  inverse <- ifelse(inverse, -1, 1)
+  cond <- inverse * sign(number)
+  dplyr::case_when(
+    cond == 1 ~ '#35a15c',
+    cond == 0 ~ 'black',
+    cond == -1 ~ 'red',
+    TRUE ~ 'gray'
+  )
+}
+
+create_table <- function(data, wmwk1, wmwk2, objects, cat_flag){
+  rep_cols <- c(paste('WMWK ', wmwk1), paste('WMWK ', wmwk2), 'Diferencia en %')
+  pretty_names <- c(ifelse(cat_flag, 'Categoría', 'Artículo'), 'Descripción', 'Formato', rep.int(rep_cols, 3))
+  
+  data %>% 
+    mutate_at(vars(!!objects$is_oh_1,   !!objects$is_oh_2),   scales::percent, accuracy = 0.1) %>% 
+    mutate_at(vars(!!objects$wkly_qty1, !!objects$wkly_qty2), scales::comma) %>% 
+    mutate_at(vars(!!objects$ddv_oh_1,  !!objects$ddv_oh_2),  scales::comma,   accuracy = 0.1) %>% 
+    mutate(
+      is_oh_dif = cell_spec(toperc(is_oh_dif), 'html', color = colorize(is_oh_dif)),
+      wkly_qty_dif = cell_spec(toperc(wkly_qty_dif), 'html',  color = colorize(wkly_qty_dif)),
+      ddv_oh_dif = cell_spec(toperc(ddv_oh_dif), 'html', color = colorize(ddv_oh_dif, inverse = TRUE))
+    ) %>% 
+    set_names(pretty_names) %>% 
+    kable(format = "html", escape = FALSE, align = 'c') %>% 
+    kable_styling(
+      bootstrap_options = c('striped', 'hover', 'condensed'),
+      full_width = TRUE,
+      font_size = 15,
+      fixed_thead = list(enabled = TRUE)
+    ) %>% 
+    row_spec(0, color = '#FFFFFF', background = '#0071ce') %>% 
+    column_spec(c(3, 6, 9), border_right = T) %>% 
+    column_spec(c(6, 9, 12), bold = TRUE) %>% 
+    add_header_above(c(
+      'Llaves de combinación' = 3,
+      'In Stock' = 3,
+      'Ventas semanales (Piezas)' = 3,
+      'Días de Venta' = 3
+    ))
+}
+
+wmwk1 <- min(res$base$wm_yr_wk) 
+wmwk2 <- max(res$base$wm_yr_wk)
+objects <- list(
+  is_oh_1 = rlang::sym(paste('is_oh', wmwk1, sep = '_')),
+  is_oh_2 = rlang::sym(paste('is_oh', wmwk2, sep = '_')),
+  ddv_oh_1 = rlang::sym(paste('ddv_oh', wmwk1, sep = '_')),
+  ddv_oh_2 = rlang::sym(paste('ddv_oh', wmwk2, sep = '_')),
+  wkly_qty1 = rlang::sym(paste('wkly_qty', wmwk1, sep = '_')),
+  wkly_qty2 = rlang::sym(paste('wkly_qty', wmwk2, sep = '_'))
+)
+
+item_info <- res$base %>% 
+  select(
+    prime_xref_item_nbr,
+    formato,
+    item1_desc,
+    wm_yr_wk,
+    is_oh,
+    wkly_qty,
+    ddv_oh
+  ) %>% 
+  filter(wm_yr_wk %in% c(wmwk1, wmwk2)) %>% 
+  gather(variable, value, -(prime_xref_item_nbr:wm_yr_wk)) %>% 
+  unite(temp, variable, wm_yr_wk) %>% 
+  spread(temp, value) %>% 
+  mutate(
+    is_oh_dif = (!!objects$is_oh_2 - !!objects$is_oh_1) / !!objects$is_oh_1,
+    ddv_oh_dif = (!!objects$ddv_oh_2 - !!objects$ddv_oh_1) / !!objects$ddv_oh_1,
+    wkly_qty_dif = (!!objects$wkly_qty2 - !!objects$wkly_qty1) / !!objects$wkly_qty1
+  ) %>% 
+  select(
+    prime_xref_item_nbr,
+    item1_desc,
+    formato,
+    starts_with('is_oh'),
+    starts_with('wkly_qty'),
+    everything()
+  )
+
+cat_info <- metrics_sum %>% 
+  left_join(
+    y = box_sum %>% 
+      select(-category_name),
+    by = c('category_nbr', 'formato', 'wm_yr_wk')
+  ) %>% 
+  select(
+    category_nbr,
+    formato,
+    category_name,
+    wm_yr_wk,
+    is_oh,
+    wkly_qty,
+    ddv_oh
+  ) %>% 
+  filter(wm_yr_wk %in% c(wmwk1, wmwk2)) %>% 
+  gather(variable, value, -(category_nbr:wm_yr_wk)) %>% 
+  unite(temp, variable, wm_yr_wk) %>% 
+  spread(temp, value) %>% 
+  mutate(
+    is_oh_dif = (!!objects$is_oh_2 - !!objects$is_oh_1) / !!objects$is_oh_1,
+    ddv_oh_dif = (!!objects$ddv_oh_2 - !!objects$ddv_oh_1) / !!objects$ddv_oh_1,
+    wkly_qty_dif = (!!objects$wkly_qty2 - !!objects$wkly_qty1) / !!objects$wkly_qty1
+  ) %>% 
+  select(
+    category_nbr,
+    category_name,
+    formato,
+    starts_with('is_oh'),
+    starts_with('wkly_qty'),
+    everything()
+  )
+
+item_table <- item_info %>% 
+  create_table(wmwk1 = wmwk1, wmwk2 = wmwk2, objects = objects, cat_flag = FALSE)
+
+cat_table <- cat_info %>% 
+  create_table(wmwk1 = wmwk1, wmwk2 = wmwk2, objects = objects, cat_flag = TRUE)
+```
+
+# Inicio
+
+Reporte de Seguimiento de [Promo Fulfillment](https://ml.prod.walmart.com:31705/v1/deployment/shiny_2915_3966/)
+
+[Replenishment Data Science MX](mailto:Replenishment Data Science MX <replen_ds_mx@email.wal-mart.com>
+  ?subject=Promo Fulfillment&body=Usuario:    [Escribe tu usuario de Windows]%0A%0AMotivo:    [Selecciona a qué tema pertenece tu duda de entre estas opciones: Duda/Error/Solicitud/Capacitación/Otro]%0A%0ADetalles:    [Describe brevemente la situación o adjunta ejemplos/evidencia])
+
+`r Sys.Date()`
+
+Reporte de IS, Ventas, DDV y Dispersión. Todos los DDV fueron calculados con base en el promedio de venta las mismas semanas, lo que implica que las variaciones de los mismos son directamente proporcionales a las variaciones en el OH.
+
+Este reporte fue generado automáticamente.
+
+# Resumen {.tabset .tabset-fade .tabset-pills}
+
+Estas tablas muestra la evolución de los indicadores clave entre la primera y última semana del estudio.
+
+## Categoría-Formato
+
+```{r tbl_sum, echo=FALSE, message=FALSE, warning=FALSE, results='asis'}
+cat_table
+```
+
+## Item-Formato
+
+```{r tbl_ind, echo=FALSE, message=FALSE, warning=FALSE, results='asis'}
+item_table
+```
+
+# Básicos
+
+## IS / Ventas {.tabset .tabset-fade .tabset-pills}
+
+### Categoría-Formato
+
+Indicadores durante la estrategia, calculados al cierre de las semanas Walmart.
+
+```{r metrics_sum, echo=FALSE, fig.height=4, fig.width=19, message=FALSE, warning=FALSE}
+grids_metrics_sum
+```
+
+### Item-Formato
+
+Indicadores durante la estrategia, calculados al cierre de las semanas Walmart.
+
+```{r metrics_ind, echo=FALSE, fig.height=4, fig.width=19, message=FALSE, warning=FALSE}
+grids_metrics_ind
+```
+
+## DDV / Ventas {.tabset .tabset-fade .tabset-pills}
+
+### Categoría-Formato
+
+Indicadores durante la estrategia, calculados al cierre de las semanas Walmart.
+
+```{r inv_sum, echo=FALSE, fig.height=4, fig.width=19, message=FALSE, warning=FALSE}
+grids_inv_sum
+```
+
+### Item-Formato
+
+Indicadores durante la estrategia, calculados al cierre de las semanas Walmart.
+
+```{r inv_ind, echo=FALSE, fig.height=4, fig.width=19, message=FALSE, warning=FALSE}
+grids_inv_ind
+```
+
+# Dispersión
+
+## Boxplot {.tabset .tabset-fade .tabset-pills}
+
+### Categoría-Formato
+
+Los percentiles aquí resumidos se calcularon usando el promedio de los percentiles de la base item-formato, por lo que no representan los percentiles reales del conjunto de tiendas agrupadas al nivel de resumen visto. Por ello, estas gráficas son aproximaciones y con objetivo méramente visual.
+
+```{r box_sum, echo=FALSE, fig.height=4, fig.width=19, message=FALSE, warning=FALSE}
+grids_box_sum
+```
+
+### Item-Formato
+
+Dispersión durante la estrategia.
+
+```{r box_ind, echo=FALSE, fig.height=4, fig.width=19, message=FALSE, warning=FALSE}
+grids_box_ind
+```
+
+## Bines {.tabset .tabset-fade .tabset-pills}
+
+### Categoría-Formato
+
+Esta gráfica muestra la cantidad de tiendas que se clasifican en cada uno de los bines de acuerdo a los DDV OH que presentaron en cada semana.
+
+```{r bins_sum, echo=FALSE, fig.height=8, fig.width=19, message=FALSE, warning=FALSE}
+htmltools::tagList(grids_bins_sum)
+```
+
+### Item-Formato
+
+Esta gráfica muestra la cantidad de tiendas que se clasifican en cada uno de los bines de acuerdo a los DDV OH que presentaron en cada semana.
+
+```{r bins_ind, echo=FALSE, fig.height=8, fig.width=19, message=FALSE, warning=FALSE}
+htmltools::tagList(grids_bins_ind)
+```
