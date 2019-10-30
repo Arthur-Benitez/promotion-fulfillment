@@ -786,7 +786,7 @@ generate_sample_input <- function(calendar_day, column_info) {
     EndDate = c(rep(Sys.Date() + 35, 4), rep(Sys.Date() + 49, 2)),
     Priority = 12,
     white_list = c('aperturas', 'aperturas', 'aperturas', 'aperturas', NA, NA),
-    black_list = c(NA, NA, NA, NA, 'tiendas_pequeñas', 'tiendas_pequeñas')
+    black_list = c(NA, NA, NA, NA, 'tiendas_pequenas', 'tiendas_pequenas')
   )
   names(info) <- remap_names(names(info), column_info, to_col = 'pretty_name')
   
