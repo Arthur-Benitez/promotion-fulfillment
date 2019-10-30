@@ -436,6 +436,7 @@ usageStatsServer <- function(input, output, session, credentials, dev_connection
         mutate(
           duration_secs = as.numeric(difftime(!!sym(msg2), !!sym(msg1), units = 'secs'))
         ) %>% 
+        set_names(str_replace_all(names(.), ' ', '_')) %>% 
         na.omit()
       
       graph_data$time <- x %>% 
