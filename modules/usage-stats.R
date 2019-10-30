@@ -85,7 +85,10 @@ usageStatsServer <- function(input, output, session, credentials, dev_connection
       label = 'Rango de fechas',
       min = min(logs()$date),
       max = max(logs()$date),
-      start = min(logs()$date),
+      start = max(
+        floor_date(Sys.Date(), unit = 'month'),
+        min(logs()$date)
+      ),
       end = max(logs()$date)
     )
   })
@@ -574,8 +577,8 @@ usageStatsUI <- function(id) {
               selectInput(
                 ns('graph_daily_split'),
                 label = lang$graph_daily_split,
-                choices = c('all', 'role', 'vp') %>% 
-                  set_names(lang$all, lang$role, lang$vp)
+                choices = c('role', 'vp', 'all') %>% 
+                  set_names(map_chr(., ~lang[[.x]]))
               ),
               selectInput(ns('graph_daily_kpi'), lang$kpi, c('n_users', 'n_sessions') %>%
                             set_names(get_pretty_names(.))),
