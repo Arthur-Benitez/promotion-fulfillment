@@ -785,15 +785,17 @@ generate_sample_input <- function(calendar_day, column_info) {
     StartDate = c(rep(Sys.Date() + 7, 4), rep(Sys.Date() + 14, 2)),
     EndDate = c(rep(Sys.Date() + 35, 4), rep(Sys.Date() + 49, 2)),
     Priority = 12,
-    white_list = c('aperturas', 'aperturas', 'aperturas', 'aperturas', NA, NA),
-    black_list = c(NA, NA, NA, NA, 'tiendas_pequeñas', 'tiendas_pequeñas')
+    white_list = c('tiendas_grandes', 'tiendas_grandes', 'tiendas_grandes', 'tiendas_grandes', NA, NA),
+    black_list = c(NA, NA, NA, NA, 'tiendas_muy_chicas', 'tiendas_muy_chicas')
   )
   names(info) <- remap_names(names(info), column_info, to_col = 'pretty_name')
   
   stores_lists <- list(
-    aperturas = c(383, 4680, 4577, 4619, 3679, 4752),
-    tiendas_pequenas = c(3810, 3813, 3820, 3826, 3830),
-    otra_lista = c(2344, 2345, 2648)
+    tiendas_muy_chicas = c(3810, 3813, 3820, 3826, 3830),
+    tiendas_chicas = c(3832, 3212, 5796, 3815, 3941, 1074, 1492, 1248, 3629, 3818, 3819, 3833, 3835, 3814, 3054, 3816),
+    tiendas_chicas_y_muy_chicas = c(3810, 3813, 3820, 3826, 3830, 3832, 3212, 5796, 3815, 3941, 1074, 1492, 1248, 3629, 3818, 3819, 3833, 3835, 3814, 3054, 3816),
+    tiendas_medianas = c(3834, 4063, 2093, 1247, 1528, 3821, 3223, 3809, 3817, 3480, 2805, 3025, 3812, 2092, 3035, 3837, 4170, 1196, 3811, 3831, 2766, 2829, 3827, 4544, 3915, 3844, 3838, 3849, 5462, 3397, 5773, 3840, 3841, 2895, 3177, 3906, 3199, 1039, 1160, 3921, 3829, 3843, 1075, 2830, 3839, 1408),
+    tiendas_grandes = c(2052, 2220, 1020, 3053, 3140, 1112, 1147, 5815, 3828, 2574, 5817, 1159, 3881, 3842, 1249, 3825, 1100, 3896, 3824, 3479, 4543, 1627, 1053, 3034, 1118)
   )
   return(list(promo = info, tiendas_especiales = stores_lists))
 }
