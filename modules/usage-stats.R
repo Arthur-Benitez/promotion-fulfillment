@@ -397,24 +397,25 @@ usageStatsServer <- function(input, output, session, credentials, dev_connection
   
   output$graph_time <- renderPlotly({
     req(input$graph_time_event)
-    if (is.null(logs_filt()) || nrow(logs_filt()) == 0) {
+    msg1 <- switch(
+      input$graph_time_event,
+      query = 'RUNNING QUERY',
+      sales_graph = 'RUNNING SALES GRAPH QUERY'
+    )
+    msg2 <- switch(
+      input$graph_time_event,
+      query = 'DOWNLOAD SUCCESSFUL',
+      sales_graph = 'GENERATING SALES GRAPH'
+    )
+    if (
+      !is.data.frame(logs_filt()) || 
+      nrow(logs_filt()) == 0 || 
+      !all(c(msg1, msg2) %in% logs_filt()$message)
+    ) {
       p <- generate_empty_plot(title = lang$title_error, text = ':(')
-      graph_data$top <- NULL
+      graph_data$time <- NULL
     } else {
-      df <- logs_filt()
-      
-      # browser()
-      msg1 <- switch(
-        input$graph_time_event,
-        query = 'RUNNING QUERY',
-        sales_graph = 'RUNNING SALES GRAPH QUERY'
-      )
-      msg2 <- switch(
-        input$graph_time_event,
-        query = 'DOWNLOAD SUCCESSFUL',
-        sales_graph = 'GENERATING SALES GRAPH'
-      )
-      x <- df %>%
+      x <- logs_filt() %>%
         filter(message %in% c(msg1, msg2)) %>% 
         transmute(
           x = date, #floor_date(date, unit = input$graph_daily_x, week_start = 1),
