@@ -120,13 +120,16 @@ user_exists <- function(username, user_data_path) {
 
 ## Regresar un usuario usando su nombre
 get_user <- function(username, user_data_path) {
-  stopifnot(is.character(username) && length(username) == 1)
-  usr <- load_users(user_data_path) %>% 
-    keep(~ .x$user == username)
-  if (length(usr) == 0) {
-    usr <- NULL
+  if (is.character(username) && length(username) == 1) {
+    usr <- load_users(user_data_path) %>% 
+      keep(~ .x$user == username)
+    if (length(usr) == 0) {
+      usr <- NULL
+    } else {
+      usr <- usr[[1]]
+    } 
   } else {
-    usr <- usr[[1]]
+    usr <- NULL
   }
   return(usr)
 }
@@ -407,11 +410,12 @@ sso_credentials <- function(session) {
   return(res)
 }
 
-## Leer credenciales de Compass (SSO login)
+## Leer credenciales de Compass
 compass_credentials <- function(session) {
   cookies <- session$request$HTTP_COOKIE
+  res <- list(user = NULL)
   if (is.null(cookies)) {
-    res <- NULL
+    res$user <- NULL
   } else {
     print(sprintf('Cookies: %s', cookies))
     res$user <- tryCatch({
@@ -446,6 +450,24 @@ loginUI <- function(id) {
   )
 }
 
+coalesce_user <- function() {
+  sso_cred <- sso_credentials(session)
+  compass_cred <- compass_credentials(session)
+  sso_usr <- get_user(sso_cred$user, gl$user_data_path)
+  compass_usr <- get_user(compass_cred$user, gl$user_data_path)
+  
+  if ((is.null(sso_cred) || is.na(sso_cred)) && (is.null(compass_cred$user) || is.na(compass_cred$user))) {
+    user <- NULL
+  } else {
+    # user <- first(na.omit(c(sso_usr, compass_usr)))
+    if (is.null(sso_usr)) {
+      user <- compass_usr
+    } else {
+      user <- sso_usr
+    }
+  }
+}
+
 ## Server
 loginServer <- function(input, output, session) {
   
@@ -463,23 +485,34 @@ loginServer <- function(input, output, session) {
   
   observe({
     if (gl$app_deployment_environment == 'dev') {
+      compass_cred <- compass_credentials(session)
+      if (is.null(compass_cred$user) || is.na(compass_cred$user)) {
+        usr <- NULL
+      } else {
+        usr <- get_user(compass_cred$user, gl$user_data_path)
+      }
+      print(usr)
       cred <- list(
-        user_auth = TRUE,
+        user_auth = TRUE, #!is.na(usr),
         user = 'sam',
         role = 'owner'
       )
     } else {
       sso_cred <- sso_credentials(session)
-      if (is.null(sso_cred)) {
+      compass_cred <- compass_credentials(session)
+      if ((is.null(sso_cred) || is.na(sso_cred)) && (is.null(compass_cred$user) || is.na(compass_cred$user))) {
         cred <- list(
           user_auth = FALSE,
           user = NULL,
           role = NULL
         )
       } else {
-        usr <- get_user(sso_cred$user, gl$user_data_path)
+        # Vas a requerir una función que haga toda la lógica entre los dos usuarios y te devuelva sólo un resultado
+        sso_usr <- get_user(sso_cred$user, gl$user_data_path)
+        compass_usr <- get_user(compass_cred$user, gl$user_data_path)
+        usr <- first(na.omit(c(sso_usr, compass_usr)))
         cred <- list(
-          user_auth = !is.null(usr),
+          user_auth = !is.na(usr),
           user = sso_cred$user,
           role = usr$role
         )
