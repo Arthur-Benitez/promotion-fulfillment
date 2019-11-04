@@ -403,7 +403,8 @@ sso_credentials <- function(session) {
       NULL
     })
     if (!is.null(res)) {
-      res$user <- str_replace(res$loginId, '.+\\\\', '')
+      value <- str_replace(res$loginId, '.+\\\\', '')
+      res$user <- ifelse(is.na(value), NULL, value)
     }
   }
   
@@ -427,6 +428,7 @@ compass_credentials <- function(session) {
     })
     print(sprintf('User: %s', res$user))
     print(res)
+    if (!is.null(res$user) && is.na(res$user)) {res$user <- NULL}
   }
   return(res)
 }
@@ -455,7 +457,8 @@ all_credentials <- function(session, user_data_path) {
   compass_cred <- compass_credentials(session)
   sso_auth_user <- get_user(sso_cred$user, gl$user_data_path)
   compass_auth_user <- get_user(compass_cred$user, gl$user_data_path)
-  
+  res <- list(user = NULL, role = NULL, auth_user = NULL)
+
   if (!is.null(sso_cred)) {
     res$user <- sso_cred$user
     res$role <- sso_auth_user$role
@@ -499,15 +502,15 @@ loginServer <- function(input, output, session) {
   
   observe({
     if (gl$app_deployment_environment == 'dev') {
-      compass_cred <- compass_credentials(session)
-      if (is.null(compass_cred$user) || is.na(compass_cred$user)) {
-        usr <- NULL
-      } else {
-        usr <- get_user(compass_cred$user, gl$user_data_path)
-      }
-      print(usr)
+      # browser()
+      # debug(all_credentials)
+      # debug(sso_credentials)
+      # debug(compass_credentials)
+      
+      # user_details <- all_credentials(session, gl$user_data_path)
+      # print(user_details)
       cred <- list(
-        user_auth = TRUE, #!is.na(usr),
+        user_auth = TRUE,
         user = 'sam',
         role = 'owner'
       )
