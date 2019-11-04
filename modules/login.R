@@ -450,22 +450,36 @@ loginUI <- function(id) {
   )
 }
 
-coalesce_user <- function() {
+all_credentials <- function(session, user_data_path) {
   sso_cred <- sso_credentials(session)
   compass_cred <- compass_credentials(session)
-  sso_usr <- get_user(sso_cred$user, gl$user_data_path)
-  compass_usr <- get_user(compass_cred$user, gl$user_data_path)
+  sso_auth_user <- get_user(sso_cred$user, gl$user_data_path)
+  compass_auth_user <- get_user(compass_cred$user, gl$user_data_path)
   
-  if ((is.null(sso_cred) || is.na(sso_cred)) && (is.null(compass_cred$user) || is.na(compass_cred$user))) {
-    user <- NULL
+  if (!is.null(sso_cred)) {
+    res$user <- sso_cred$user
+    res$role <- sso_auth_user$role
+    res$auth_user <- !is.null(sso_auth_user$user)
+  } else if (!is.null(compass_cred)) {
+    res$user <- compass_cred$user
+    res$role <- compass_auth_user$role
+    res$auth_user <- !is.null(compass_auth_user$user)
   } else {
-    # user <- first(na.omit(c(sso_usr, compass_usr)))
-    if (is.null(sso_usr)) {
-      user <- compass_usr
-    } else {
-      user <- sso_usr
-    }
+    res$user <- NULL
+    res$role <- NULL
+    res$auth_user <- FALSE
   }
+  
+  # if ((is.null(sso_cred) || is.na(sso_cred)) && (is.null(compass_cred$user) || is.na(compass_cred$user))) {
+  #   res$user <- NULL
+  #   res$auth_user <- NULL
+  #   res$role <- NULL
+  # } else {
+  #   res$user <- ifelse(is.null(sso_cred$user), compass_cred$user, sso_cred)
+  #   res$auth_user <- ifelse(is.null(sso_auth_user), compass_auth_user, sso_auth_user)
+  #   # res$role <- 
+  # }
+  return(res)
 }
 
 ## Server
@@ -498,25 +512,12 @@ loginServer <- function(input, output, session) {
         role = 'owner'
       )
     } else {
-      sso_cred <- sso_credentials(session)
-      compass_cred <- compass_credentials(session)
-      if ((is.null(sso_cred) || is.na(sso_cred)) && (is.null(compass_cred$user) || is.na(compass_cred$user))) {
-        cred <- list(
-          user_auth = FALSE,
-          user = NULL,
-          role = NULL
-        )
-      } else {
-        # Vas a requerir una función que haga toda la lógica entre los dos usuarios y te devuelva sólo un resultado
-        sso_usr <- get_user(sso_cred$user, gl$user_data_path)
-        compass_usr <- get_user(compass_cred$user, gl$user_data_path)
-        usr <- first(na.omit(c(sso_usr, compass_usr)))
-        cred <- list(
-          user_auth = !is.na(usr),
-          user = sso_cred$user,
-          role = usr$role
-        )
-      }
+      user_details <- all_credentials(session, gl$user_data_path)
+      cred <- list(
+        user_auth = user_details$auth_user,
+        user = user_details$user,
+        role = user_details$role
+      )
     }
     futile.logger::flog.info(toJSON(list(
       session_info = list(),
