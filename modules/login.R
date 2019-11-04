@@ -418,7 +418,7 @@ compass_credentials <- function(session) {
   if (is.null(cookies)) {
     res$user <- NULL
   } else {
-    print(sprintf('Cookies: %s', cookies))
+    # cat(sprintf('-------------\n\n\nCookies: %s\n\n\n-------------', cookies))
     res$user <- tryCatch({
       strsplit(cookies, " ")[[1]] %>% 
         {keep(., ~ startsWith(.x, 'CompassUserName'))[[1]]} %>% 
@@ -426,9 +426,9 @@ compass_credentials <- function(session) {
     }, error = function(e){
       NULL
     })
-    print(sprintf('User: %s', res$user))
-    print(res)
     if (!is.null(res$user) && is.na(res$user)) {res$user <- NULL}
+    # cat(sprintf('-------------\n\nUser: %s\n\n\n-------------', res$user))
+    # print(res)
   }
   return(res)
 }
