@@ -4,6 +4,7 @@ library(tidyverse)
 
 path_zonas <- 'data/deptos_zona.csv'
 path_depts <- 'data/deptos_vp.csv'
+path_save <- 'data/stores_shelfs.csv'
 
 stores_paths <- list(
   sc = 'data/bases_cabeceras_sc.csv',
@@ -64,8 +65,9 @@ dictionary <- depto_df %>%
 
 # Stores tables processing ------------------------------------------------
 
-df <- stores_tables %>% 
+stores_shelfs <- stores_tables %>% 
   do.call(rbind, .) %>% 
-  left_join(dictionary, by = 'zona')
+  left_join(dictionary, by = 'zona') %>% 
+  write_csv(path_save)
 
 
