@@ -9,7 +9,8 @@ stores_paths <- list(
   sc = 'data/bases_cabeceras_sc.csv',
   sp = 'data/bases_cabeceras_sp.csv',
   ba = 'data/bases_cabeceras_ba.csv',
-  mb = 'data/bases_cabeceras_mb.csv'
+  mb = 'data/bases_cabeceras_mb.csv',
+  bae = 'data/bases_cabeceras_bae.csv'
 )
 
 previous_levels <- c("ABARROTES Y VINOS", "APERTURAS", "CONSUMIBLES", "FARMACIA", "FRESH", "MG", "PERECEDEROS", "ROPA", "SALUD Y NUEVOS NEGOCIOS", 'PRICHOS')
@@ -28,6 +29,7 @@ deptos_vp <- read_csv(path_depts) %>%
 stores_tables <- lapply(stores_paths, function(x){
   x %>% 
     read_csv %>% 
+    na.omit %>% 
     set_names(tolower(names(.))) %>% 
     gather('zona', 'cantidad', -(store_nbr:total)) %>% 
     filter(cantidad > 0)
