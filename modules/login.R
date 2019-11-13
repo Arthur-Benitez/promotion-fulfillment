@@ -463,10 +463,12 @@ all_credentials <- function(session, user_data_path) {
     res$user <- sso_cred$user
     res$role <- sso_auth_user$role
     res$auth_user <- !is.null(sso_auth_user$user)
+    # print('SSO Access')
   } else if (!is.null(compass_cred)) {
     res$user <- compass_cred$user
     res$role <- compass_auth_user$role
     res$auth_user <- !is.null(compass_auth_user$user)
+    # print('Compass Access')
   } else {
     res$user <- NULL
     res$role <- NULL
