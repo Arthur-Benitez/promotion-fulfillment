@@ -452,20 +452,30 @@ loginUI <- function(id) {
 all_credentials <- function(session, user_data_path) {
   sso_cred <- sso_credentials(session)
   compass_cred <- compass_credentials(session)
-  sso_auth_user <- get_user(sso_cred$user, gl$user_data_path)
-  compass_auth_user <- get_user(compass_cred$user, gl$user_data_path)
+  sso_auth_user <- get_user(sso_cred$user, user_data_path)
+  compass_auth_user <- get_user(compass_cred$user, user_data_path)
   res <- list(user = NULL, role = NULL, auth_user = NULL, platform = NULL)
+  users <- load_users(user_data_path)
 
   if (!is.null(sso_cred)) {
     res$user <- sso_cred$user
     res$role <- sso_auth_user$role
     res$auth_user <- !is.null(sso_auth_user$user)
-    res$platform <- 'SSO'
-  } else if (!is.null(compass_cred)) {
+    res$platform <- 'sso'
+  } else if (!is.null(compass_cred$user)) {
     res$user <- compass_cred$user
-    res$role <- compass_auth_user$role
-    res$auth_user <- !is.null(compass_auth_user$user)
-    res$platform <- 'Compass'
+    if (is.null(compass_auth_user)) {
+      users <- users %>% 
+        add_user(NULL, compass_cred$user, '', c('basic'))
+      if (users$status == 0) {
+        save_users(users$users, user_data_path)
+      }
+      res$role <- c('basic')
+    } else {
+      res$role <- compass_auth_user$role
+    }
+    res$auth_user <- TRUE
+    res$platform <- 'compass'
   } else {
     res$user <- NULL
     res$role <- NULL
