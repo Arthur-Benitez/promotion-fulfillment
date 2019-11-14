@@ -454,22 +454,23 @@ all_credentials <- function(session, user_data_path) {
   compass_cred <- compass_credentials(session)
   sso_auth_user <- get_user(sso_cred$user, gl$user_data_path)
   compass_auth_user <- get_user(compass_cred$user, gl$user_data_path)
-  res <- list(user = NULL, role = NULL, auth_user = NULL)
+  res <- list(user = NULL, role = NULL, auth_user = NULL, platform = NULL)
 
   if (!is.null(sso_cred)) {
     res$user <- sso_cred$user
     res$role <- sso_auth_user$role
     res$auth_user <- !is.null(sso_auth_user$user)
-    # print('SSO Access')
+    res$platform <- 'SSO'
   } else if (!is.null(compass_cred)) {
     res$user <- compass_cred$user
     res$role <- compass_auth_user$role
     res$auth_user <- !is.null(compass_auth_user$user)
-    # print('Compass Access')
+    res$platform <- 'Compass'
   } else {
     res$user <- NULL
     res$role <- NULL
     res$auth_user <- FALSE
+    res$platform <- NULL
   }
   return(res)
 }
@@ -501,14 +502,16 @@ loginServer <- function(input, output, session) {
       cred <- list(
         user_auth = user_details$auth_user,
         user = user_details$user,
-        role = user_details$role
+        role = user_details$role,
+        platform = user_details$platform
       )
     }
     futile.logger::flog.info(toJSON(list(
       session_info = list(),
       message = "ATTEMPTING USER LOGIN",
       details = list(
-        credentials = cred['user']
+        credentials = cred['user'],
+        platform = cred['platform']
       )
     )))
     if (cred$user_auth) {
@@ -520,7 +523,8 @@ loginServer <- function(input, output, session) {
         session_info = msg_cred(shiny::reactiveValuesToList(credentials)),
         message = "LOGIN SUCCESSFUL",
         details = list(
-          session = credentials$session
+          session = credentials$session,
+          platform = cred['platform']
         )
       )))
     } else {
@@ -528,7 +532,8 @@ loginServer <- function(input, output, session) {
         session_info = list(),
         message = "LOGIN FAILED",
         details = list(
-          credentials = cred['user']
+          credentials = cred['user'],
+          platform = cred['platform']
         )
       )))
       shinyjs::toggle(id = 'error', anim = TRUE, time = 1, animType = 'fade')
