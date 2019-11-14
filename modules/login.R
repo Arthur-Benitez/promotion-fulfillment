@@ -418,7 +418,6 @@ compass_credentials <- function(session) {
   if (is.null(cookies)) {
     res$user <- NULL
   } else {
-    # cat(sprintf('-------------\n\n\nCookies: %s\n\n\n-------------', cookies))
     res$user <- tryCatch({
       strsplit(cookies, " ")[[1]] %>% 
         {keep(., ~ startsWith(.x, 'CompassUserName'))[[1]]} %>% 
@@ -427,8 +426,6 @@ compass_credentials <- function(session) {
       NULL
     })
     if (!is.null(res$user) && is.na(res$user)) {res$user <- NULL}
-    # cat(sprintf('-------------\n\nUser: %s\n\n\n-------------', res$user))
-    # print(res)
   }
   return(res)
 }
@@ -474,16 +471,6 @@ all_credentials <- function(session, user_data_path) {
     res$role <- NULL
     res$auth_user <- FALSE
   }
-  
-  # if ((is.null(sso_cred) || is.na(sso_cred)) && (is.null(compass_cred$user) || is.na(compass_cred$user))) {
-  #   res$user <- NULL
-  #   res$auth_user <- NULL
-  #   res$role <- NULL
-  # } else {
-  #   res$user <- ifelse(is.null(sso_cred$user), compass_cred$user, sso_cred)
-  #   res$auth_user <- ifelse(is.null(sso_auth_user), compass_auth_user, sso_auth_user)
-  #   # res$role <- 
-  # }
   return(res)
 }
 
@@ -504,13 +491,6 @@ loginServer <- function(input, output, session) {
   
   observe({
     if (gl$app_deployment_environment == 'dev') {
-      # browser()
-      # debug(all_credentials)
-      # debug(sso_credentials)
-      # debug(compass_credentials)
-      
-      # user_details <- all_credentials(session, gl$user_data_path)
-      # print(user_details)
       cred <- list(
         user_auth = TRUE,
         user = 'sam',
