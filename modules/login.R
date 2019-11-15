@@ -425,7 +425,9 @@ compass_credentials <- function(session) {
     }, error = function(e){
       NULL
     })
-    if (!is.null(res$user) && is.na(res$user)) {res$user <- NULL}
+    if (!is.null(res$user) && is.na(res$user)) {
+      res$user <- NULL
+    }
   }
   return(res)
 }
@@ -452,34 +454,33 @@ loginUI <- function(id) {
 all_credentials <- function(session, user_data_path) {
   sso_cred <- sso_credentials(session)
   compass_cred <- compass_credentials(session)
-  sso_auth_user <- get_user(sso_cred$user, user_data_path)
-  compass_auth_user <- get_user(compass_cred$user, user_data_path)
-  res <- list(user = NULL, role = NULL, auth_user = NULL, platform = NULL)
-  users <- load_users(user_data_path)
+  res <- list(user = NULL, role = NULL, user_auth = NULL, platform = NULL)
 
   if (!is.null(sso_cred)) {
+    sso_user_auth <- get_user(sso_cred$user, user_data_path)
     res$user <- sso_cred$user
-    res$role <- sso_auth_user$role
-    res$auth_user <- !is.null(sso_auth_user$user)
+    res$role <- sso_user_auth$role
+    res$user_auth <- !is.null(sso_user_auth$user)
     res$platform <- 'sso'
   } else if (!is.null(compass_cred$user)) {
+    compass_user_auth <- get_user(compass_cred$user, user_data_path)
     res$user <- compass_cred$user
-    if (is.null(compass_auth_user)) {
-      users <- users %>% 
+    if (is.null(compass_user_auth)) {
+      users <- load_users(user_data_path) %>% 
         add_user(NULL, compass_cred$user, '', c('basic'))
       if (users$status == 0) {
         save_users(users$users, user_data_path)
       }
       res$role <- c('basic')
     } else {
-      res$role <- compass_auth_user$role
+      res$role <- compass_user_auth$role
     }
-    res$auth_user <- TRUE
+    res$user_auth <- TRUE
     res$platform <- 'compass'
   } else {
     res$user <- NULL
     res$role <- NULL
-    res$auth_user <- FALSE
+    res$user_auth <- FALSE
     res$platform <- NULL
   }
   return(res)
@@ -508,13 +509,7 @@ loginServer <- function(input, output, session) {
         role = 'owner'
       )
     } else {
-      user_details <- all_credentials(session, gl$user_data_path)
-      cred <- list(
-        user_auth = user_details$auth_user,
-        user = user_details$user,
-        role = user_details$role,
-        platform = user_details$platform
-      )
+      cred <- all_credentials(session, gl$user_data_path)
     }
     futile.logger::flog.info(toJSON(list(
       session_info = list(),
