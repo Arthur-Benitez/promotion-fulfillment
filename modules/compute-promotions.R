@@ -284,7 +284,7 @@ run_query <- function(ch, input_data, stores_lists, connector = 'production-conn
       run_query_once(ch, x, white_list, black_list, connector)
     })) %>% 
     map('result') %>% 
-    keep(is.data.frame)
+    keep(~(is.data.frame(.x) && !any(is.na(.x$store_nbr))))
   if (length(res) > 0) {
     res <- bind_rows(res)
   } else {
