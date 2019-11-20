@@ -24,6 +24,9 @@ init_col <- function(data, col, init_value = NA) {
 
 ## Función para que todos los vectores dentro de una lista sean de la misma longitud
 fill_vectors <- function(data, value = NA) {
+  if (is.data.frame(data)) {
+    return(data)
+  }
   max_length <- data %>% 
     map_dbl(length) %>% 
     max
