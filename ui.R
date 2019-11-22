@@ -48,7 +48,35 @@ body <- dashboardBody(
     tags$link(rel = 'stylesheet', type = 'text/css', href = sprintf('theme.css?%s', Sys.time())),
     tags$link(rel = 'stylesheet', type = 'text/css', href = sprintf('season/season.css?%s', Sys.time())),
     # includeCSS('www/theme.css'), ## Alternativa que mete el CSS al HTML, por si se necesita
-    tags$link(rel = 'stylesheet', href = 'https://fonts.googleapis.com/css?family=Bree+Serif|Coiny')
+    tags$link(rel = 'stylesheet', href = 'https://fonts.googleapis.com/css?family=Bree+Serif|Coiny'),
+    HTML(
+      "<script type='text/javascript'>
+        const orchestrator = function (e) {
+        document.cookie = name + '=; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+	        var loop = setInterval(
+	          function () {
+            	let userName = e.data.userName;
+  	          setCookie('CompassUserName',userName,1);
+              parent.window.postMessage( { name : 'stopLoading' }, '*');
+            	clearInterval(loop);
+        	  }, 750
+          );
+	      }
+        const setCookie  = function(name,value,days) {
+	        let expires = '';
+        	if (days) {
+	          let date = new Date();
+            date.setTime(date.getTime() + (10*60*1000));
+            expires = ';expires=' + date.toUTCString();
+        	}
+          document.cookie = name + '=' + (value || '')  + expires + '; path=/';
+        }
+        if (window.addEventListener)
+          window.addEventListener('message', orchestrator, false);
+        else
+	        window.attachEvent('onmessage', orchestrator);
+	    </script>"
+    )
   ),
   uiOutput('body')
 )
