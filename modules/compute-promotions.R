@@ -1482,7 +1482,6 @@ computePromotionsServer <- function(input, output, session, credentials) {
       title = alert_info$title,
       text = alert_info$text,
       closeOnClickOutside = TRUE,
-      timer = 10000,
       html = TRUE
     )
     flog.info(toJSON(list(
