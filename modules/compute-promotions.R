@@ -34,9 +34,20 @@ alert_param <- function(good_features, empty_features, partial_features, combs_i
       filter(is_empty == TRUE & feature_name %in% partial_features) %>% 
       group_by(feature_name) %>% 
       summarise(
-        sum_text = sprintf('%s (%s)', first(feature_name), paste0(old_nbr, collapse = ', '))
+        sum_text = ifelse(
+          length(old_nbr) > 3,
+          sprintf('%s (%s, ...)', first(feature_name), paste0(old_nbr[1:3], collapse = ', ')),
+          sprintf('%s (%s)', first(feature_name), paste0(old_nbr, collapse = ', '))
+        )
       ) %>% 
       pull(sum_text)
+    
+    empty_list <- c(paste(empty_features, '(todos)'), partial_empty_combs)
+    if (length(empty_list) > 5) {
+      empty_list_displayed <- c(empty_list[1:5], '...') 
+    } else {
+      empty_list_displayed <- empty_list
+    }
     
     title1 <- lang$warning
     text1 <- sprintf(
