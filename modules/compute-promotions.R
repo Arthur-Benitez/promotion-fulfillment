@@ -39,7 +39,13 @@ alert_param <- function(good_features, empty_features, partial_features, combs_i
       pull(sum_text)
     
     title1 <- lang$warning
-    text1 <- sprintf('No se encontró información bajo los parámetros especificados para las siguientes combinaciones de exhibición-artículo: \n%s\nLas exhibiciones con al menos un artículo no encontrado serán completamente omitidas de los resultados; te sugerimos revisar que el departamento y formato que ingresaste para ellas sean correctos.', paste0(c(paste(empty_features, '(todos)'), partial_empty_combs), collapse  = ',\n'))
+    text1 <- sprintf(
+      '<div style="text-align:left;">
+      No se encontró información bajo los parámetros especificados para las siguientes combinaciones de exhibición-artículo: <br><ul><li>%s</li></ul>
+      Las exhibiciones con al menos un artículo no encontrado serán completamente omitidas de los resultados.
+      Te sugerimos <b>revisar que el departamento y formato que ingresaste para ellas sean correctos.
+      </b></div>',
+      paste0(empty_list_displayed, collapse  = '</li><li>'))
     type1 <- 'warning'
     message1 <- 'DOWNLOAD PARTIALLY FAILED'
   }
@@ -1465,7 +1471,8 @@ computePromotionsServer <- function(input, output, session, credentials) {
       title = alert_info$title,
       text = alert_info$text,
       closeOnClickOutside = TRUE,
-      timer = 10000
+      timer = 10000,
+      html = TRUE
     )
     flog.info(toJSON(list(
       session_info = msg_cred(isolate(credentials())),
