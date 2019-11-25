@@ -18,22 +18,23 @@ generate_cols_spec <- function(column_info, columns) {
 }
 
 ## Decide que alerta mostrar
-alert_param <- function(good_features, empty_features, timestamp) {
-  if (length(good_features) == 0){
+alert_param <- function(good_features, empty_features, partial_features, combs_info, timestamp) {
+  if (length(good_features) == 0 && length(partial_features) == 0) {
     title1 <- lang$error
-    text1 <- sprintf('No se encontró información para los parámetros especificados, favor de revisar que sean correctos. Exhibiciones que fallaron: %s', paste(empty_features, collapse  = ', '))
+    text1 <- 'No se encontró información para ninguna de las promociones ingresadas, favor de revisar que sean correctos los datos.'
     type1 <- 'error'
-    message1 <- 'DOWNLOAD FAILED'
-  } else if (length(good_features) > 0 && length(empty_features) > 0){
-    title1 <- lang$warning
-    text1 <- sprintf('Se descargó la información de las exhibiciones: %s en %s, pero no se encontró información bajo los parámetros especificados para las siguientes exhibiciones: %s', paste(good_features, collapse  = ', '), format_difftime(difftime(Sys.time(), timestamp)), paste(empty_features, collapse  = ', '))
-    type1 <- 'warning'
-    message1 <- 'DOWNLOAD PARTIALLY FAILED'
-  } else {
+    message1 <- 'DOWNLOAD FAILED'   
+  } else if (length(empty_features) == 0 && length(partial_features) == 0) {
     title1 <- lang$success
     text1 <- sprintf('La información fue descargada de Teradata en %s.', format_difftime(difftime(Sys.time(), timestamp)))
     type1 <- 'success'
     message1 <- 'DOWNLOAD SUCCESSFUL'
+  } else {
+    partial_empty_combs <- paste(with(combs_info, feature_name[is_empty & feature_name %in% partial_features]), with(combs_info, old_nbr[is_empty & feature_name %in% partial_features]), sep = '-')
+    title1 <- lang$warning
+    text1 <- sprintf('Se descargó la información en %s, pero no se encontró información bajo los parámetros especificados para las siguientes combinaciones de exhibición-artículo: \n%s.', format_difftime(difftime(Sys.time(), timestamp)), paste0(c(empty_features, partial_empty_combs), collapse  = ',\n'))
+    type1 <- 'warning'
+    message1 <- 'DOWNLOAD PARTIALLY FAILED'
   }
   return(list(title = title1, text = text1, type = type1, message = message1))
 }
@@ -284,7 +285,7 @@ run_query <- function(ch, input_data, stores_lists, connector = 'production-conn
       run_query_once(ch, x, white_list, black_list, connector)
     })) %>% 
     map('result') %>% 
-    keep(~(is.data.frame(.x) && !any(is.na(.x$store_nbr))))
+    keep(~is.data.frame(.x) && !all(is.na(.x$store_nbr)) && nrow(.x) > 0)
   if (length(res) > 0) {
     res <- bind_rows(res)
   } else {
@@ -409,14 +410,14 @@ check_query_result_is_empty <- function(result, input) {
 }
 
 ## Regresar nombre de displays que no tuvieron info
-get_empty_features <- function(result, input) {
+get_empty_combs <- function(result, input) {
   result %>% 
-    group_by(feature_name) %>% 
+    group_by(feature_name, old_nbr) %>% 
     nest() %>% 
     mutate(
       is_empty = map_lgl(data, ~check_query_result_is_empty(.x, input))
     ) %>% 
-    select(feature_name, is_empty)
+    select(feature_name, old_nbr, is_empty)
 }
 
 ## Lógica en R
@@ -1430,11 +1431,17 @@ computePromotionsServer <- function(input, output, session, credentials) {
   good_features_rv <- reactiveVal()
   observeEvent(query_result(), {
     r$is_running <- FALSE
-    req(is.data.frame(query_result()$data))
-    feature_info <- get_empty_features(query_result()$data, isolate(r$items))
-    good_features <- with(feature_info, feature_name[!is_empty])
-    empty_features <- with(feature_info, feature_name[is_empty])
-    alert_info <- alert_param(good_features, empty_features, query_result()$timestamp)
+    combs_info <- get_empty_combs(query_result()$data, isolate(r$items))
+    feature_info <- combs_info %>% 
+      group_by(feature_name) %>% 
+      summarise(
+        any_empty = any(is_empty),
+        all_empty = all(is_empty)
+      )
+    good_features <- with(feature_info, feature_name[!any_empty])
+    partial_features <- with(feature_info, feature_name[any_empty & !all_empty])
+    empty_features <- with(feature_info, feature_name[all_empty])
+    alert_info <- alert_param(good_features, empty_features, partial_features, combs_info, query_result()$timestamp)
     shinyalert::shinyalert(
       type = alert_info$type,
       title = alert_info$title,
