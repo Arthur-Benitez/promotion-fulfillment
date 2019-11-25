@@ -47,6 +47,7 @@ body <- dashboardBody(
   tags$head(
     tags$link(rel = 'stylesheet', type = 'text/css', href = sprintf('theme.css?%s', Sys.time())),
     tags$link(rel = 'stylesheet', type = 'text/css', href = sprintf('season/season.css?%s', Sys.time())),
+    HTML("<script src = 'season/season.js'></script>"),
     # includeCSS('www/theme.css'), ## Alternativa que mete el CSS al HTML, por si se necesita
     tags$link(rel = 'stylesheet', href = 'https://fonts.googleapis.com/css?family=Bree+Serif|Coiny')
   ),
