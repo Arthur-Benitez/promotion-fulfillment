@@ -30,9 +30,16 @@ alert_param <- function(good_features, empty_features, partial_features, combs_i
     type1 <- 'success'
     message1 <- 'DOWNLOAD SUCCESSFUL'
   } else {
-    partial_empty_combs <- paste(with(combs_info, feature_name[is_empty & feature_name %in% partial_features]), with(combs_info, old_nbr[is_empty & feature_name %in% partial_features]), sep = '-')
+    partial_empty_combs <- combs_info %>% 
+      filter(is_empty == TRUE & feature_name %in% partial_features) %>% 
+      group_by(feature_name) %>% 
+      summarise(
+        sum_text = sprintf('%s (%s)', first(feature_name), paste0(old_nbr, collapse = ', '))
+      ) %>% 
+      pull(sum_text)
+    
     title1 <- lang$warning
-    text1 <- sprintf('Se descargó la información en %s, pero no se encontró información bajo los parámetros especificados para las siguientes combinaciones de exhibición-artículo: \n%s.', format_difftime(difftime(Sys.time(), timestamp)), paste0(c(empty_features, partial_empty_combs), collapse  = ',\n'))
+    text1 <- sprintf('No se encontró información bajo los parámetros especificados para las siguientes combinaciones de exhibición-artículo: \n%s\nLas exhibiciones con al menos un artículo no encontrado serán completamente omitidas de los resultados; te sugerimos revisar que el departamento y formato que ingresaste para ellas sean correctos.', paste0(c(paste(empty_features, '(todos)'), partial_empty_combs), collapse  = ',\n'))
     type1 <- 'warning'
     message1 <- 'DOWNLOAD PARTIALLY FAILED'
   }
