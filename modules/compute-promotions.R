@@ -1431,17 +1431,28 @@ computePromotionsServer <- function(input, output, session, credentials) {
   good_features_rv <- reactiveVal()
   observeEvent(query_result(), {
     r$is_running <- FALSE
-    combs_info <- get_empty_combs(query_result()$data, isolate(r$items))
-    feature_info <- combs_info %>% 
-      group_by(feature_name) %>% 
-      summarise(
-        any_empty = any(is_empty),
-        all_empty = all(is_empty)
+    if (!is.data.frame(query_result()$data)) {
+      alert_info <- list(
+        title = lang$error,
+        text = 'No se encontró información para ninguna de las promociones ingresadas, favor de revisar que sean correctos los datos.',
+        type = 'error',
+        message = 'DOWNLOAD FAILED'
       )
-    good_features <- with(feature_info, feature_name[!any_empty])
-    partial_features <- with(feature_info, feature_name[any_empty & !all_empty])
-    empty_features <- with(feature_info, feature_name[all_empty])
-    alert_info <- alert_param(good_features, empty_features, partial_features, combs_info, query_result()$timestamp)
+      good_features_rv(NULL)
+    } else {
+      combs_info <- get_empty_combs(query_result()$data, isolate(r$items))
+      feature_info <- combs_info %>% 
+        group_by(feature_name) %>% 
+        summarise(
+          any_empty = any(is_empty),
+          all_empty = all(is_empty)
+        )
+      good_features <- with(feature_info, feature_name[!any_empty])
+      partial_features <- with(feature_info, feature_name[any_empty & !all_empty])
+      empty_features <- with(feature_info, feature_name[all_empty])
+      alert_info <- alert_param(good_features, empty_features, partial_features, combs_info, query_result()$timestamp)
+      good_features_rv(good_features)
+    }
     shinyalert::shinyalert(
       type = alert_info$type,
       title = alert_info$title,
@@ -1454,7 +1465,6 @@ computePromotionsServer <- function(input, output, session, credentials) {
       message = alert_info$message,
       details = list()
     )))
-    good_features_rv(good_features)
     r$final_result_trigger <- r$final_result_trigger + 1
   })
   ### Ahora sí cálculos
