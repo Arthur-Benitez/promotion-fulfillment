@@ -81,16 +81,16 @@ alert_param <- function(combs_info, timestamp) {
 ## Leer entrada
 parse_input <- function(input_file, gl, calendar_day, date_format = '%Y-%m-%d') {
   if (tools::file_ext(input_file) != 'xlsx') {
-    return('¡Cuidado! De ahora en adelante, el template de carga debe estar en formato de Excel (.xlsx). Te sugerimos que descarges el formato ejemplo de nuevo.')
+    return('¡Cuidado! El template de carga debe estar en formato de Excel (.xlsx). Te sugerimos que descarges el formato ejemplo de nuevo.')
   }
   tryCatch({
     column_info <- gl$cols[gl$cols$is_input, ]
     # Quitar las columnas opcionales
     required_cols <- column_info %>% 
-      filter(!(name %in% c('white_list', 'black_list')))
+      filter(!(name %in% c('white_list', 'black_list', 'primary_desc_temp')))
     nms <- names(readxl::read_excel(input_file, sheet = 1, n_max = 0))
     if (!all(required_cols$pretty_name %in% nms)) {
-      return(sprintf('Las siguientes columnas faltan en el archivo de entrada: %s', paste(setdiff(required_cols$pretty_name, nms), collapse = ', ')))
+      return(sprintf('Las siguientes columnas faltan en el archivo que ingresaste: %s, puedes agregarlas manualmente o descargar el template de ejemplo.', paste(setdiff(required_cols$pretty_name, nms), collapse = ', ')))
     }
     nms <- remap_names(columns = nms, column_info, from_col = 'pretty_name', to_col = 'name')
     col_types <- generate_cols_spec(column_info, nms)
@@ -157,7 +157,7 @@ validate_input <- function(data, stores_lists = NULL, gl, calendar_day) {
         ## Checar que no haya valores faltantes
         'No puede haber valores faltantes (blanks). Esto se debe comúnmente a que la fecha está almacenada como texto en Excel. Asegúrate de que Excel reconozca las fechas.',
         data %>% 
-          select(-white_list, -black_list) %>% 
+          select(-white_list, -black_list, -primary_desc_temp, -shelf, -default_shelf) %>% 
           anyNA() %>% 
           not(),
         ## Checar que feature_name sea de longitid <= 22 caracteres (para que en total sean <= 40 para GRS)
@@ -212,12 +212,9 @@ validate_input <- function(data, stores_lists = NULL, gl, calendar_day) {
         ## Checar que Priority sea un entero entre 1 y 100
         sprintf('Priority debe ser un entero entre 1 y 100'),
         with(data, all(Priority == as.integer(Priority) & between(Priority, 1, 100))),
-        ## Checar que max_feature_qty sea estrictamente positivo
-        'max_feature_qty debe ser un entero mayor o igual a 1.',
-        with(data, all(max_feature_qty >= 1)),
         ## Checar que min_feature_qty esté entre 1 y max_feature_qty
-        'min_feature_qty debe ser un entero entre 1 y max_feature_qty.',
-        with(data, all(1 <= min_feature_qty & min_feature_qty <= max_feature_qty)),
+        'min_feature_qty debe ser un número entre 0 y 1 que represente un porcentaje de la capacidad máxima del mueble.',
+        with(data, all(0 <= min_feature_qty & min_feature_qty <= 1)),
         ## Todas las listas usadas deben existir
         'Alguna de las columnas con las tiendas especiales a incluir o excluir no existe.',
         (is.null(stores_lists) && all(is.na(data$white_list)) && all(is.na(data$black_list))) || (all(discard(unique(data$white_list), is.na) %in% names(stores_lists)) && all(discard(unique(data$black_list), is.na) %in% names(stores_lists))),
@@ -225,7 +222,23 @@ validate_input <- function(data, stores_lists = NULL, gl, calendar_day) {
         'Las columnas de tiendas especiales deben contener sólo números.',
         stores_lists %>% 
           map_lgl(~typeof(.x) == 'double') %>% 
-          all()
+          all(),
+        ## Checar los tipos de muebles deseados
+        sprintf('El mueble debe ser uno de: %s', paste(gl$shelfs, collapse = ', ')),
+        all(toupper(str_replace(data$shelf, '_', ' ')) %in% gl$shelfs | is.na(data$shelf)),
+        ## Checar los datos de muebles default
+        sprintf('El mueble predeterminado es requerido para todas las filas y debe ser uno de: %s, o bien, la cantidad de piezas que se desea simular como máximo de capacidad en el mueble.', paste(gl$shelfs, collapse = ', ')),
+        data %>% 
+          group_by(feature_name) %>% 
+          summarise(
+            number = !all(is.na(as.numeric(str_replace(default_shelf, ',', '')))),
+            character = all(toupper(str_replace(default_shelf, '_', ' ')) %in% gl$shelfs)
+          ) %>% 
+          mutate(
+            validation = number | character
+          ) %>% 
+          pull(validation) %>% 
+          all
       )
       failed_idx <- which(!cond$passed)
       if (length(failed_idx) == 0) {

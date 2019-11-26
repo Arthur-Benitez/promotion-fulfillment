@@ -132,6 +132,12 @@ gl <- list(
     'MEDIMART',
     'OTRO'
   ),
+  shelfs = c(
+    'BASE',
+    'MEDIA BASE',
+    'CABECERA ALTA',
+    'CABECERA BAJA'
+  ),
   max_input_rows = 500,
   max_output_rows = 100000,
   max_input_queries = 15,
