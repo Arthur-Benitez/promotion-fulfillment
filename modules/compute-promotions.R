@@ -18,7 +18,17 @@ generate_cols_spec <- function(column_info, columns) {
 }
 
 ## Decide que alerta mostrar
-alert_param <- function(good_features, empty_features, partial_features, combs_info, timestamp) {
+alert_param <- function(combs_info, timestamp) {
+  feature_info <- combs_info %>% 
+    group_by(feature_name) %>% 
+    summarise(
+      any_empty = any(is_empty),
+      all_empty = all(is_empty)
+    )
+  good_features <- with(feature_info, feature_name[!any_empty])
+  partial_features <- with(feature_info, feature_name[any_empty & !all_empty])
+  empty_features <- with(feature_info, feature_name[all_empty])
+  
   if (length(good_features) == 0 && length(partial_features) == 0) {
     title1 <- lang$error
     text1 <- 'No se encontró información para ninguna de las promociones ingresadas, favor de revisar que sean correctos los datos.'
@@ -30,7 +40,7 @@ alert_param <- function(good_features, empty_features, partial_features, combs_i
     type1 <- 'success'
     message1 <- 'DOWNLOAD SUCCESSFUL'
   } else {
-    partial_empty_combs <- combs_info %>% 
+    partial_combs <- combs_info %>% 
       filter(is_empty == TRUE & feature_name %in% partial_features) %>% 
       group_by(feature_name) %>% 
       summarise(
@@ -42,7 +52,7 @@ alert_param <- function(good_features, empty_features, partial_features, combs_i
       ) %>% 
       pull(sum_text)
     
-    empty_list <- c(paste(empty_features, '(todos)'), partial_empty_combs)
+    empty_list <- c(paste(empty_features, '(todos)'), partial_combs)
     if (length(empty_list) > 5) {
       empty_list_displayed <- c(empty_list[1:5], '...') 
     } else {
@@ -60,7 +70,7 @@ alert_param <- function(good_features, empty_features, partial_features, combs_i
     type1 <- 'warning'
     message1 <- 'DOWNLOAD PARTIALLY FAILED'
   }
-  return(list(title = title1, text = text1, type = type1, message = message1))
+  return(list(title = title1, text = text1, type = type1, message = message1, good_features = good_features))
 }
 
 ## Leer entrada
@@ -1465,17 +1475,8 @@ computePromotionsServer <- function(input, output, session, credentials) {
       good_features_rv(NULL)
     } else {
       combs_info <- get_empty_combs(query_result()$data, isolate(r$items))
-      feature_info <- combs_info %>% 
-        group_by(feature_name) %>% 
-        summarise(
-          any_empty = any(is_empty),
-          all_empty = all(is_empty)
-        )
-      good_features <- with(feature_info, feature_name[!any_empty])
-      partial_features <- with(feature_info, feature_name[any_empty & !all_empty])
-      empty_features <- with(feature_info, feature_name[all_empty])
-      alert_info <- alert_param(good_features, empty_features, partial_features, combs_info, query_result()$timestamp)
-      good_features_rv(good_features)
+      alert_info <- alert_param(combs_info, query_result()$timestamp)
+      good_features_rv(alert_info$good_features)
     }
     shinyalert::shinyalert(
       type = alert_info$type,
