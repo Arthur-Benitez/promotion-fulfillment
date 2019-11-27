@@ -67,6 +67,7 @@ usageStatsServer <- function(input, output, session, credentials, dev_connection
     )))
     res <- list.files(log_path, full.names = TRUE) %>% 
       str_subset('\\.log$') %>% 
+      keep(~Sys.Date() - as.Date(str_replace(basename(.x), '\\.log', '')) <= input$max_days_to_load) %>% 
       load_log()
     flog.info(toJSON(list(
       session_info = msg_cred(credentials()),
@@ -561,6 +562,10 @@ usageStatsUI <- function(id) {
         tags$div(
           class = 'inline-select-button-wrapper',
           actionButton(ns('update_user_info'), lang$update_user_info, icon = icon('redo-alt'))
+        ),
+        tags$div(
+          class = 'inline-select-button-wrapper',
+          numericInput(ns('max_days_to_load'), lang$max_days_to_load, value = 90, min = 1, max = 730, step = 1)
         ),
         uiOutput(ns('date_range_ui'))
       )
