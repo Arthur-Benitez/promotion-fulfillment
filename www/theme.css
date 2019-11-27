@@ -76,8 +76,18 @@ h6,
   margin-left: 20px;
 }
 
+.usage-inline-inputs {
+  display: inline-flex;
+}
+
+.usage-inline-inputs > * {
+  margin-right: 15px;
+  margin-left: 15px;
+}
+
 .inline-select-button-wrapper {
-  margin: auto 25px 15px 0;
+  margin-top: auto;
+  margin-bottom: 15px;
 }
 
 /* Botones de colores con letra blanca */
