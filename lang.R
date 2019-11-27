@@ -3,7 +3,9 @@ require(purrr)
 lang <- list(
   ## login
   user = 'Usuario',
+  user_name = 'Usuario',
   tribu = 'Tribu',
+  puesto = 'Puesto',
   all = 'Todos',
   password = 'Contraseña',
   role = 'Permisos',
