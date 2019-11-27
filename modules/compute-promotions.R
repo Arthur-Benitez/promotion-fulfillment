@@ -47,7 +47,7 @@ alert_param <- function(combs_info, timestamp) {
       ) %>% 
       pull(sum_text)
     
-    empty_list <- c(paste(empty_features, '(todos)'), partial_combs)
+    empty_list <- ifelse(length(empty_features) > 0, c(paste(empty_features, '(todos)'), partial_combs), partial_combs)
     if (length(empty_list) > 5) {
       empty_list_displayed <- c(empty_list[1:5], '...') 
     } else {
