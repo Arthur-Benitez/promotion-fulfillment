@@ -29,17 +29,12 @@ alert_param <- function(combs_info, timestamp) {
   partial_features <- with(feature_info, feature_name[any_empty & !all_empty])
   empty_features <- with(feature_info, feature_name[all_empty])
   
-  if (length(good_features) == 0 && length(partial_features) == 0) {
-    title1 <- lang$error
-    text1 <- 'No se encontró información para ninguna de las promociones ingresadas, favor de revisar que sean correctos los datos.'
-    type1 <- 'error'
-    message1 <- 'DOWNLOAD FAILED'   
-  } else if (length(empty_features) == 0 && length(partial_features) == 0) {
+  if (length(good_features) > 0 && length(partial_features) == 0 && length(empty_features) == 0) {
     title1 <- lang$success
     text1 <- sprintf('La información fue descargada de Teradata en %s.', format_difftime(difftime(Sys.time(), timestamp)))
     type1 <- 'success'
     message1 <- 'DOWNLOAD SUCCESSFUL'
-  } else {
+  } else if (length(good_features) > 0 || length(partial_features) > 0) {
     partial_combs <- combs_info %>% 
       filter(is_empty == TRUE & feature_name %in% partial_features) %>% 
       group_by(feature_name) %>% 
@@ -69,6 +64,11 @@ alert_param <- function(combs_info, timestamp) {
       paste0(empty_list_displayed, collapse  = '</li><li>'))
     type1 <- 'warning'
     message1 <- 'DOWNLOAD PARTIALLY FAILED'
+  } else if (length(good_features) == 0 && length(partial_features) == 0 && length(empty_features) >= 0) {
+    title1 <- lang$error
+    text1 <- 'No se encontró información para ninguna de las promociones ingresadas, favor de revisar que sean correctos los datos.'
+    type1 <- 'error'
+    message1 <- 'DOWNLOAD FAILED'   
   }
   return(list(title = title1, text = text1, type = type1, message = message1, good_features = good_features))
 }
