@@ -3,7 +3,7 @@ require(purrr)
 lang <- list(
   ## login
   user = 'Usuario',
-  vp = 'Vicepresidencia',
+  tribu = 'Tribu',
   all = 'Todos',
   password = 'Contraseña',
   role = 'Permisos',
