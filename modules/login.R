@@ -515,8 +515,8 @@ loginServer <- function(input, output, session) {
       session_info = list(),
       message = "ATTEMPTING USER LOGIN",
       details = list(
-        credentials = cred['user'],
-        platform = cred['platform']
+        credentials = cred$user,
+        platform = cred$platform
       )
     )))
     if (cred$user_auth) {
@@ -529,7 +529,7 @@ loginServer <- function(input, output, session) {
         message = "LOGIN SUCCESSFUL",
         details = list(
           session = credentials$session,
-          platform = cred['platform']
+          platform = cred$platform
         )
       )))
     } else {
@@ -537,8 +537,8 @@ loginServer <- function(input, output, session) {
         session_info = list(),
         message = "LOGIN FAILED",
         details = list(
-          credentials = cred['user'],
-          platform = cred['platform']
+          credentials = cred$user,
+          platform = cred$platform
         )
       )))
       shinyjs::toggle(id = 'error', anim = TRUE, time = 1, animType = 'fade')
