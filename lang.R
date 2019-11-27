@@ -147,6 +147,7 @@ lang <- list(
   usage_stats = 'Utilización',
   refresh = 'Refrescar logs',
   update_user_info = 'Refrescar info de usuarios',
+  max_days_to_load = 'Número de días a cargar',
   kpi = 'KPI',
   message = 'Evento',
   graph_daily_tab = 'Tendencia',
