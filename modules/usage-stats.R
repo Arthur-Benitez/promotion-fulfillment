@@ -94,6 +94,11 @@ usageStatsServer <- function(input, output, session, credentials, dev_connection
     )
   })
   
+  output$update_user_info_ui <- renderUI({
+    req('owner' %in% credentials()$role)
+    actionButton(session$ns('update_user_info'), lang$update_user_info, icon = icon('redo-alt'))
+  })
+  
   update_user_info_trigger <- reactiveVal(0)
   observeEvent(input$update_user_info, {
     req(input$update_user_info > 0)
@@ -554,20 +559,17 @@ usageStatsUI <- function(id) {
     box(
       width = 12,
       tags$div(
-        style = 'display: flex; margin-left: 15px',
+        class = 'usage-inline-inputs',
+        uiOutput(ns('date_range_ui')),
+        numericInput(ns('max_days_to_load'), lang$max_days_to_load, value = 90, min = 1, max = 730, step = 1),
         tags$div(
           class = 'inline-select-button-wrapper',
           actionButton(ns('refresh'), lang$refresh, icon = icon('redo-alt'))
         ),
         tags$div(
           class = 'inline-select-button-wrapper',
-          actionButton(ns('update_user_info'), lang$update_user_info, icon = icon('redo-alt'))
-        ),
-        tags$div(
-          class = 'inline-select-button-wrapper',
-          numericInput(ns('max_days_to_load'), lang$max_days_to_load, value = 90, min = 1, max = 730, step = 1)
-        ),
-        uiOutput(ns('date_range_ui'))
+          uiOutput(ns('update_user_info_ui'))
+        )
       )
     ),
     box(
