@@ -121,7 +121,7 @@ usageStatsServer <- function(input, output, session, credentials, dev_connection
         closeOnEsc = TRUE,
         closeOnClickOutside = TRUE
       )
-      sql_query(
+      res <- sql_query(
         ch = dev_connection()$ch,
         connector = 'WM3', # con un usuario personal porque el aplicativo no puede accesar WM_AD_HOC
         query = qry,
@@ -131,8 +131,9 @@ usageStatsServer <- function(input, output, session, credentials, dev_connection
         set_names(tolower(names(.))) %>% 
         mutate_at(vars(vp, name), str_to_title) %>% 
         mutate_at('user', tolower) %>% 
-        distinct() %>% # por si ya no son únicos al cambiar las mayúsculas
-        saveRDS('data/user-info.rds')
+        distinct() # por si ya no son únicos al cambiar las mayúsculas
+      saveRDS(x, sprintf('data/%s-user-info.rds', format(Sys.time(), '%Y%m%d_%H%M%S')))
+      saveRDS(x, 'data/user-info.rds')
       flog.info(toJSON(list(
         session_info = msg_cred(credentials()),
         message = 'DONE UPDATING USER INFO',
