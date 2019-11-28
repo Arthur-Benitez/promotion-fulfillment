@@ -33,7 +33,7 @@ msg_id <- function(credentials) {
 
 ## Seleccionar sólo user, role y session
 msg_cred <- function(credentials) {
-  idx <- intersect(c('user', 'role', 'session'), names(credentials))
+  idx <- intersect(c('user', 'role', 'session', 'platform'), names(credentials))
   if (length(idx) == 0) {
     NULL
   } else {
@@ -481,7 +481,7 @@ all_credentials <- function(session, user_data_path) {
     res$user <- NULL
     res$role <- NULL
     res$user_auth <- FALSE
-    res$platform <- NULL
+    res$platform <- 'unknown'
   }
   return(res)
 }
@@ -506,7 +506,8 @@ loginServer <- function(input, output, session) {
       cred <- list(
         user_auth = TRUE,
         user = 'sam',
-        role = 'owner'
+        role = 'owner',
+        platform = 'dev'
       )
     } else {
       cred <- all_credentials(session, gl$user_data_path)
@@ -520,16 +521,17 @@ loginServer <- function(input, output, session) {
       )
     )))
     if (cred$user_auth) {
-      credentials$user_auth <- cred$user_auth
-      credentials$user <- cred$user
-      credentials$role <- cred$role
+      ## No se puede copiar una lista a reactiveValues directo
+      for (v in names(cred)) {
+        credentials[[v]] <- cred[[v]]
+      }
       credentials$session <- uid()
       futile.logger::flog.info(toJSON(list(
         session_info = msg_cred(shiny::reactiveValuesToList(credentials)),
         message = "LOGIN SUCCESSFUL",
         details = list(
           session = credentials$session,
-          platform = cred$platform
+          platform = credentials$platform
         )
       )))
     } else {
