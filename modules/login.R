@@ -451,12 +451,19 @@ loginUI <- function(id) {
   )
 }
 
-all_credentials <- function(session, user_data_path) {
+all_credentials <- function(session, user_data_path, app_deployment_environment) {
   sso_cred <- sso_credentials(session)
   compass_cred <- compass_credentials(session)
   res <- list(user = NULL, role = NULL, user_auth = NULL, platform = NULL)
-
-  if (!is.null(sso_cred)) {
+  
+  if (app_deployment_environment == 'dev') {
+    res <- list(
+      user_auth = TRUE,
+      user = 'sam',
+      role = 'owner',
+      platform = 'dev'
+    )
+  } else if (!is.null(sso_cred)) {
     sso_user_auth <- get_user(sso_cred$user, user_data_path)
     res$user <- sso_cred$user
     res$role <- sso_user_auth$role
@@ -502,16 +509,8 @@ loginServer <- function(input, output, session) {
   credentials <- shiny::reactiveValues(user_auth = FALSE)
   
   observe({
-    if (gl$app_deployment_environment == 'dev') {
-      cred <- list(
-        user_auth = TRUE,
-        user = 'sam',
-        role = 'owner',
-        platform = 'dev'
-      )
-    } else {
-      cred <- all_credentials(session, gl$user_data_path)
-    }
+    cred <- all_credentials(session, gl$user_data_path, gl$app_deployment_environment)
+    
     futile.logger::flog.info(toJSON(list(
       session_info = list(),
       message = "ATTEMPTING USER LOGIN",
