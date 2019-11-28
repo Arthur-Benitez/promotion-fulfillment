@@ -432,25 +432,7 @@ compass_credentials <- function(session) {
   return(res)
 }
 
-
-# Login -------------------------------------------------------------------
-
-## UI
-loginUI <- function(id) {
-  ns <- shiny::NS(id)
-  shiny::div(
-    id = ns('panel'),
-    class = 'login-panel',
-    shiny::wellPanel(
-      includeHTML('html/welcome.html') %>% 
-        str_replace_all('__email_name__', lang$email_name) %>% 
-        str_replace_all('__app_name__', lang$app_name) %>% 
-        str_replace_all('__email_details__', lang$emailto) %>%
-        HTML()
-    )
-  )
-}
-
+## Combinar todos los accesos
 all_credentials <- function(session, user_data_path, app_deployment_environment) {
   sso_cred <- sso_credentials(session)
   compass_cred <- compass_credentials(session)
@@ -491,6 +473,25 @@ all_credentials <- function(session, user_data_path, app_deployment_environment)
     res$platform <- 'unknown'
   }
   return(res)
+}
+
+
+# Login -------------------------------------------------------------------
+
+## UI
+loginUI <- function(id) {
+  ns <- shiny::NS(id)
+  shiny::div(
+    id = ns('panel'),
+    class = 'login-panel',
+    shiny::wellPanel(
+      includeHTML('html/welcome.html') %>% 
+        str_replace_all('__email_name__', lang$email_name) %>% 
+        str_replace_all('__app_name__', lang$app_name) %>% 
+        str_replace_all('__email_details__', lang$emailto) %>%
+        HTML()
+    )
+  )
 }
 
 ## Server
