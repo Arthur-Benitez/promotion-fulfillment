@@ -105,9 +105,22 @@ usageStatsServer <- function(input, output, session, credentials, dev_connection
   ### Trigger automático periódico (el ignoreInit = FALSE hace que también corra
   ### en producción)
   observeEvent(dev_connection()$is_open, {
-    last_updated <- file.info('data/user-info.rds')$mtime
+    if (file.exists('data/user-info.rds')) {
+      last_updated <- file.info('data/user-info.rds')$mtime
+    } else {
+      last_updated <- as.POSIXct('1900-01-01 00:00:00')
+    }
     current_time <- Sys.time()
     elapsed_days <- as.numeric(difftime(current_time, last_updated, units = 'days'))
+    flog.info(toJSON(list(
+      session_info = msg_cred(credentials()),
+      message = 'CHECKING AGE OF USER INFO FILE',
+      details = list(
+        last_updated = last_updated,
+        timestamp = current_time,
+        elapsed_days = elapsed_days
+      )
+    )))
     if (elapsed_days > 7) {
       flog.info(toJSON(list(
         session_info = msg_cred(credentials()),
@@ -131,7 +144,7 @@ usageStatsServer <- function(input, output, session, credentials, dev_connection
     update_user_info(update_user_info() + 1)
   }, ignoreInit = FALSE, ignoreNULL = TRUE)
   ### Ahora sí actualizar
-  observeEvent(update_user_info(), ignoreInit = TRUE, handlerExpr = {
+  observeEvent(update_user_info(), ignoreInit = FALSE, handlerExpr = {
     req(update_user_info() > 0)
     req(
       !gl$is_dev ||
