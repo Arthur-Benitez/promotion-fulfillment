@@ -99,9 +99,40 @@ usageStatsServer <- function(input, output, session, credentials, dev_connection
     actionButton(session$ns('update_user_info'), lang$update_user_info, icon = icon('redo-alt'))
   })
   
-  update_user_info_trigger <- reactiveVal(0)
+  ## Actualizar base de usuarios
+  update_user_info <- reactiveVal(0)
+  update_user_df <- reactiveVal(0)
+  ### Trigger automático periódico (el ignoreInit = FALSE hace que también corra
+  ### en producción)
+  observeEvent(dev_connection()$is_open, {
+    last_updated <- file.info('data/user-info.rds')$mtime
+    current_time <- Sys.time()
+    elapsed_days <- as.numeric(difftime(current_time, last_updated, units = 'days'))
+    if (elapsed_days > 7) {
+      flog.info(toJSON(list(
+        session_info = msg_cred(credentials()),
+        message = 'TRIGGERING USER INFO UPDATE AUTOMATICALLY',
+        details = list(
+          last_updated = last_updated,
+          timestamp = current_time,
+          elapsed_days = elapsed_days
+        )
+      )))
+      update_user_info(update_user_info() + 1)
+    }
+  }, ignoreInit = FALSE, ignoreNULL = TRUE)
+  ### Trigger manual
   observeEvent(input$update_user_info, {
-    req(input$update_user_info > 0)
+    flog.info(toJSON(list(
+      session_info = msg_cred(credentials()),
+      message = 'TRIGGERING USER INFO UPDATE MANUALLY',
+      details = list()
+    )))
+    update_user_info(update_user_info() + 1)
+  }, ignoreInit = FALSE, ignoreNULL = TRUE)
+  ### Ahora sí actualizar
+  observeEvent(update_user_info(), ignoreInit = TRUE, handlerExpr = {
+    req(update_user_info() > 0)
     req(
       !gl$is_dev ||
         (gl$is_dev && dev_connection()$is_open)
@@ -156,11 +187,11 @@ usageStatsServer <- function(input, output, session, credentials, dev_connection
         details = list()
       )))
     })
-    update_user_info_trigger(update_user_info_trigger() + 1)
+    update_user_df(update_user_df() + 1)
   })
   
   user_info <- reactive({
-    update_user_info_trigger()
+    update_user_df()
     tryCatch({
       readRDS('data/user-info.rds')
     }, error = function(e){
