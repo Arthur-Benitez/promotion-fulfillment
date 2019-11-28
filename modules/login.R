@@ -33,7 +33,7 @@ msg_id <- function(credentials) {
 
 ## Seleccionar sólo user, role y session
 msg_cred <- function(credentials) {
-  idx <- intersect(c('user', 'role', 'session'), names(credentials))
+  idx <- intersect(c('user', 'role', 'session', 'platform'), names(credentials))
   if (length(idx) == 0) {
     NULL
   } else {
@@ -432,31 +432,20 @@ compass_credentials <- function(session) {
   return(res)
 }
 
-
-# Login -------------------------------------------------------------------
-
-## UI
-loginUI <- function(id) {
-  ns <- shiny::NS(id)
-  shiny::div(
-    id = ns('panel'),
-    class = 'login-panel',
-    shiny::wellPanel(
-      includeHTML('html/welcome.html') %>% 
-        str_replace_all('__email_name__', lang$email_name) %>% 
-        str_replace_all('__app_name__', lang$app_name) %>% 
-        str_replace_all('__email_details__', lang$emailto) %>%
-        HTML()
-    )
-  )
-}
-
-all_credentials <- function(session, user_data_path) {
+## Combinar todos los accesos
+all_credentials <- function(session, user_data_path, app_deployment_environment) {
   sso_cred <- sso_credentials(session)
   compass_cred <- compass_credentials(session)
   res <- list(user = NULL, role = NULL, user_auth = NULL, platform = NULL)
-
-  if (!is.null(sso_cred)) {
+  
+  if (app_deployment_environment == 'dev') {
+    res <- list(
+      user_auth = TRUE,
+      user = 'sam',
+      role = 'owner',
+      platform = 'dev'
+    )
+  } else if (!is.null(sso_cred)) {
     sso_user_auth <- get_user(sso_cred$user, user_data_path)
     res$user <- sso_cred$user
     res$role <- sso_user_auth$role
@@ -481,9 +470,28 @@ all_credentials <- function(session, user_data_path) {
     res$user <- NULL
     res$role <- NULL
     res$user_auth <- FALSE
-    res$platform <- NULL
+    res$platform <- 'unknown'
   }
   return(res)
+}
+
+
+# Login -------------------------------------------------------------------
+
+## UI
+loginUI <- function(id) {
+  ns <- shiny::NS(id)
+  shiny::div(
+    id = ns('panel'),
+    class = 'login-panel',
+    shiny::wellPanel(
+      includeHTML('html/welcome.html') %>% 
+        str_replace_all('__email_name__', lang$email_name) %>% 
+        str_replace_all('__app_name__', lang$app_name) %>% 
+        str_replace_all('__email_details__', lang$emailto) %>%
+        HTML()
+    )
+  )
 }
 
 ## Server
@@ -502,15 +510,8 @@ loginServer <- function(input, output, session) {
   credentials <- shiny::reactiveValues(user_auth = FALSE)
   
   observe({
-    if (gl$app_deployment_environment == 'dev') {
-      cred <- list(
-        user_auth = TRUE,
-        user = 'sam',
-        role = 'owner'
-      )
-    } else {
-      cred <- all_credentials(session, gl$user_data_path)
-    }
+    cred <- all_credentials(session, gl$user_data_path, gl$app_deployment_environment)
+    
     futile.logger::flog.info(toJSON(list(
       session_info = list(),
       message = "ATTEMPTING USER LOGIN",
@@ -520,16 +521,17 @@ loginServer <- function(input, output, session) {
       )
     )))
     if (cred$user_auth) {
-      credentials$user_auth <- cred$user_auth
-      credentials$user <- cred$user
-      credentials$role <- cred$role
+      ## No se puede copiar una lista a reactiveValues directo
+      for (v in names(cred)) {
+        credentials[[v]] <- cred[[v]]
+      }
       credentials$session <- uid()
       futile.logger::flog.info(toJSON(list(
         session_info = msg_cred(shiny::reactiveValuesToList(credentials)),
         message = "LOGIN SUCCESSFUL",
         details = list(
           session = credentials$session,
-          platform = cred$platform
+          platform = credentials$platform
         )
       )))
     } else {
