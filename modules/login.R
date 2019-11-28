@@ -569,7 +569,7 @@ logoutServer <- function(input, output, session, user_auth, active, is_running) 
   })
   ## Contador de tiempo hasta logout automático
   counter_sec <- 60
-  counter_max <- 60 * 20
+  counter_max <- 60 * 60
   rv <- reactiveValues(
     tic = Sys.time(),
     remaining = 0
