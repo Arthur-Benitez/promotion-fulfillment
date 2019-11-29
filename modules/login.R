@@ -33,7 +33,7 @@ msg_id <- function(credentials) {
 
 ## Seleccionar sólo user, role y session
 msg_cred <- function(credentials) {
-  idx <- intersect(c('user', 'role', 'session'), names(credentials))
+  idx <- intersect(c('user', 'role', 'session', 'platform'), names(credentials))
   if (length(idx) == 0) {
     NULL
   } else {
@@ -120,13 +120,16 @@ user_exists <- function(username, user_data_path) {
 
 ## Regresar un usuario usando su nombre
 get_user <- function(username, user_data_path) {
-  stopifnot(is.character(username) && length(username) == 1)
-  usr <- load_users(user_data_path) %>% 
-    keep(~ .x$user == username)
-  if (length(usr) == 0) {
-    usr <- NULL
+  if (is.character(username) && length(username) == 1) {
+    usr <- load_users(user_data_path) %>% 
+      keep(~ .x$user == username)
+    if (length(usr) == 0) {
+      usr <- NULL
+    } else {
+      usr <- usr[[1]]
+    } 
   } else {
-    usr <- usr[[1]]
+    usr <- NULL
   }
   return(usr)
 }
@@ -400,10 +403,75 @@ sso_credentials <- function(session) {
       NULL
     })
     if (!is.null(res)) {
-      res$user <- str_replace(res$loginId, '.+\\\\', '')
+      value <- str_replace(res$loginId, '.+\\\\', '')
+      res$user <- ifelse(is.na(value), NULL, value)
     }
   }
   
+  return(res)
+}
+
+## Leer credenciales de Compass
+compass_credentials <- function(session) {
+  cookies <- session$request$HTTP_COOKIE
+  res <- list(user = NULL)
+  if (is.null(cookies)) {
+    res$user <- NULL
+  } else {
+    res$user <- tryCatch({
+      strsplit(cookies, " ")[[1]] %>% 
+        {keep(., ~ startsWith(.x, 'CompassUserName'))[[1]]} %>% 
+        {strsplit(trimws(.), '=')[[1]][2]}
+    }, error = function(e){
+      NULL
+    })
+    if (!is.null(res$user) && is.na(res$user)) {
+      res$user <- NULL
+    }
+  }
+  return(res)
+}
+
+## Combinar todos los accesos
+all_credentials <- function(session, user_data_path, app_deployment_environment) {
+  sso_cred <- sso_credentials(session)
+  compass_cred <- compass_credentials(session)
+  res <- list(user = NULL, role = NULL, user_auth = NULL, platform = NULL)
+  
+  if (app_deployment_environment == 'dev') {
+    res <- list(
+      user_auth = TRUE,
+      user = 'sam',
+      role = 'owner',
+      platform = 'dev'
+    )
+  } else if (!is.null(sso_cred)) {
+    sso_user_auth <- get_user(sso_cred$user, user_data_path)
+    res$user <- sso_cred$user
+    res$role <- sso_user_auth$role
+    res$user_auth <- !is.null(sso_user_auth$user)
+    res$platform <- 'sso'
+  } else if (!is.null(compass_cred$user)) {
+    compass_user_auth <- get_user(compass_cred$user, user_data_path)
+    res$user <- compass_cred$user
+    if (is.null(compass_user_auth)) {
+      users <- load_users(user_data_path) %>% 
+        add_user(NULL, compass_cred$user, '', c('basic'))
+      if (users$status == 0) {
+        save_users(users$users, user_data_path)
+      }
+      res$role <- c('basic')
+    } else {
+      res$role <- compass_user_auth$role
+    }
+    res$user_auth <- TRUE
+    res$platform <- 'compass'
+  } else {
+    res$user <- NULL
+    res$role <- NULL
+    res$user_auth <- FALSE
+    res$platform <- 'unknown'
+  }
   return(res)
 }
 
@@ -442,46 +510,28 @@ loginServer <- function(input, output, session) {
   credentials <- shiny::reactiveValues(user_auth = FALSE)
   
   observe({
-    if (gl$app_deployment_environment == 'dev') {
-      cred <- list(
-        user_auth = TRUE,
-        user = 'sam',
-        role = 'owner'
-      )
-    } else {
-      sso_cred <- sso_credentials(session)
-      if (is.null(sso_cred)) {
-        cred <- list(
-          user_auth = FALSE,
-          user = NULL,
-          role = NULL
-        )
-      } else {
-        usr <- get_user(sso_cred$user, gl$user_data_path)
-        cred <- list(
-          user_auth = !is.null(usr),
-          user = sso_cred$user,
-          role = usr$role
-        )
-      }
-    }
+    cred <- all_credentials(session, gl$user_data_path, gl$app_deployment_environment)
+    
     futile.logger::flog.info(toJSON(list(
       session_info = list(),
       message = "ATTEMPTING USER LOGIN",
       details = list(
-        credentials = cred['user']
+        credentials = cred$user,
+        platform = cred$platform
       )
     )))
     if (cred$user_auth) {
-      credentials$user_auth <- cred$user_auth
-      credentials$user <- cred$user
-      credentials$role <- cred$role
+      ## No se puede copiar una lista a reactiveValues directo
+      for (v in names(cred)) {
+        credentials[[v]] <- cred[[v]]
+      }
       credentials$session <- uid()
       futile.logger::flog.info(toJSON(list(
         session_info = msg_cred(shiny::reactiveValuesToList(credentials)),
         message = "LOGIN SUCCESSFUL",
         details = list(
-          session = credentials$session
+          session = credentials$session,
+          platform = credentials$platform
         )
       )))
     } else {
@@ -489,7 +539,8 @@ loginServer <- function(input, output, session) {
         session_info = list(),
         message = "LOGIN FAILED",
         details = list(
-          credentials = cred['user']
+          credentials = cred$user,
+          platform = cred$platform
         )
       )))
       shinyjs::toggle(id = 'error', anim = TRUE, time = 1, animType = 'fade')
@@ -520,7 +571,7 @@ logoutServer <- function(input, output, session, user_auth, active, is_running) 
   })
   ## Contador de tiempo hasta logout automático
   counter_sec <- 60
-  counter_max <- 60 * 20
+  counter_max <- 60 * 60
   rv <- reactiveValues(
     tic = Sys.time(),
     remaining = 0
