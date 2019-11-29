@@ -1,7 +1,6 @@
 
 SELECT DISTINCT
 	TRIBU,
-	--SQUAD,
 	"USER",
 	"NAME",
 	PUESTO
@@ -20,4 +19,3 @@ WHERE
 	"USER" NOT IN ('-', 'VACANTE')
 	AND "NAME" NOT IN ('-', 'VACANTE')
 ORDER BY 1,2,3
-;
