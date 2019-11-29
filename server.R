@@ -29,13 +29,11 @@ shinyServer(function(input, output, session){
         items <- tagList(
           menuItem(tabName = 'promo', text = lang$promo, icon = icon('calculator'), selected = TRUE),
           menuItem(tabName = 'usage_stats', text = lang$usage_stats, icon = icon('tachometer-alt')),
-          menuItem(tabName = 'password_update', text = lang$password_update, icon = icon('lock')),
           menuItem(tabName = 'user_management', text = lang$user_management, icon = icon('users'))
         )
       } else {
         items <- tagList(
           menuItem(tabName = 'promo', text = lang$promo, icon = icon('calculator'), selected = TRUE),
-          menuItem(tabName = 'password_update', text = lang$password_update, icon = icon('lock'))
         )
       }
     } else {
@@ -60,10 +58,6 @@ shinyServer(function(input, output, session){
             usageStatsUI('usage_stats')
           ),
           tabItem(
-            tabName = 'password_update',
-            passwordUpdateUI('password_update')
-          ),
-          tabItem(
             tabName = 'user_management',
             userManagementUI('user_management')
           )
@@ -73,10 +67,6 @@ shinyServer(function(input, output, session){
           tabItem(
             tabName = 'promo',
             computePromotionsUI('compute_promotions')
-          ),
-          tabItem(
-            tabName = 'password_update',
-            passwordUpdateUI('password_update')
           )
         )
       }
@@ -143,13 +133,6 @@ shinyServer(function(input, output, session){
   callModule(
     userManagementServer,
     id = 'user_management',
-    credentials = reactive(credentials())
-  )
-  
-  ## Actualización de contraseña
-  callModule(
-    passwordUpdateServer,
-    id = 'password_update',
     credentials = reactive(credentials())
   )
   

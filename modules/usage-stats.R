@@ -67,6 +67,7 @@ usageStatsServer <- function(input, output, session, credentials, dev_connection
     )))
     res <- list.files(log_path, full.names = TRUE) %>% 
       str_subset('\\.log$') %>% 
+      keep(~Sys.Date() - as.Date(str_replace(basename(.x), '\\.log', '')) <= input$max_days_to_load) %>% 
       load_log()
     flog.info(toJSON(list(
       session_info = msg_cred(credentials()),
@@ -93,14 +94,63 @@ usageStatsServer <- function(input, output, session, credentials, dev_connection
     )
   })
   
-  update_user_info_trigger <- reactiveVal(0)
+  output$update_user_info_ui <- renderUI({
+    req('owner' %in% credentials()$role)
+    actionButton(session$ns('update_user_info'), lang$update_user_info, icon = icon('redo-alt'))
+  })
+  
+  ## Actualizar base de usuarios
+  update_user_info <- reactiveVal(0)
+  update_user_df <- reactiveVal(0)
+  ### Trigger automático periódico (el ignoreInit = FALSE hace que también corra
+  ### en producción)
+  observeEvent(dev_connection()$is_open, {
+    if (file.exists('data/user-info.rds')) {
+      last_updated <- file.info('data/user-info.rds')$mtime
+    } else {
+      last_updated <- as.POSIXct('1900-01-01 00:00:00')
+    }
+    current_time <- Sys.time()
+    elapsed_days <- as.numeric(difftime(current_time, last_updated, units = 'days'))
+    flog.info(toJSON(list(
+      session_info = msg_cred(credentials()),
+      message = 'CHECKING AGE OF USER INFO FILE',
+      details = list(
+        last_updated = last_updated,
+        timestamp = current_time,
+        elapsed_days = elapsed_days
+      )
+    )))
+    if (elapsed_days > 7) {
+      flog.info(toJSON(list(
+        session_info = msg_cred(credentials()),
+        message = 'TRIGGERING USER INFO UPDATE AUTOMATICALLY',
+        details = list(
+          last_updated = last_updated,
+          timestamp = current_time,
+          elapsed_days = elapsed_days
+        )
+      )))
+      update_user_info(update_user_info() + 1)
+    }
+  }, ignoreInit = FALSE, ignoreNULL = TRUE)
+  ### Trigger manual
   observeEvent(input$update_user_info, {
-    req(input$update_user_info > 0)
+    flog.info(toJSON(list(
+      session_info = msg_cred(credentials()),
+      message = 'TRIGGERING USER INFO UPDATE MANUALLY',
+      details = list()
+    )))
+    update_user_info(update_user_info() + 1)
+  }, ignoreInit = FALSE, ignoreNULL = TRUE)
+  ### Ahora sí actualizar
+  observeEvent(update_user_info(), ignoreInit = FALSE, handlerExpr = {
+    req(update_user_info() > 0)
     req(
       !gl$is_dev ||
         (gl$is_dev && dev_connection()$is_open)
     )
-    qry <- read_lines('sql/usuarios-vp.sql') %>% 
+    qry <- read_lines('sql/user-info.sql') %>% 
       paste(collapse = '\n')
     tryCatch({
       flog.info(toJSON(list(
@@ -115,7 +165,7 @@ usageStatsServer <- function(input, output, session, credentials, dev_connection
         closeOnEsc = TRUE,
         closeOnClickOutside = TRUE
       )
-      sql_query(
+      res <- sql_query(
         ch = dev_connection()$ch,
         connector = 'WM3', # con un usuario personal porque el aplicativo no puede accesar WM_AD_HOC
         query = qry,
@@ -123,10 +173,14 @@ usageStatsServer <- function(input, output, session, credentials, dev_connection
       ) %>% 
         as_tibble() %>%
         set_names(tolower(names(.))) %>% 
-        mutate_at(vars(vp, name), str_to_title) %>% 
+        mutate(puesto = str_replace_all(puesto, '_', ' ')) %>% 
+        mutate_at(vars(tribu, name, puesto), str_to_title) %>% 
         mutate_at('user', tolower) %>% 
-        distinct() %>% # por si ya no son únicos al cambiar las mayúsculas
-        saveRDS('data/user-info.rds')
+        group_by(user) %>% # por si ya no son únicos al cambiar las mayúsculas
+        filter(row_number() == 1) %>% 
+        ungroup()
+      saveRDS(res, sprintf('data/%s-user-info.rds', format(Sys.time(), '%Y%m%d_%H%M%S')))
+      saveRDS(res, 'data/user-info.rds')
       flog.info(toJSON(list(
         session_info = msg_cred(credentials()),
         message = 'DONE UPDATING USER INFO',
@@ -146,11 +200,11 @@ usageStatsServer <- function(input, output, session, credentials, dev_connection
         details = list()
       )))
     })
-    update_user_info_trigger(update_user_info_trigger() + 1)
+    update_user_df(update_user_df() + 1)
   })
   
   user_info <- reactive({
-    update_user_info_trigger()
+    update_user_df()
     tryCatch({
       readRDS('data/user-info.rds')
     }, error = function(e){
@@ -163,34 +217,35 @@ usageStatsServer <- function(input, output, session, credentials, dev_connection
     })
   })
   
-  user_info_vp_totals <- reactive({
+  user_info_tribu_totals <- reactive({
     if (is.data.frame(user_info())) {
       user_info() %>% 
-        group_by(vp) %>% 
+        group_by(tribu) %>% 
         summarise(
           total_users = n_distinct(user)
         )
     } else {
       tibble(
-        vp = 'Otros',
+        tribu = 'Otros',
         total_users = 0
       )
     }
   })
   
-  logs_vp <- reactive({
+  logs_tribu <- reactive({
     if (is.data.frame(user_info())) {
       res <- logs() %>% 
         left_join(user_info(), by = 'user')
     } else {
       res <- logs() %>% 
         mutate(
-          vp = NA,
-          name = NA
+          tribu = NA,
+          name = NA,
+          puesto = NA,
         )
     }
     res %>% 
-      replace_na(list(vp = 'Otros', name = 'N/A')) %>% 
+      replace_na(list(tribu = 'N/A', name = 'N/A', puesto = 'N/A')) %>% 
       mutate(
         user_name = paste0(name, ' (', user, ')')
       )
@@ -198,7 +253,7 @@ usageStatsServer <- function(input, output, session, credentials, dev_connection
   
   logs_filt <- reactive({
     req(input$date_range)
-    logs_vp() %>% 
+    logs_tribu() %>% 
       filter(date >= min(input$date_range[[1]]) & date <= max(input$date_range[[2]])) %>% 
       filter_at(vars(user, message), all_vars(!is.na(.)))
   })
@@ -234,14 +289,17 @@ usageStatsServer <- function(input, output, session, credentials, dev_connection
         input$graph_daily_split,
         all = '#000000',
         role = gl$clearance_pal,
-        vp = extended_colorblind_pal(n_distinct(x$vp)) %>%
-          set_names(sort(unique(x$vp), na.last = TRUE))
+        tribu = extended_colorblind_pal(n_distinct(x$tribu)) %>%
+          set_names(sort(unique(x$tribu), na.last = TRUE)),
+        puesto = extended_colorblind_pal(n_distinct(x$puesto)) %>%
+          set_names(sort(unique(x$puesto), na.last = TRUE))
       )
       lvls <- switch(
         input$graph_daily_split,
         all = lang$all,
         role = c('all', 'owner', 'admin', 'basic'),
-        vp = sort(unique(x$vp))
+        tribu = sort(unique(x$tribu)),
+        puesto = sort(unique(x$puesto))
       )
       x <- x %>%
         mutate(
@@ -300,9 +358,9 @@ usageStatsServer <- function(input, output, session, credentials, dev_connection
         colorvar <- sym('message')
         pal <- extended_colorblind_pal(length(msgs)) %>% set_names(msgs)
         sort_fun <- fct_infreq
-      } else if (input$graph_top_split == 'vp') {
-        colorvar <- sym('vp')
-        pal <- extended_colorblind_pal(n_distinct(df$vp)) %>% set_names(sort(unique(df$vp), na.last = TRUE))
+      } else if (input$graph_top_split %in% c('tribu', 'puesto')) {
+        colorvar <- sym(input$graph_top_split)
+        pal <- extended_colorblind_pal(n_distinct(df[[input$graph_top_split]])) %>% set_names(sort(unique(df[[input$graph_top_split]]), na.last = TRUE))
         sort_fun <- identity
       } else {
         colorvar <- sym('role')
@@ -315,7 +373,7 @@ usageStatsServer <- function(input, output, session, credentials, dev_connection
       x <- df %>%
         select(-role) %>% 
         rename(role = top_role) %>% 
-        left_join(user_info_vp_totals(), by = 'vp') %>% 
+        left_join(user_info_tribu_totals(), by = 'tribu') %>% 
         mutate(
           !!colorvar := factor(!!colorvar) %>% sort_fun()
         ) %>% 
@@ -328,8 +386,8 @@ usageStatsServer <- function(input, output, session, credentials, dev_connection
         ) %>% 
         ungroup() %>% 
         mutate(
-          vp_flag = input$graph_top_split == 'vp' & input$graph_top_x == 'vp',
-          p_active_users = ifelse(vp_flag, n_users / total_users, 0),
+          tribu_flag = input$graph_top_split == 'tribu' & input$graph_top_x == 'tribu',
+          p_active_users = ifelse(tribu_flag, n_users / total_users, 0),
           x = fct_reorder(!!xvar, !!kpi, .fun = sum, .desc = TRUE),
           y = !!kpi,
           color = !!colorvar,
@@ -553,16 +611,17 @@ usageStatsUI <- function(id) {
     box(
       width = 12,
       tags$div(
-        style = 'display: flex; margin-left: 15px',
+        class = 'usage-inline-inputs',
+        uiOutput(ns('date_range_ui')),
+        numericInput(ns('max_days_to_load'), lang$max_days_to_load, value = 90, min = 1, max = 730, step = 1),
         tags$div(
           class = 'inline-select-button-wrapper',
           actionButton(ns('refresh'), lang$refresh, icon = icon('redo-alt'))
         ),
         tags$div(
           class = 'inline-select-button-wrapper',
-          actionButton(ns('update_user_info'), lang$update_user_info, icon = icon('redo-alt'))
-        ),
-        uiOutput(ns('date_range_ui'))
+          uiOutput(ns('update_user_info_ui'))
+        )
       )
     ),
     box(
@@ -579,7 +638,7 @@ usageStatsUI <- function(id) {
               selectInput(
                 ns('graph_daily_split'),
                 label = lang$graph_daily_split,
-                choices = c('role', 'vp', 'all') %>% 
+                choices = c('role', 'tribu', 'puesto', 'all') %>% 
                   set_names(map_chr(., ~lang[[.x]]))
               ),
               selectInput(ns('graph_daily_kpi'), lang$kpi, c('n_users', 'n_sessions') %>%
@@ -601,20 +660,20 @@ usageStatsUI <- function(id) {
               selectInput(
                 ns('graph_top_x'),
                 label = lang$graph_top_x,
-                choices = c('user_name', 'vp') %>% 
-                  set_names(c(lang$user, lang$vp))
+                choices = c('user_name', 'puesto', 'tribu') %>% 
+                  set_names(map_chr(., ~lang[[.x]]))
               ),
               selectInput(
                 ns('graph_top_split'),
                 label = lang$graph_top_split,
-                choices = c('role', 'vp', 'message') %>% 
-                  set_names(c(lang$role, lang$vp, lang$message))
+                choices = c('role', 'tribu', 'puesto', 'message') %>% 
+                  set_names(map_chr(., ~lang[[.x]]))
               ),
               selectInput(
                 ns('graph_top_kpi'),
                 label = lang$kpi,
                 choices = c('n_sessions', 'n_actions', 'n_users', 'p_active_users') %>% 
-                  set_names(c(lang$n_sessions, lang$n_actions, lang$n_users, lang$p_active_users))
+                  set_names(map_chr(., ~lang[[.x]]))
               ),
               selectInput(
                 ns('graph_top_clearance'),

@@ -18,24 +18,64 @@ generate_cols_spec <- function(column_info, columns) {
 }
 
 ## Decide que alerta mostrar
-alert_param <- function(good_features, empty_features, timestamp) {
-  if (length(good_features) == 0){
-    title1 <- lang$error
-    text1 <- sprintf('No se encontró información para los parámetros especificados, favor de revisar que sean correctos. Exhibiciones que fallaron: %s', paste(empty_features, collapse  = ', '))
-    type1 <- 'error'
-    message1 <- 'DOWNLOAD FAILED'
-  } else if (length(good_features) > 0 && length(empty_features) > 0){
-    title1 <- lang$warning
-    text1 <- sprintf('Se descargó la información de las exhibiciones: %s en %s, pero no se encontró información bajo los parámetros especificados para las siguientes exhibiciones: %s', paste(good_features, collapse  = ', '), format_difftime(difftime(Sys.time(), timestamp)), paste(empty_features, collapse  = ', '))
-    type1 <- 'warning'
-    message1 <- 'DOWNLOAD PARTIALLY FAILED'
-  } else {
+alert_param <- function(combs_info, timestamp) {
+  feature_info <- combs_info %>% 
+    group_by(feature_name) %>% 
+    summarise(
+      any_empty = any(is_empty),
+      all_empty = all(is_empty)
+    )
+  good_features <- with(feature_info, feature_name[!any_empty])
+  partial_features <- with(feature_info, feature_name[any_empty & !all_empty])
+  empty_features <- with(feature_info, feature_name[all_empty])
+  
+  if (length(good_features) > 0 && length(partial_features) == 0 && length(empty_features) == 0) {
     title1 <- lang$success
     text1 <- sprintf('La información fue descargada de Teradata en %s.', format_difftime(difftime(Sys.time(), timestamp)))
     type1 <- 'success'
     message1 <- 'DOWNLOAD SUCCESSFUL'
+  } else if (length(good_features) > 0 || length(partial_features) > 0) {
+    partial_combs <- combs_info %>% 
+      filter(is_empty == TRUE & feature_name %in% partial_features) %>% 
+      group_by(feature_name) %>% 
+      summarise(
+        sum_text = ifelse(
+          length(old_nbr) > 3,
+          sprintf('%s (%s, ...)', first(feature_name), paste0(old_nbr[1:3], collapse = ', ')),
+          sprintf('%s (%s)', first(feature_name), paste0(old_nbr, collapse = ', '))
+        )
+      ) %>% 
+      pull(sum_text)
+    
+    if (length(empty_features) > 0) {
+      empty_list <- c(paste(empty_features, '(todos)'), partial_combs)
+    } else {
+      empty_list <- partial_combs
+    }
+    
+    if (length(empty_list) > 5) {
+      empty_list_displayed <- c(empty_list[1:5], '...') 
+    } else {
+      empty_list_displayed <- empty_list
+    }
+    
+    title1 <- lang$warning
+    text1 <- sprintf(
+      '<div style="text-align:left;">
+      No se encontró información bajo los parámetros especificados para las siguientes combinaciones de exhibición-artículo: <br><ul><li>%s</li></ul>
+      Las exhibiciones con al menos un artículo no encontrado serán completamente omitidas de los resultados.
+      Te sugerimos <b>revisar que el departamento y formato que ingresaste para ellas sean correctos.
+      </b></div>',
+      paste0(empty_list_displayed, collapse  = '</li><li>'))
+    type1 <- 'warning'
+    message1 <- 'DOWNLOAD PARTIALLY FAILED'
+  } else if (length(good_features) == 0 && length(partial_features) == 0 && length(empty_features) >= 0) {
+    title1 <- lang$error
+    text1 <- 'No se encontró información para ninguna de las promociones ingresadas, favor de revisar que sean correctos los datos.'
+    type1 <- 'error'
+    message1 <- 'DOWNLOAD FAILED'   
   }
-  return(list(title = title1, text = text1, type = type1, message = message1))
+  return(list(title = title1, text = text1, type = type1, message = message1, good_features = good_features))
 }
 
 ## Leer entrada
@@ -284,7 +324,7 @@ run_query <- function(ch, input_data, stores_lists, connector = 'production-conn
       run_query_once(ch, x, white_list, black_list, connector)
     })) %>% 
     map('result') %>% 
-    keep(~(is.data.frame(.x) && !any(is.na(.x$store_nbr))))
+    keep(~is.data.frame(.x) && !all(is.na(.x$store_nbr)) && nrow(.x) > 0)
   if (length(res) > 0) {
     res <- bind_rows(res)
   } else {
@@ -409,14 +449,14 @@ check_query_result_is_empty <- function(result, input) {
 }
 
 ## Regresar nombre de displays que no tuvieron info
-get_empty_features <- function(result, input) {
+get_empty_combs <- function(result, input) {
   result %>% 
-    group_by(feature_name) %>% 
+    group_by(feature_name, old_nbr) %>% 
     nest() %>% 
     mutate(
       is_empty = map_lgl(data, ~check_query_result_is_empty(.x, input))
     ) %>% 
-    select(feature_name, is_empty)
+    select(feature_name, old_nbr, is_empty)
 }
 
 ## Lógica en R
@@ -1430,24 +1470,31 @@ computePromotionsServer <- function(input, output, session, credentials) {
   good_features_rv <- reactiveVal()
   observeEvent(query_result(), {
     r$is_running <- FALSE
-    req(is.data.frame(query_result()$data))
-    feature_info <- get_empty_features(query_result()$data, isolate(r$items))
-    good_features <- with(feature_info, feature_name[!is_empty])
-    empty_features <- with(feature_info, feature_name[is_empty])
-    alert_info <- alert_param(good_features, empty_features, query_result()$timestamp)
+    if (!is.data.frame(query_result()$data)) {
+      alert_info <- list(
+        title = lang$error,
+        text = 'No se encontró información para ninguna de las promociones ingresadas, favor de revisar que sean correctos los datos.',
+        type = 'error',
+        message = 'DOWNLOAD FAILED'
+      )
+      good_features_rv(NULL)
+    } else {
+      combs_info <- get_empty_combs(query_result()$data, isolate(r$items))
+      alert_info <- alert_param(combs_info, query_result()$timestamp)
+      good_features_rv(alert_info$good_features)
+    }
     shinyalert::shinyalert(
       type = alert_info$type,
       title = alert_info$title,
       text = alert_info$text,
       closeOnClickOutside = TRUE,
-      timer = 10000
+      html = TRUE
     )
     flog.info(toJSON(list(
       session_info = msg_cred(isolate(credentials())),
       message = alert_info$message,
       details = list()
     )))
-    good_features_rv(good_features)
     r$final_result_trigger <- r$final_result_trigger + 1
   })
   ### Ahora sí cálculos
