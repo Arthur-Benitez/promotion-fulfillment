@@ -33,7 +33,7 @@ shinyServer(function(input, output, session){
         )
       } else {
         items <- tagList(
-          menuItem(tabName = 'promo', text = lang$promo, icon = icon('calculator'), selected = TRUE),
+          menuItem(tabName = 'promo', text = lang$promo, icon = icon('calculator'), selected = TRUE)
         )
       }
     } else {
