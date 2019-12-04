@@ -263,16 +263,16 @@ save_files <- function(data_files, gl, credentials) {
 }
 
 ## Correr query
-prepare_query <- function(query, keys, old_nbrs, wk_inicio, wk_final, white_list, black_list) {
+prepare_query <- function(query, keys, old_nbrs, negocios, wk_inicio, wk_final, white_list, black_list) {
   # Condición para sustituir el string en el query
   if (is.null(white_list)) {
     if (is.null(black_list)) {
       cond_str <- '1=1'
     } else {
-      cond_str <- sprintf('T1.STORE_NBR NOT IN (%s)', paste(black_list, collapse = ","))
+      cond_str <- sprintf('T.STORE_NBR NOT IN (%s)', paste(black_list, collapse = ","))
     }
   } else {
-    cond_str <- sprintf('T1.STORE_NBR IN (%s)', paste(white_list, collapse = ","))
+    cond_str <- sprintf('T.STORE_NBR IN (%s)', paste(white_list, collapse = ","))
   }
   
   query %>% 
@@ -281,6 +281,7 @@ prepare_query <- function(query, keys, old_nbrs, wk_inicio, wk_final, white_list
     str_replace_all('\\?WK_INICIO', as.character(wk_inicio)) %>% 
     str_replace_all('\\?WK_FINAL', as.character(wk_final)) %>% 
     str_replace_all('\\?COND_STR', cond_str) %>% 
+    str_replace_all('\\?NEGOCIOS', paste0("'", paste(unique(negocios), collapse = "','"), "'")) %>% 
     str_subset('^\\s*--', negate = TRUE) %>%  #quitar lineas de comentarios
     stringi::stri_trans_general('ASCII') %>% # quitar no ASCII porque truena en producción
     paste(collapse = '\n')
@@ -302,6 +303,7 @@ run_query_once <- function(ch, input_data, white_list, black_list, connector = '
     query = query,
     keys = input_data$display_key,
     old_nbrs = input_data$old_nbr,
+    negocios = input_data$negocio,
     wk_inicio = wk_inicio,
     wk_final = wk_final,
     white_list = white_list,
