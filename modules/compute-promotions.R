@@ -233,13 +233,11 @@ validate_input <- function(data, stores_lists = NULL, gl, calendar_day) {
         ## Checar los datos de muebles default
         sprintf('El mueble predeterminado es requerido para todas las filas y debe ser uno de: %s, o bien, la cantidad de piezas que se desea simular como máximo de capacidad en el mueble.', paste(gl$shelfs, collapse = ', ')),
         data %>% 
-          group_by(feature_name) %>% 
-          summarise(
-            number = !all(is.na(as.numeric(default_shelf))),
-            character = all(default_shelf %in% gl$shelfs)
-          ) %>% 
           mutate(
-            validation = number | character
+            validation = 
+              !is.na(shelf) | 
+              !is.na(as.numeric(default_shelf)) | 
+              default_shelf %in% gl$shelfs
           ) %>% 
           pull(validation) %>% 
           all
