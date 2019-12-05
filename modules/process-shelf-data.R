@@ -68,6 +68,9 @@ dictionary <- depto_df %>%
 stores_shelfs <- stores_tables %>% 
   do.call(rbind, .) %>% 
   left_join(dictionary, by = 'zona') %>% 
+  mutate(
+    shelf = toupper(paste(nombre_mueble, tipo, sep = ' '))
+  ) %>% 
   write_csv(path_save)
 
 

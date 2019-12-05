@@ -111,6 +111,10 @@ parse_input <- function(input_file, gl, calendar_day, date_format = '%Y-%m-%d') 
         fcst_or_sales = toupper(fcst_or_sales),
         display_key = paste(dept_nbr, old_nbr, negocio, sep = '.'),
         split_var = paste(semana_ini, semana_fin, fcst_or_sales, white_list, black_list, sep = '-')
+      ) %>% 
+      mutate_at(
+        vars(shelf, default_shelf),
+        ~toupper(str_replace(., '_', ' '))
       )
     
     stores_lists <- tryCatch({
@@ -225,14 +229,14 @@ validate_input <- function(data, stores_lists = NULL, gl, calendar_day) {
           all(),
         ## Checar los tipos de muebles deseados
         sprintf('El mueble debe ser uno de: %s', paste(gl$shelfs, collapse = ', ')),
-        all(toupper(str_replace(data$shelf, '_', ' ')) %in% gl$shelfs | is.na(data$shelf)),
+        all(data$shelf %in% gl$shelfs | is.na(data$shelf)),
         ## Checar los datos de muebles default
         sprintf('El mueble predeterminado es requerido para todas las filas y debe ser uno de: %s, o bien, la cantidad de piezas que se desea simular como máximo de capacidad en el mueble.', paste(gl$shelfs, collapse = ', ')),
         data %>% 
           group_by(feature_name) %>% 
           summarise(
-            number = !all(is.na(as.numeric(str_replace(default_shelf, ',', '')))),
-            character = all(toupper(str_replace(default_shelf, '_', ' ')) %in% gl$shelfs)
+            number = !all(is.na(as.numeric(default_shelf))),
+            character = all(default_shelf %in% gl$shelfs)
           ) %>% 
           mutate(
             validation = number | character
