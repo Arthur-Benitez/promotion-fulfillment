@@ -49,6 +49,7 @@ load_log <- function(log_files) {
     clearance = map_dbl(role, ~role_clearance(.x, gl$clearance_levels)),
     top_role =  names(gl$clearance_levels)[match(clearance, gl$clearance_levels)],
     session = map(logs_ls, c('session_info', 'session')) %>% as.character() %>% ifelse(. == 'NULL', NA, .),
+    platform = map(logs_ls, c('session_info', 'platform')) %>% as.character() %>% ifelse(. == 'NULL', NA, .),
     message = map_chr(logs_ls, 'message'),
     details = map(logs_ls, 'details')
   )
