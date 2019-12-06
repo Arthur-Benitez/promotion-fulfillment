@@ -246,7 +246,7 @@ usageStatsServer <- function(input, output, session, credentials, dev_connection
         )
     }
     res %>% 
-      replace_na(list(tribu = 'N/A', name = 'N/A', puesto = 'N/A')) %>% 
+      replace_na(list(tribu = '(N/A)', name = '(N/A)', puesto = '(N/A)', platform = '(N/A)')) %>% 
       mutate(
         user_name = paste0(name, ' (', user, ')')
       )
@@ -286,26 +286,19 @@ usageStatsServer <- function(input, output, session, credentials, dev_connection
           )
       }
       
-      pal <- switch(
-        input$graph_daily_split,
-        all = '#000000',
-        role = gl$clearance_pal,
-        tribu = extended_colorblind_pal(n_distinct(x$tribu)) %>%
-          set_names(sort(unique(x$tribu), na.last = TRUE)),
-        puesto = extended_colorblind_pal(n_distinct(x$puesto)) %>%
-          set_names(sort(unique(x$puesto), na.last = TRUE))
-      )
       lvls <- switch(
         input$graph_daily_split,
         all = lang$all,
         role = c('all', 'owner', 'admin', 'basic'),
         tribu = sort(unique(x$tribu)),
-        puesto = sort(unique(x$puesto))
+        puesto = sort(unique(x$puesto)),
+        platform = sort(unique(x$platform))
       )
       x <- x %>%
         mutate(
           x = floor_date(timestamp, unit = input$graph_daily_x, week_start = 1),
-          color = factor(color, levels = lvls)
+          color = factor(color, levels = lvls) %>% 
+            fct_explicit_na(na_level = '(N/A)')
         ) %>% 
         group_by(x, color) %>% 
         summarise(
@@ -317,6 +310,18 @@ usageStatsServer <- function(input, output, session, credentials, dev_connection
           y = !!sym(input$graph_daily_kpi),
           text = sprintf('%s: %s', get_pretty_names(input$graph_daily_kpi), scales::comma(!!sym(input$graph_daily_kpi)))
         )
+      
+      pal <- switch(
+        input$graph_daily_split,
+        all = '#000000',
+        role = gl$clearance_pal,
+        tribu = extended_colorblind_pal(n_distinct(x$color)) %>%
+          set_names(sort(unique(x$color), na.last = TRUE)),
+        puesto = extended_colorblind_pal(n_distinct(x$color)) %>%
+          set_names(sort(unique(x$color), na.last = TRUE)),
+        platform = colorblind_pal()(5) %>% 
+          set_names(sort(c('(N/A)', 'sso', 'compass', 'dev', 'unknown')))
+      )
       
       ## Datos para descargar
       graph_data$daily <- x %>% 
@@ -363,6 +368,11 @@ usageStatsServer <- function(input, output, session, credentials, dev_connection
         colorvar <- sym(input$graph_top_split)
         pal <- extended_colorblind_pal(n_distinct(df[[input$graph_top_split]])) %>% set_names(sort(unique(df[[input$graph_top_split]]), na.last = TRUE))
         sort_fun <- identity
+      } else if (input$graph_top_split == 'platform') {
+        colorvar <- sym(input$graph_top_split)
+        pal <- colorblind_pal()(5) %>% 
+          set_names(sort(c('(N/A)', 'sso', 'compass', 'dev', 'unknown')))
+        sort_fun <- identity
       } else {
         colorvar <- sym('role')
         pal <- gl$clearance_pal
@@ -376,7 +386,9 @@ usageStatsServer <- function(input, output, session, credentials, dev_connection
         rename(role = top_role) %>% 
         left_join(user_info_tribu_totals(), by = 'tribu') %>% 
         mutate(
-          !!colorvar := factor(!!colorvar) %>% sort_fun()
+          !!colorvar := factor(!!colorvar) %>% 
+            fct_explicit_na('(N/A)') %>% 
+            sort_fun()
         ) %>% 
         group_by(!!xvar, !!colorvar) %>% 
         summarise(
@@ -639,7 +651,7 @@ usageStatsUI <- function(id) {
               selectInput(
                 ns('graph_daily_split'),
                 label = lang$graph_daily_split,
-                choices = c('role', 'tribu', 'puesto', 'all') %>% 
+                choices = c('role', 'tribu', 'puesto', 'platform', 'all') %>% 
                   set_names(map_chr(., ~lang[[.x]]))
               ),
               selectInput(ns('graph_daily_kpi'), lang$kpi, c('n_users', 'n_sessions') %>%
@@ -661,13 +673,13 @@ usageStatsUI <- function(id) {
               selectInput(
                 ns('graph_top_x'),
                 label = lang$graph_top_x,
-                choices = c('user_name', 'puesto', 'tribu') %>% 
+                choices = c('user_name', 'tribu', 'puesto', 'platform') %>% 
                   set_names(map_chr(., ~lang[[.x]]))
               ),
               selectInput(
                 ns('graph_top_split'),
                 label = lang$graph_top_split,
-                choices = c('role', 'tribu', 'puesto', 'message') %>% 
+                choices = c('role', 'tribu', 'puesto', 'platform', 'message') %>% 
                   set_names(map_chr(., ~lang[[.x]]))
               ),
               selectInput(
