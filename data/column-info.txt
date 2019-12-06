@@ -112,6 +112,8 @@ date	date		FALSE	date	default		Fecha	Fecha.
 all	character		FALSE	character	default		Todos	Todos.
 role	character		FALSE	character	default		Permisos	Nivel de permisos (owner > admin > basic).
 vp	character		FALSE	character	default		Vicepresidencia	Vicepresidencia.
+tribu	character		FALSE	character	default		Tribu	Tribu del usuario a la última actualización de la base de datos (no se guarda el histórico).
+puesto	character		FALSE	character	default		Puesto	Puesto del usuario a la última actualización de la base de datos (no se guarda el histórico).
 user_name	character		FALSE	character	default		Usuario	Nombre de usuario y usuario de red. El nombre sólo aparece si está en WM_AD_HOC.TABLA_RESURTIDOR.
 n_actions	numeric		FALSE	comma	default	0	Acciones	Número de acciones registradas en el log.
 n_sessions	numeric		FALSE	comma	default	0	Sesiones únicas	Sesiones únicas. Se registra una sesión cada que un usuario entra o recarga la página.
@@ -119,6 +121,7 @@ n_users	numeric		FALSE	comma	default	0	Usuarios activos	Usuarios activos.
 p_active_users	numeric		FALSE	percent	default	1	Porcentaje de usuarios activos en la VP	Porcentaje de usuarios de la VP que estuvieron activos.
 message	character		FALSE	character	default		Evento	Evento registrado en el log (ej. cargar un archivo de parámetros).
 session	character		FALSE	character	default		ID de la sesión	UUID de la sesión. Se registra una sesión cada que un usuario entra o recarga la página.
+platform	character		FALSE	character	default		Plataforma	Plataforma por medio de la cuál se accedió a la herramienta (ej. SSO, Compass)
 event_group	numeric		FALSE	comma	default	0	Grupo de evento	Cada pareja START..END de un evento dado dentro de una misma sesión genera un grupo de evento.
 duration_secs	numeric		FALSE	comma	default	1	Duración (segundos)	Duración del evento en segundos.
 level	character		FALSE	character	default		Nivel del log	Nivel de urgencia del log (ERROR > WARN > INFO).

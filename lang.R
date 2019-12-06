@@ -9,6 +9,8 @@ lang <- list(
   all = 'Todos',
   password = 'Contraseña',
   role = 'Permisos',
+  session = 'Sesión',
+  platform = 'Plataforma',
   recover_password = 'Recuperar contraseña',
   login = 'Iniciar sesión',
   logout = 'Cerrar sesión',
