@@ -303,7 +303,7 @@ usageStatsServer <- function(input, output, session, credentials, dev_connection
       )
       x <- x %>%
         mutate(
-          x = floor_date(date, unit = input$graph_daily_x, week_start = 1),
+          x = floor_date(timestamp, unit = input$graph_daily_x, week_start = 1),
           color = factor(color, levels = lvls)
         ) %>% 
         group_by(x, color) %>% 
@@ -633,8 +633,8 @@ usageStatsUI <- function(id) {
           fluidRow(
             column(
               width = 3,
-              selectInput(ns('graph_daily_x'), lang$graph_daily_x, c('days', 'weeks', 'months', 'years') %>%
-                            set_names(get_pretty_names(.))),
+              selectInput(ns('graph_daily_x'), lang$graph_daily_x, c('hour', 'day', 'week', 'month', 'year') %>%
+                            set_names(get_pretty_names(.)), selected = 'week'),
               selectInput(
                 ns('graph_daily_split'),
                 label = lang$graph_daily_split,
