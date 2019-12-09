@@ -159,6 +159,9 @@ gl$user_data_path <- paste0(gl$app_deployment_environment, '/etc/psswd')
 if (!dir.exists(dirname(gl$user_data_path))) {
   dir.create(dirname(gl$user_data_path), recursive = TRUE)
 }
+
+### Path de base de datos con los datos de los muebles de las tiendas
+gl$shelfs_database <- 'data/stores_shelfs.csv'
 ### Nivel de permisos por tipo de usuario
 gl$clearance_levels <- c(
   'owner' = 0,

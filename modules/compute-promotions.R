@@ -476,6 +476,93 @@ get_empty_combs <- function(result, input) {
     select(feature_name, old_nbr, is_empty)
 }
 
+searh_shelfs <- function(keys, stores_shelfs_df) {
+  stores_shelfs_df %>% 
+    filter(combs %in% keys) %>% 
+    group_by(combs) %>% 
+    arrange(desc(cantidad)) %>% 
+    filter(row_number() == 1) %>% 
+    ungroup()
+}
+
+## Función para elegir mueble y calcular las piezas
+calculate_max_capacity <- function(data){
+  stores_shelfs_df <- read_csv(gl$shelfs_database) %>% 
+    select(store_nbr, shelf, dept_nbr, alto_cm, ancho_cm, profundo_cm, cantidad) %>% 
+    mutate(combs = paste(store_nbr, shelf, dept_nbr, sep = '.'))
+  new_vars <- vars(alto_cm, ancho_cm, profundo_cm, cantidad)
+  data <- data %>% 
+    mutate(
+      keys = paste(store_nbr, shelf, dept_nbr, sep = '.'),
+      default_keys = paste(store_nbr, default_shelf, dept_nbr, sep = '.'),
+      is_forced_default = is.na(shelf) & !is.na(as.numeric(default_shelf)),
+      # Inicializar columnas de control
+      shelf_found = FALSE,
+      is_accidental_default = FALSE,
+      default_shelf_found = FALSE
+    )
+  
+  # Ready - Filas que ya no tienen mueble deseado y el default está en piezas
+  forced_default <- data[is_forced_default, ]
+  
+  # Quitar las filas que ya están listas
+  data <- data[!is_forced_default, ]
+
+  # Buscar y pegar la info del mueble deseado
+  stores_shelfs <- data %>% 
+    # filter(!is.na(shelf)) %>% 
+    pull(keys) %>% 
+    searh_shelfs(stores_shelfs_df)
+  
+  data <- data %>% 
+    left_join(stores_shelfs, by = c('store_nbr', 'shelf', 'dept_nbr')) %>% 
+    mutate(
+      shelf_was_found = !(is.na(alto_cm) | is.na(ancho_cm) | is.na(profundo_cm) | is.na(cantidad)),
+      is_accidental_default = is.na(as.numeric(default_shelf)) & !shelf_was_found
+    )
+  
+  # Ready - Filas que ya tienen mueble encontrado
+  shelf_found <- data[shelf_was_found, ]
+  
+  # Ready - Filas que no tienen el mueble deseado y el default está en piezas
+  accidental_default_pcs <- data[!is_accidental_default, ]
+  
+  # Quitar las filas que ya están listas
+  data <- data[is_accidental_default, ]
+
+  # Buscar y pegar la info del mueble default
+  stores_default_shelfs <- data %>% 
+    # filter_at(new_vars, any_vars(is.na(.))) %>% 
+    # filter(is.na(as.numeric(default_shelf))) %>% 
+    pull(default_keys) %>% 1
+    searh_shelfs(stores_shelfs_df)
+  
+  data <- data %>% 
+    select(-c(alto_cm, ancho_cm, profundo_cm, cantidad)) %>% 
+    left_join(
+      stores_default_shelfs,
+      by = c('store_nbr' = 'store_nbr', 'deafult_shelf' = 'shelf', 'dept_nbr' = 'dept_nbr')
+    ) %>% 
+    mutate(
+      default_shelf_found = !(is.na(alto_cm) | is.na(ancho_cm) | is.na(profundo_cm) | is.na(cantidad)),
+    )
+  
+  # Ready - Filas de las que se buscó y se encontró el mueble default
+  accidental_default_letts <- data[default_shelf_found, ]
+  
+  # Ready - Filas de las que no se encontró nada de información
+  not_found <- data[!default_shelf_found, ]
+
+  # checkpoint
+  
+  # res <- input_data %>% 
+  #   split(., .$split_var) %>% 
+  #   map(safely(function(x){
+  #   })) %>% 
+  #   map('result') %>% 
+  #   keep(is.data.frame)
+}
+
 ## Lógica en R
 perform_computations <- function(data, data_ss = NULL, min_feature_qty_toggle = 'none', sspres_benchmark_toggle = 'none', impact_toggle = 'swap') {
   initial_columns <- names(data)
