@@ -476,7 +476,60 @@ get_empty_combs <- function(result, input) {
     select(feature_name, old_nbr, is_empty)
 }
 
-searh_shelfs <- function(keys, stores_shelfs_df) {
+## Cálculo de estibas de artículos basados en las alturas
+calculate_stacks <- function(height, reduced_shelf_height, extra_space) {
+  for (i in 1:7) {
+    stacks <- reduced_shelf_height / ((i * height) + extra_space)
+    if (round(stacks, digits = 2) < 7) return(round(stacks))
+  }
+  stacks <- 7
+}
+
+## Usa las medidas de los muebles para obtener las piezas máximas
+calculate_max_capacity <- function(data) {
+  # checkpoint
+  finger_space <- 2.54
+  tray_space <- 4.4958
+  extra_space <- finger_space + tray_space
+  pallet_width <- 122
+  pallet_length <- 122
+  pallet_height <- 150
+  constant1 <- 11
+  
+  data %>% 
+    mutate_at(
+      vars(contains('length'), contains('width'), contains('heigth')),
+      ~.x * 10 # Convertir a centímetros
+    ) %>% 
+    mutate(
+      reduced_height = alto_cm - constant1,
+      pallet_length_item = round(pallet_length / item_length_qty),
+      pallet_height_item = round(pallet_height / item_height_qty),
+      pallet_width_item  = round(pallet_width  / item_width_qty),
+      pallet_length_whpk = round(pallet_length / whpk_length_qty),
+      pallet_height_whpk = round(pallet_height / whpk_height_qty),
+      pallet_width_whpk  = round(pallet_width  / whpk_width_qty),
+      # No RRP
+      no_rrp_stacks = calculate_stacks(item_height_qty, reduced_height, extra_space),
+      no_rrp_ah = round(reduced_height - (no_rrp_stacks * extra_space), digits = 2),
+      no_rrp_lh = round(no_rrp_ah / no_rrp_stacks, digits = 2),
+      no_rrp_avail_space = round(
+        (ancho_cm * profundo_cm * reduced_height) - (no_rrp_stacks * extra_space * ancho_cm * profundo_cm),
+        digits = 2
+      ),
+      no_rrp_tiers_per_stack = floor(no_rrp_lh / item_height_qty),
+      no_rrp_tiers_ttl = round(no_rrp_tiers_per_stack * no_rrp_stacks),
+      no_rrp_length_pcs = floor(ancho_cm / item_length_qty),
+      no_rrp_width_pcs = floor(profundo_cm / item_width_qty),
+      no_rrp_max_pcs = round(no_rrp_tiers_ttl * no_rrp_width_pcs * no_rrp_length_pcs)
+      # RRP
+      
+    )
+  
+}
+
+## Filtra la base de datos dependiendo de la información solicitada
+search_shelfs <- function(keys, stores_shelfs_df) {
   stores_shelfs_df %>% 
     filter(combs %in% keys) %>% 
     group_by(combs) %>% 
