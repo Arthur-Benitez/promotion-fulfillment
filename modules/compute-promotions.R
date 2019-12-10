@@ -476,22 +476,13 @@ get_empty_combs <- function(result, input) {
     select(feature_name, old_nbr, is_empty)
 }
 
-## Cálculo de estibas de artículos basados en las alturas
-calculate_stacks <- function(height, reduced_shelf_height, extra_space) {
-  for (i in 1:7) {
-    stacks <- reduced_shelf_height / ((i * height) + extra_space)
-    if (round(stacks, digits = 2) < 7) return(round(stacks))
-  }
-  return(7)
-}
-
 ## Cálculo de máxima cantidad (pzas / rrp)
 calculate_max_qty <- function(data, measures, prefix, constant1, extra_space) {
   initial_columns <- names(data)
   data <- data %>% 
     mutate(
       reduced_height = alto_cm - constant1,
-      stacks = calculate_stacks(!!measures$height, reduced_height, extra_space),
+      stacks = floor((reduced_height / 7 - extra_space) / !!measures$height),
       ah = round(reduced_height - (stacks * extra_space), digits = 2),
       lh = round(ah / stacks, digits = 2),
       avail_space = round((ancho_cm * profundo_cm * reduced_height) - (stacks * extra_space * ancho_cm * profundo_cm), digits = 2),
