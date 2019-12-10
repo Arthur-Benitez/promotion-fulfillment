@@ -482,7 +482,29 @@ calculate_stacks <- function(height, reduced_shelf_height, extra_space) {
     stacks <- reduced_shelf_height / ((i * height) + extra_space)
     if (round(stacks, digits = 2) < 7) return(round(stacks))
   }
-  stacks <- 7
+  return(7)
+}
+
+## Cálculo de máxima cantidad (pzas / rrp)
+calculate_max_qty <- function(data, measures, prefix, constant1, extra_space) {
+  initial_columns <- names(data)
+  data <- data %>% 
+    mutate(
+      reduced_height = alto_cm - constant1,
+      stacks = calculate_stacks(!!measures$height, reduced_height, extra_space),
+      ah = round(reduced_height - (stacks * extra_space), digits = 2),
+      lh = round(ah / stacks, digits = 2),
+      avail_space = round((ancho_cm * profundo_cm * reduced_height) - (stacks * extra_space * ancho_cm * profundo_cm), digits = 2),
+      tiers_per_stack = floor(lh / !!measures$height),
+      tiers_ttl = round(tiers_per_stack * stacks),
+      length_qty = floor(ancho_cm / !!measures$length),
+      width_qty = floor(profundo_cm / !!measures$width),
+      max_qty = round(tiers_ttl * width_qty * length_qty)
+    ) %>% 
+    select(-reduced_height)
+  new_names <- setdiff(names(data), initial_columns)
+  new_modified_names <- c(initial_columns, paste0(prefix, new_names))
+  set_names(data, new_modified_names)
 }
 
 ## Usa las medidas de los muebles para obtener las piezas máximas
@@ -495,37 +517,36 @@ calculate_max_capacity <- function(data) {
   pallet_length <- 122
   pallet_height <- 150
   constant1 <- 11
+  item_measures <- syms(c(length = 'item_length_qty', height = 'item_height_qty', width = 'item_width_qty'))
+  whpk_measures <- syms(c(length = 'whpk_length_qty', height = 'whpk_height_qty', width = 'whpk_width_qty'))
   
   data %>% 
     mutate_at(
       vars(contains('length'), contains('width'), contains('heigth')),
-      ~.x * 10 # Convertir a centímetros
+      ~.x * 10 # Convertir de decímetros a centímetros
     ) %>% 
+    calculate_max_qty('no_rrp_', item_measures, constant1, extra_space) %>% 
+    calculate_max_qty('rrp_', whpk_measures, constant1, extra_space) %>% 
     mutate(
-      reduced_height = alto_cm - constant1,
-      pallet_length_item = round(pallet_length / item_length_qty),
-      pallet_height_item = round(pallet_height / item_height_qty),
-      pallet_width_item  = round(pallet_width  / item_width_qty),
-      pallet_length_whpk = round(pallet_length / whpk_length_qty),
-      pallet_height_whpk = round(pallet_height / whpk_height_qty),
-      pallet_width_whpk  = round(pallet_width  / whpk_width_qty),
-      # No RRP
-      no_rrp_stacks = calculate_stacks(item_height_qty, reduced_height, extra_space),
-      no_rrp_ah = round(reduced_height - (no_rrp_stacks * extra_space), digits = 2),
-      no_rrp_lh = round(no_rrp_ah / no_rrp_stacks, digits = 2),
-      no_rrp_avail_space = round(
-        (ancho_cm * profundo_cm * reduced_height) - (no_rrp_stacks * extra_space * ancho_cm * profundo_cm),
-        digits = 2
-      ),
-      no_rrp_tiers_per_stack = floor(no_rrp_lh / item_height_qty),
-      no_rrp_tiers_ttl = round(no_rrp_tiers_per_stack * no_rrp_stacks),
-      no_rrp_length_pcs = floor(ancho_cm / item_length_qty),
-      no_rrp_width_pcs = floor(profundo_cm / item_width_qty),
-      no_rrp_max_pcs = round(no_rrp_tiers_ttl * no_rrp_width_pcs * no_rrp_length_pcs)
-      # RRP
-      
+      pallet_length_item_qty = round(pallet_length / item_length_qty),
+      pallet_height_item_qty = round(pallet_height / item_height_qty),
+      pallet_width_item_qty  = round(pallet_width  / item_width_qty),
+      pallet_length_whpk_qty = round(pallet_length / whpk_length_qty),
+      pallet_height_whpk_qty = round(pallet_height / whpk_height_qty),
+      pallet_width_whpk_qty  = round(pallet_width  / whpk_width_qty),
+      rrp_full_vol = round(rrp_max_qty * whpk_length_qty * whpk_width_qty * whpk_height_qty, digits = 2),
+      left_avail_space = rrp_avail_space - rrp_full_vol,
+      bkp_extra_pcs = floor(left_avail_space / (item_length_qty * item_width_qty * item_height_qty)),
+      max_feature_qty = case_when(
+        grepl('BASE', used_shelf) && rrp_ind == 'N' ~ 
+          round(pallet_length_item_qty * pallet_height_item_qty * pallet_width_item_qty),
+        grepl('BASE', used_shelf) && rrp_ind == 'Y' ~ 
+          round(pallet_length_whpk_qty * pallet_height_whpk_qty * pallet_width_whpk_qty * whpk_qty),
+        grepl('CABECERA', used_shelf) && rrp_ind == 'N' ~ no_rrp_max_qty,
+        grepl('CABECERA', used_shelf) && rrp_ind == 'Y' ~ rrp_max_qty * whpk_qty,
+        TRUE ~ 0
+      )
     )
-  
 }
 
 ## Filtra la base de datos dependiendo de la información solicitada
@@ -557,7 +578,10 @@ calculate_shelfs <- function(data){
   
   # Ready - Filas que ya no tienen mueble deseado y el default está en piezas
   forced_default <- data[is_forced_default, ] %>% 
-    mutate(max_feature_qty = default_shelf)
+    mutate(
+      max_feature_qty = default_shelf,
+      used_shelf = 'NA'
+    )
   
   # Quitar las filas que ya están listas
   data <- data[!is_forced_default, ]
@@ -576,11 +600,15 @@ calculate_shelfs <- function(data){
     )
   
   # Ready - Filas que ya tienen mueble encontrado
-  shelf_found <- data[shelf_was_found, ]
+  shelf_found <- data[shelf_was_found, ] %>% 
+    mutate(used_shelf = shelf)
   
   # Ready - Filas que no tienen el mueble deseado y el default está en piezas
   accidental_default_pcs <- data[!is_accidental_default, ] %>% 
-    mutate(max_feature_qty = default_shelf)
+    mutate(
+      max_feature_qty = default_shelf,
+      used_shelf = 'NA'
+    )
   
   # Quitar las filas que ya están listas
   data <- data[is_accidental_default, ]
@@ -600,6 +628,7 @@ calculate_shelfs <- function(data){
     ) %>% 
     mutate(
       default_shelf_found = !(is.na(alto_cm) | is.na(ancho_cm) | is.na(profundo_cm) | is.na(cantidad)),
+      used_shelf = ifelse(default_shelf_found, default_shelf, 'NA')
     )
   
   # Ready - Filas de las que se buscó y se encontró el mueble default
@@ -609,7 +638,10 @@ calculate_shelfs <- function(data){
   not_found <- data[!default_shelf_found, ] %>% 
     mutate(max_feature_qty = 0)
 
-  # checkpoint
+  ## Llamar función que calcula las piezas de acuerdo a tamaños, etc.
+  shelf_found %>% 
+    bind_rows(accidental_default_letts) %>% 
+    calculate_max_capacity()
   
   # res <- input_data %>% 
   #   split(., .$split_var) %>% 
