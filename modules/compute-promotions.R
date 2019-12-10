@@ -486,7 +486,7 @@ searh_shelfs <- function(keys, stores_shelfs_df) {
 }
 
 ## Función para elegir mueble y calcular las piezas
-calculate_max_capacity <- function(data){
+calculate_shelfs <- function(data){
   stores_shelfs_df <- read_csv(gl$shelfs_database) %>% 
     select(store_nbr, shelf, dept_nbr, alto_cm, ancho_cm, profundo_cm, cantidad) %>% 
     mutate(combs = paste(store_nbr, shelf, dept_nbr, sep = '.'))
@@ -503,7 +503,8 @@ calculate_max_capacity <- function(data){
     )
   
   # Ready - Filas que ya no tienen mueble deseado y el default está en piezas
-  forced_default <- data[is_forced_default, ]
+  forced_default <- data[is_forced_default, ] %>% 
+    mutate(max_feature_qty = default_shelf)
   
   # Quitar las filas que ya están listas
   data <- data[!is_forced_default, ]
@@ -512,7 +513,7 @@ calculate_max_capacity <- function(data){
   stores_shelfs <- data %>% 
     # filter(!is.na(shelf)) %>% 
     pull(keys) %>% 
-    searh_shelfs(stores_shelfs_df)
+    search_shelfs(stores_shelfs_df)
   
   data <- data %>% 
     left_join(stores_shelfs, by = c('store_nbr', 'shelf', 'dept_nbr')) %>% 
@@ -525,7 +526,8 @@ calculate_max_capacity <- function(data){
   shelf_found <- data[shelf_was_found, ]
   
   # Ready - Filas que no tienen el mueble deseado y el default está en piezas
-  accidental_default_pcs <- data[!is_accidental_default, ]
+  accidental_default_pcs <- data[!is_accidental_default, ] %>% 
+    mutate(max_feature_qty = default_shelf)
   
   # Quitar las filas que ya están listas
   data <- data[is_accidental_default, ]
@@ -534,8 +536,8 @@ calculate_max_capacity <- function(data){
   stores_default_shelfs <- data %>% 
     # filter_at(new_vars, any_vars(is.na(.))) %>% 
     # filter(is.na(as.numeric(default_shelf))) %>% 
-    pull(default_keys) %>% 1
-    searh_shelfs(stores_shelfs_df)
+    pull(default_keys) %>% 
+    search_shelfs(stores_shelfs_df)
   
   data <- data %>% 
     select(-c(alto_cm, ancho_cm, profundo_cm, cantidad)) %>% 
@@ -551,7 +553,8 @@ calculate_max_capacity <- function(data){
   accidental_default_letts <- data[default_shelf_found, ]
   
   # Ready - Filas de las que no se encontró nada de información
-  not_found <- data[!default_shelf_found, ]
+  not_found <- data[!default_shelf_found, ] %>% 
+    mutate(max_feature_qty = 0)
 
   # checkpoint
   
