@@ -512,10 +512,6 @@ calculate_max_capacity <- function(data) {
   whpk_measures <- syms(c(length = 'whpk_length_qty', height = 'whpk_height_qty', width = 'whpk_width_qty'))
   
   data %>% 
-    mutate_at(
-      vars(contains('length'), contains('width'), contains('height')),
-      ~.x * 10 # Convertir de decímetros a centímetros
-    ) %>% 
     calculate_max_qty('no_rrp_', item_measures, constant1, extra_space) %>% 
     calculate_max_qty('rrp_', whpk_measures, constant1, extra_space) %>% 
     mutate(
@@ -565,6 +561,10 @@ calculate_shelves <- function(data){
       shelf_was_found = FALSE,
       is_accidental_default = FALSE,
       default_shelf_found = FALSE
+    ) %>% 
+    mutate_at(
+      vars(contains('length'), contains('width'), contains('height')),
+      ~.x * 10 # Convertir de decímetros a centímetros
     )
   
   # Ready - Filas que ya no tienen mueble deseado y el default está en piezas
