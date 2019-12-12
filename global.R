@@ -132,7 +132,7 @@ gl <- list(
     'MEDIMART',
     'OTRO'
   ),
-  shelfs = c(
+  shelves = c(
     'BASE',
     'MEDIA BASE',
     'CABECERA ALTA',
@@ -161,7 +161,7 @@ if (!dir.exists(dirname(gl$user_data_path))) {
 }
 
 ### Path de base de datos con los datos de los muebles de las tiendas
-gl$shelfs_database <- 'data/stores_shelfs.csv'
+gl$shelves_database <- 'data/stores_shelves.csv'
 ### Nivel de permisos por tipo de usuario
 gl$clearance_levels <- c(
   'owner' = 0,

@@ -228,16 +228,16 @@ validate_input <- function(data, stores_lists = NULL, gl, calendar_day) {
           map_lgl(~typeof(.x) == 'double') %>% 
           all(),
         ## Checar los tipos de muebles deseados
-        sprintf('El mueble debe ser uno de: %s', paste(gl$shelfs, collapse = ', ')),
-        all(data$shelf %in% gl$shelfs | is.na(data$shelf)),
+        sprintf('El mueble debe ser uno de: %s', paste(gl$shelves, collapse = ', ')),
+        all(data$shelf %in% gl$shelves | is.na(data$shelf)),
         ## Checar los datos de muebles default
-        sprintf('El mueble predeterminado es requerido para todas las filas y debe ser uno de: %s, o bien, la cantidad de piezas que se desea simular como máximo de capacidad en el mueble.', paste(gl$shelfs, collapse = ', ')),
+        sprintf('El mueble predeterminado es requerido para todas las filas y debe ser uno de: %s, o bien, la cantidad de piezas que se desea simular como máximo de capacidad en el mueble.', paste(gl$shelves, collapse = ', ')),
         data %>% 
           mutate(
             validation = 
               !is.na(shelf) | 
               !is.na(as.numeric(default_shelf)) | 
-              default_shelf %in% gl$shelfs
+              default_shelf %in% gl$shelves
           ) %>% 
           pull(validation) %>% 
           all
@@ -541,8 +541,8 @@ calculate_max_capacity <- function(data) {
 }
 
 ## Filtra la base de datos dependiendo de la información solicitada
-search_shelfs <- function(keys, stores_shelfs_df) {
-  stores_shelfs_df %>% 
+search_shelves <- function(keys, stores_shelves_df) {
+  stores_shelves_df %>% 
     filter(combs %in% keys) %>% 
     group_by(combs) %>% 
     arrange(desc(cantidad)) %>% 
@@ -551,8 +551,8 @@ search_shelfs <- function(keys, stores_shelfs_df) {
 }
 
 ## Función para elegir mueble y calcular las piezas
-calculate_shelfs <- function(data){
-  stores_shelfs_df <- read_csv(gl$shelfs_database) %>% 
+calculate_shelves <- function(data){
+  stores_shelves_df <- read_csv(gl$shelves_database) %>% 
     select(store_nbr, shelf, dept_nbr, alto_cm, ancho_cm, profundo_cm, cantidad) %>% 
     mutate(combs = paste(store_nbr, shelf, dept_nbr, sep = '.'))
   new_vars <- vars(alto_cm, ancho_cm, profundo_cm, cantidad)
@@ -578,13 +578,13 @@ calculate_shelfs <- function(data){
   data <- data[!data$is_forced_default, ]
 
   # Buscar y pegar la info del mueble deseado
-  stores_shelfs <- data %>% 
+  stores_shelves <- data %>% 
     # filter(!is.na(shelf)) %>% 
     pull(keys) %>% 
-    search_shelfs(stores_shelfs_df)
+    search_shelves(stores_shelves_df)
   
   data <- data %>% 
-    left_join(stores_shelfs, by = c('store_nbr', 'shelf', 'dept_nbr')) %>% 
+    left_join(stores_shelves, by = c('store_nbr', 'shelf', 'dept_nbr')) %>% 
     mutate(
       shelf_was_found = !(is.na(alto_cm) | is.na(ancho_cm) | is.na(profundo_cm) | is.na(cantidad)),
       is_accidental_default = is.na(as.numeric(default_shelf)) & !shelf_was_found
@@ -605,16 +605,16 @@ calculate_shelfs <- function(data){
   data <- data[data$is_accidental_default, ]
 
   # Buscar y pegar la info del mueble default
-  stores_default_shelfs <- data %>% 
+  stores_default_shelves <- data %>% 
     # filter_at(new_vars, any_vars(is.na(.))) %>% 
     # filter(is.na(as.numeric(default_shelf))) %>% 
     pull(default_keys) %>% 
-    search_shelfs(stores_shelfs_df)
+    search_shelves(stores_shelves_df)
   
   data <- data %>% 
     select(-c(alto_cm, ancho_cm, profundo_cm, cantidad)) %>% 
     left_join(
-      stores_default_shelfs,
+      stores_default_shelves,
       by = c('store_nbr' = 'store_nbr', 'deafult_shelf' = 'shelf', 'dept_nbr' = 'dept_nbr')
     ) %>% 
     mutate(
