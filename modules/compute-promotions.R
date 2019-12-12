@@ -477,7 +477,7 @@ get_empty_combs <- function(result, input) {
 }
 
 ## Cálculo de máxima cantidad (pzas / rrp)
-calculate_max_qty <- function(data, measures, prefix, constant1, extra_space) {
+calculate_max_qty <- function(data, prefix, measures, constant1, extra_space) {
   initial_columns <- names(data)
   data <- data %>% 
     mutate(
@@ -513,7 +513,7 @@ calculate_max_capacity <- function(data) {
   
   data %>% 
     mutate_at(
-      vars(contains('length'), contains('width'), contains('heigth')),
+      vars(contains('length'), contains('width'), contains('height')),
       ~.x * 10 # Convertir de decímetros a centímetros
     ) %>% 
     calculate_max_qty('no_rrp_', item_measures, constant1, extra_space) %>% 
@@ -562,7 +562,7 @@ calculate_shelves <- function(data){
       default_keys = paste(store_nbr, default_shelf, dept_nbr, sep = '.'),
       is_forced_default = is.na(shelf) & !is.na(as.numeric(default_shelf)),
       # Inicializar columnas de control
-      shelf_found = FALSE,
+      shelf_was_found = FALSE,
       is_accidental_default = FALSE,
       default_shelf_found = FALSE
     )
@@ -581,7 +581,8 @@ calculate_shelves <- function(data){
   stores_shelves <- data %>% 
     # filter(!is.na(shelf)) %>% 
     pull(keys) %>% 
-    search_shelves(stores_shelves_df)
+    search_shelves(stores_shelves_df) %>% 
+    select(-combs)
   
   data <- data %>% 
     left_join(stores_shelves, by = c('store_nbr', 'shelf', 'dept_nbr')) %>% 
@@ -590,7 +591,7 @@ calculate_shelves <- function(data){
       is_accidental_default = is.na(as.numeric(default_shelf)) & !shelf_was_found
     )
   
-  # Ready - Filas que ya tienen mueble encontrado
+  # Filas que ya tienen mueble encontrado
   shelf_found <- data[data$shelf_was_found, ] %>% 
     mutate(used_shelf = shelf)
   
@@ -609,20 +610,21 @@ calculate_shelves <- function(data){
     # filter_at(new_vars, any_vars(is.na(.))) %>% 
     # filter(is.na(as.numeric(default_shelf))) %>% 
     pull(default_keys) %>% 
-    search_shelves(stores_shelves_df)
+    search_shelves(stores_shelves_df) %>% 
+    select(-combs)
   
   data <- data %>% 
     select(-c(alto_cm, ancho_cm, profundo_cm, cantidad)) %>% 
     left_join(
       stores_default_shelves,
-      by = c('store_nbr' = 'store_nbr', 'deafult_shelf' = 'shelf', 'dept_nbr' = 'dept_nbr')
+      by = c('store_nbr' = 'store_nbr', 'default_shelf' = 'shelf', 'dept_nbr' = 'dept_nbr')
     ) %>% 
     mutate(
       default_shelf_found = !(is.na(alto_cm) | is.na(ancho_cm) | is.na(profundo_cm) | is.na(cantidad)),
       used_shelf = ifelse(default_shelf_found, default_shelf, 'NA')
     )
   
-  # Ready - Filas de las que se buscó y se encontró el mueble default
+  # Filas de las que se buscó y se encontró el mueble default
   accidental_default_letts <- data[data$default_shelf_found, ]
   
   # Ready - Filas de las que no se encontró nada de información
@@ -632,14 +634,8 @@ calculate_shelves <- function(data){
   ## Llamar función que calcula las piezas de acuerdo a tamaños, etc.
   shelf_found %>% 
     bind_rows(accidental_default_letts) %>% 
-    calculate_max_capacity()
-  
-  # res <- input_data %>% 
-  #   split(., .$split_var) %>% 
-  #   map(safely(function(x){
-  #   })) %>% 
-  #   map('result') %>% 
-  #   keep(is.data.frame)
+    calculate_max_capacity() %>% 
+    bind_rows(forced_default, accidental_default_pcs, not_found)
 }
 
 ## Lógica en R
