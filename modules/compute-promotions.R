@@ -216,7 +216,7 @@ validate_input <- function(data, stores_lists = NULL, gl, calendar_day) {
         ## Checar que Priority sea un entero entre 1 y 100
         sprintf('Priority debe ser un entero entre 1 y 100'),
         with(data, all(Priority == as.integer(Priority) & between(Priority, 1, 100))),
-        ## Checar que min_feature_qty esté entre 1 y max_feature_qty
+        ## Checar que min_feature_qty esté entre 0 y 1
         'min_feature_qty debe ser un número entre 0 y 1 que represente un porcentaje de la capacidad máxima del mueble.',
         with(data, all(0 <= min_feature_qty & min_feature_qty <= 1)),
         ## Todas las listas usadas deben existir
@@ -652,7 +652,7 @@ perform_computations <- function(data, data_ss = NULL, min_feature_qty_toggle = 
       ),
       feature_perc_pos_or_fcst = avg_dly_pos_or_fcst / sum(avg_dly_pos_or_fcst),
       ## Cantidades sin reglas
-      feature_qty_req_min = feature_perc_pos_or_fcst * min_feature_qty,
+      feature_qty_req_min = feature_perc_pos_or_fcst * min_feature_qty * max_feature_qty,
       feature_qty_req = feature_perc_pos_or_fcst * max_feature_qty,
       feature_ddv_req = feature_qty_req / avg_dly_pos_or_fcst,
       ## Topar max DDV
@@ -662,10 +662,10 @@ perform_computations <- function(data, data_ss = NULL, min_feature_qty_toggle = 
       ## Aplicar regla del mínimo
       feature_qty_fin = case_when(
         min_feature_qty_toggle == 'none' ~ feature_qty_pre,
-        min_feature_qty_toggle == 'round_down' ~ ifelse(feature_qty_pre_tot < min_feature_qty,
+        min_feature_qty_toggle == 'round_down' ~ ifelse(feature_qty_pre_tot < min_feature_qty * max_feature_qty,
                                                         0,
                                                         feature_qty_pre),
-        min_feature_qty_toggle == 'round_up' ~ ifelse(feature_qty_pre_tot < min_feature_qty,
+        min_feature_qty_toggle == 'round_up' ~ ifelse(feature_qty_pre_tot < min_feature_qty * max_feature_qty,
                                                       feature_qty_req_min,
                                                       feature_qty_pre)
       ),
@@ -995,7 +995,7 @@ generate_sample_input <- function(calendar_day, column_info) {
     negocio = 'BAE',
     old_nbr = c(9506783, 9506804, 9574857, 9506748, 9574857, 9506748),
     primary_desc_temp = c('MARUCHAN CAMARON', 'MARUCHAN CMRONCHILE', 'MARUCHAN CMRONHBNER', 'MARUCHAN POLLO', 'MARUCHAN CMRONHBNER', 'MARUCHAN POLLO'),
-    min_feature_qty = c(600, 600, 600, 600, 300, 300),
+    min_feature_qty = c(0.2, 0.2, 0.2, 0.2, 0.1, 0.1),
     max_feature_qty = c(3000, 3000, 3000, 3000, 2000, 2000),
     max_ddv = 30,
     fcst_or_sales = c('S', 'S', 'S', 'S', 'F', 'F'),
