@@ -1686,20 +1686,38 @@ computePromotionsServer <- function(input, output, session, credentials) {
     req(r$final_result_trigger > 0)
     req(query_result()$data)
     if (length(good_features_rv()) > 0) {
-      flog.info(toJSON(list(
-        session_info = msg_cred(isolate(credentials())),
-        message = 'PERFORMING COMPUTATIONS',
-        details = list()
-      )))
       good_data <- query_result()$data %>% 
         filter(feature_name %in% good_features_rv())
-      purrr::safely(perform_computations)(
-        data = good_data,
-        data_ss = query_result()$data_ss,
-        min_feature_qty_toggle = input$min_feature_qty_toggle,
-        sspres_benchmark_toggle = input$sspres_benchmark_toggle,
-        impact_toggle = input$impact_toggle
-      )$result
+      if(file.exists(gl$shelves_database)) {
+        flog.info(toJSON(list(
+          session_info = msg_cred(isolate(credentials())),
+          message = 'CALCULATING SHELVES MAX CAPACITY',
+          details = list()
+        )))
+        shelf_data <- purrr::safely(calculate_shelves)(
+          data = good_data %>% mutate(rrp_ind = 'N')
+        )$result
+        flog.info(toJSON(list(
+          session_info = msg_cred(isolate(credentials())),
+          message = 'PERFORMING COMPUTATIONS',
+          details = list()
+        )))
+        purrr::safely(perform_computations)(
+          data = shelf_data,
+          data_ss = query_result()$data_ss,
+          min_feature_qty_toggle = input$min_feature_qty_toggle,
+          sspres_benchmark_toggle = input$sspres_benchmark_toggle,
+          impact_toggle = input$impact_toggle
+        )$result
+      } else {
+        flog.info(toJSON(list(
+          session_info = msg_cred(credentials()),
+          message = 'SHELVES DATABASE NOT FOUND',
+          details = list(
+            user = input$user
+          )
+        )))
+      }
     } else {
       NULL
     }
