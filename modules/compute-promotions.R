@@ -644,8 +644,10 @@ perform_computations <- function(data, data_ss = NULL, min_feature_qty_toggle = 
         avg_dly_pos_or_fcst
       ),
       feature_perc_pos_or_fcst = avg_dly_pos_or_fcst / sum(avg_dly_pos_or_fcst),
+      max_feature_qty = 1 / sum(feature_perc_pos_or_fcst / max_item_capacity),
+      min_feature_qty = max_feature_qty * min_feature_perc,
       ## Cantidades sin reglas
-      feature_qty_req_min = feature_perc_pos_or_fcst * min_feature_qty * max_feature_qty,
+      feature_qty_req_min = feature_perc_pos_or_fcst * min_feature_qty,
       feature_qty_req = feature_perc_pos_or_fcst * max_feature_qty,
       feature_ddv_req = feature_qty_req / avg_dly_pos_or_fcst,
       ## Topar max DDV
@@ -655,10 +657,10 @@ perform_computations <- function(data, data_ss = NULL, min_feature_qty_toggle = 
       ## Aplicar regla del mínimo
       feature_qty_fin = case_when(
         min_feature_qty_toggle == 'none' ~ feature_qty_pre,
-        min_feature_qty_toggle == 'round_down' ~ ifelse(feature_qty_pre_tot < min_feature_qty * max_feature_qty,
+        min_feature_qty_toggle == 'round_down' ~ ifelse(feature_qty_pre_tot < min_feature_qty,
                                                         0,
                                                         feature_qty_pre),
-        min_feature_qty_toggle == 'round_up' ~ ifelse(feature_qty_pre_tot < min_feature_qty * max_feature_qty,
+        min_feature_qty_toggle == 'round_up' ~ ifelse(feature_qty_pre_tot < min_feature_qty,
                                                       feature_qty_req_min,
                                                       feature_qty_pre)
       ),
