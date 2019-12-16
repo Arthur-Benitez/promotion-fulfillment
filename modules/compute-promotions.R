@@ -300,11 +300,7 @@ run_query_once <- function(ch, input_data, white_list, black_list, connector = '
       connector = connector,
       query = query,
       stringsAsFactors = FALSE
-    )
-    if (!is.data.frame(res)) {
-      stop('Query failed.')
-    }
-    res <- res %>% 
+    ) %>% 
       as_tibble() %>% 
       set_names(tolower(names(.))) %>% 
       mutate_if(is.factor, as.character) %>% 
@@ -352,11 +348,7 @@ get_graph_data <- function(ch, input, calendar_day) {
       connector = 'production-connector',
       query = query_graph,
       stringsAsFactors = FALSE
-    )
-    if (!is.data.frame(graph_table)) {
-      stop("Graph query failed.")
-    }
-    graph_table <- graph_table %>% 
+    ) %>% 
       set_names(tolower(names(.))) %>%
       as_tibble() %>%
       mutate_if(is.factor, as.character) %>%
@@ -387,11 +379,7 @@ search_ss_once <- function(ch, input_data_ss, connector = 'production-connector'
       connector = connector,
       query = query_ss,
       stringsAsFactors = FALSE
-    )
-    if (!is.data.frame(query_ss_res)) {
-      stop("SS Query failed.")
-    }
-    query_ss_res <- query_ss_res %>% 
+    ) %>% 
       as_tibble() %>% 
       set_names(tolower(names(.))) %>% 
       mutate_if(is.factor, as.character) %>% 
