@@ -216,9 +216,9 @@ validate_input <- function(data, stores_lists = NULL, gl, calendar_day) {
         ## Checar que Priority sea un entero entre 1 y 100
         sprintf('Priority debe ser un entero entre 1 y 100'),
         with(data, all(Priority == as.integer(Priority) & between(Priority, 1, 100))),
-        ## Checar que min_feature_qty esté entre 0 y 1
-        'min_feature_qty debe ser un número entre 0 y 1 que represente un porcentaje de la capacidad máxima del mueble.',
-        with(data, all(0 <= min_feature_qty & min_feature_qty <= 1)),
+        ## Checar que min_feature_perc esté entre 0 y 1
+        'min_feature_perc debe ser un número entre 0 y 1 que represente un porcentaje de la capacidad máxima del mueble.',
+        with(data, all(0 <= min_feature_perc & min_feature_perc <= 1)),
         ## Todas las listas usadas deben existir
         'Alguna de las columnas con las tiendas especiales a incluir o excluir no existe.',
         (is.null(stores_lists) && all(is.na(data$white_list)) && all(is.na(data$black_list))) || (all(discard(unique(data$white_list), is.na) %in% names(stores_lists)) && all(discard(unique(data$black_list), is.na) %in% names(stores_lists))),
@@ -988,7 +988,7 @@ generate_sample_input <- function(calendar_day, column_info) {
     negocio = 'BAE',
     old_nbr = c(9506783, 9506804, 9574857, 9506748, 9574857, 9506748),
     primary_desc_temp = c('MARUCHAN CAMARON', 'MARUCHAN CMRONCHILE', 'MARUCHAN CMRONHBNER', 'MARUCHAN POLLO', 'MARUCHAN CMRONHBNER', 'MARUCHAN POLLO'),
-    min_feature_qty = c(0.2, 0.2, 0.2, 0.2, 0.1, 0.1),
+    min_feature_perc = c(0.2, 0.2, 0.2, 0.2, 0.1, 0.1),
     max_feature_qty = c(3000, 3000, 3000, 3000, 2000, 2000),
     max_ddv = 30,
     fcst_or_sales = c('S', 'S', 'S', 'S', 'F', 'F'),
