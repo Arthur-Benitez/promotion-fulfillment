@@ -477,7 +477,7 @@ get_empty_combs <- function(result, input) {
 }
 
 ## Cálculo de máxima cantidad (pzas / rrp)
-calculate_max_capacity <- function(data, prefix, measures, constant1, extra_space) {
+create_capacity_columns <- function(data, prefix, measures, constant1, extra_space) {
   initial_columns <- names(data)
   data <- data %>% 
     mutate(
@@ -499,7 +499,7 @@ calculate_max_capacity <- function(data, prefix, measures, constant1, extra_spac
 }
 
 ## Usa las medidas de los muebles para obtener las piezas máximas
-calculate_max_capacity <- function(data) {
+perform_spacial_computations <- function(data) {
   # checkpoint
   finger_space <- 2.54
   tray_space <- 4.4958
@@ -512,8 +512,8 @@ calculate_max_capacity <- function(data) {
   whpk_measures <- syms(c(length = 'whpk_length_qty', height = 'whpk_height_qty', width = 'whpk_width_qty'))
   
   data %>% 
-    calculate_max_capacity('no_rrp_', item_measures, constant1, extra_space) %>% 
-    calculate_max_capacity('rrp_', whpk_measures, constant1, extra_space) %>% 
+    create_capacity_columns('no_rrp_', item_measures, constant1, extra_space) %>% 
+    create_capacity_columns('rrp_', whpk_measures, constant1, extra_space) %>% 
     mutate(
       pallet_length_item_qty = round(pallet_length / item_length_qty),
       pallet_height_item_qty = round(pallet_height / item_height_qty),
@@ -547,7 +547,8 @@ search_shelves <- function(keys, stores_shelves_df) {
 }
 
 ## Función para elegir mueble y calcular las piezas
-calculate_shelves <- function(data){
+calculate_max_capacity <- function(data){
+  initial_columns <- names(data)
   stores_shelves_df <- read_csv(gl$shelves_database) %>% 
     select(store_nbr, shelf, dept_nbr, alto_cm, ancho_cm, profundo_cm, cantidad) %>% 
     mutate(combs = paste(store_nbr, shelf, dept_nbr, sep = '.'))
@@ -627,8 +628,9 @@ calculate_shelves <- function(data){
   ## Llamar función que calcula las piezas de acuerdo a tamaños, etc.
   shelf_found %>% 
     bind_rows(accidental_default_letts) %>% 
-    calculate_max_capacity() %>% 
-    bind_rows(forced_default, accidental_default_pcs, not_found)
+    perform_spacial_computations() %>% 
+    bind_rows(forced_default, accidental_default_pcs, not_found) %>% 
+    mutate_at(setdiff(names(data), initial_columns), list(~replace_na(., 0)))
 }
 
 ## Lógica en R
@@ -1689,7 +1691,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
           message = 'CALCULATING SHELVES MAX CAPACITY',
           details = list()
         )))
-        shelf_data <- purrr::safely(calculate_shelves)(
+        shelf_data <- purrr::safely(calculate_max_capacity)(
           data = good_data %>% mutate(rrp_ind = 'N')
         )$result
         flog.info(toJSON(list(
