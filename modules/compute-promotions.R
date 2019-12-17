@@ -567,7 +567,7 @@ calculate_max_capacity <- function(data){
   # Ready - Filas que ya no tienen mueble deseado y el default está en piezas
   forced_default <- data[data$is_forced_default, ] %>% 
     mutate(
-      max_item_capacity = default_shelf,
+      max_item_capacity = as.numeric(default_shelf),
       used_shelf = 'NA'
     )
   
@@ -584,22 +584,25 @@ calculate_max_capacity <- function(data){
     left_join(stores_shelves, by = c('store_nbr', 'shelf', 'dept_nbr')) %>% 
     mutate(
       shelf_was_found = !(is.na(alto_cm) | is.na(ancho_cm) | is.na(profundo_cm) | is.na(cantidad)),
-      is_accidental_default = is.na(as.numeric(default_shelf)) & !shelf_was_found
+      # TRUE = No shelf was found AND the default is NOT a number. FALSE = Shelf was found OR default is a number
+      is_unforced_chr_default = is.na(as.numeric(default_shelf)) & !shelf_was_found
     )
   
   # Filas que ya tienen mueble encontrado
   shelf_found <- data[data$shelf_was_found, ] %>% 
     mutate(used_shelf = shelf)
   
+  data <- data[!data$shelf_was_found, ]
+  
   # Ready - Filas que no tienen el mueble deseado y el default está en piezas
-  accidental_default_pcs <- data[!data$is_accidental_default, ] %>% 
+  unforced_default_pcs <- data[!data$is_unforced_chr_default, ] %>% 
     mutate(
-      max_item_capacity = default_shelf,
+      max_item_capacity = as.numeric(default_shelf),
       used_shelf = 'NA'
     )
   
   # Quitar las filas que ya están listas
-  data <- data[data$is_accidental_default, ]
+  data <- data[data$is_unforced_chr_default, ]
 
   # Buscar y pegar la info del mueble default
   stores_default_shelves <- data %>% 
@@ -619,7 +622,7 @@ calculate_max_capacity <- function(data){
     )
   
   # Filas de las que se buscó y se encontró el mueble default
-  accidental_default_letts <- data[data$default_shelf_found, ]
+  unforced_default_letts <- data[data$default_shelf_found, ]
   
   # Ready - Filas de las que no se encontró nada de información
   not_found <- data[!data$default_shelf_found, ] %>% 
@@ -627,9 +630,9 @@ calculate_max_capacity <- function(data){
 
   ## Llamar función que calcula las piezas de acuerdo a tamaños, etc.
   shelf_found %>% 
-    bind_rows(accidental_default_letts) %>% 
+    bind_rows(unforced_default_letts) %>% 
     perform_spacial_computations() %>% 
-    bind_rows(forced_default, accidental_default_pcs, not_found) %>% 
+    bind_rows(forced_default, unforced_default_pcs, not_found) %>% 
     mutate_at(setdiff(names(data), initial_columns), list(~replace_na(., 0)))
 }
 
