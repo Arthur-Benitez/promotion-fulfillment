@@ -476,23 +476,31 @@ get_empty_combs <- function(result, input) {
     select(feature_name, old_nbr, is_empty)
 }
 
+## Cálculo de número de anaqueles basado en las alturas
+calculate_shelves_number <- function(height, reduced_shelf_height, extra_space, max_shelves) {
+  stacks <- ceiling((reduced_shelf_height - extra_space * max_shelves) / (height * max_shelves))
+  shelves <- floor(reduced_shelf_height / (extra_space + height * stacks))
+  shelves
+}
+
 ## Cálculo de máxima cantidad (pzas / rrp)
 create_capacity_columns <- function(data, prefix, measures, constant1, extra_space) {
   initial_columns <- names(data)
   data <- data %>% 
     mutate(
       reduced_height = alto_cm - constant1,
-      stacks = floor((reduced_height / 7 - extra_space) / !!measures$height),
-      ah = round(reduced_height - (stacks * extra_space), digits = 2),
-      lh = round(ah / stacks, digits = 2),
-      avail_space = round((ancho_cm * profundo_cm * reduced_height) - (stacks * extra_space * ancho_cm * profundo_cm), digits = 2),
+      max_shelves = 7,
+      shelves_number = calculate_shelves_number(!!measures$height, reduced_height, extra_space, max_shelves),
+      ah = round(reduced_height - (shelves_number * extra_space), digits = 2),
+      lh = round(ah / shelves_number, digits = 2),
+      avail_space = round((ancho_cm * profundo_cm * reduced_height) - (shelves_number * extra_space * ancho_cm * profundo_cm), digits = 2),
       tiers_per_stack = floor(lh / !!measures$height),
-      tiers_ttl = round(tiers_per_stack * stacks),
+      tiers_ttl = round(tiers_per_stack * shelves_number),
       length_qty = floor(ancho_cm / !!measures$length),
       width_qty = floor(profundo_cm / !!measures$width),
       max_qty = round(tiers_ttl * width_qty * length_qty)
     ) %>% 
-    select(-reduced_height)
+    select(-c(reduced_height, max_shelves))
   new_names <- setdiff(names(data), initial_columns)
   new_modified_names <- c(initial_columns, paste0(prefix, new_names))
   set_names(data, new_modified_names)
