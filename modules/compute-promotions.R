@@ -556,12 +556,17 @@ search_shelves <- function(keys, stores_shelves_df) {
 
 ## Función para elegir mueble y calcular las piezas
 calculate_max_capacity <- function(data){
+  rrp_sync_data <- read_tsv(gl$rrp_sync_database) %>% 
+    set_names(tolower(names(.)))
   initial_columns <- names(data)
   stores_shelves_df <- read_csv(gl$shelves_database) %>% 
     select(store_nbr, shelf, dept_nbr, alto_cm, ancho_cm, profundo_cm, cantidad) %>% 
     mutate(combs = paste(store_nbr, shelf, dept_nbr, sep = '.'))
   new_vars <- vars(alto_cm, ancho_cm, profundo_cm, cantidad)
   data <- data %>% 
+    left_join(rrp_sync_data, by = 'old_nbr'
+    ) %>% 
+    mutate_at(vars('rrp_ind', 'synced'), list(~replace_na(., 'N'))) %>% 
     mutate(
       keys = paste(store_nbr, shelf, dept_nbr, sep = '.'),
       default_keys = paste(store_nbr, default_shelf, dept_nbr, sep = '.'),
@@ -1703,7 +1708,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
           details = list()
         )))
         shelf_data <- purrr::safely(calculate_max_capacity)(
-          data = good_data %>% mutate(rrp_ind = 'N')
+          data = good_data
         )$result
         flog.info(toJSON(list(
           session_info = msg_cred(isolate(credentials())),
