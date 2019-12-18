@@ -641,7 +641,7 @@ calculate_max_capacity <- function(data){
     bind_rows(unforced_default_letts) %>% 
     perform_spacial_computations() %>% 
     bind_rows(forced_default, unforced_default_pcs, not_found) %>% 
-    mutate_at(setdiff(names(data), initial_columns), list(~replace_na(., 0)))
+    mutate_at(setdiff(names(.), initial_columns), list(~replace_na(., 0)))
 }
 
 ## Lógica en R
