@@ -136,7 +136,8 @@ gl <- list(
     'BASE',
     'MEDIA BASE',
     'CABECERA ALTA',
-    'CABECERA BAJA'
+    'CABECERA BAJA',
+    'CHIMENEA'
   ),
   max_input_rows = 500,
   max_output_rows = 100000,

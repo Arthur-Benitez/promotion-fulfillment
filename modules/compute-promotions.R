@@ -513,8 +513,11 @@ perform_spacial_computations <- function(data) {
   tray_space <- 4.4958
   extra_space <- finger_space + tray_space
   pallet_width <- 122
-  pallet_length <- 122
+  pallet_length <- 100
   pallet_height <- 150
+  chimney_width <- 61
+  chimney_length <- 200
+  chimney_height <- 140
   constant1 <- 11
   item_measures <- syms(c(length = 'item_length_qty', height = 'item_height_qty', width = 'item_width_qty'))
   whpk_measures <- syms(c(length = 'whpk_length_qty', height = 'whpk_height_qty', width = 'whpk_width_qty'))
@@ -529,6 +532,12 @@ perform_spacial_computations <- function(data) {
       pallet_length_whpk_qty = round(pallet_length / whpk_length_qty),
       pallet_height_whpk_qty = round(pallet_height / whpk_height_qty),
       pallet_width_whpk_qty  = round(pallet_width  / whpk_width_qty),
+      chimney_length_item_qty = round(chimney_length / item_length_qty),
+      chimney_height_item_qty = round(chimney_height / item_height_qty),
+      chimney_width_item_qty  = round(chimney_width  / item_width_qty),
+      chimney_length_whpk_qty = round(chimney_length / whpk_length_qty),
+      chimney_height_whpk_qty = round(chimney_height / whpk_height_qty),
+      chimney_width_whpk_qty  = round(chimney_width  / whpk_width_qty),
       rrp_full_vol = round(rrp_max_qty * whpk_length_qty * whpk_width_qty * whpk_height_qty, digits = 2),
       left_avail_space = rrp_avail_space - rrp_full_vol,
       bkp_extra_pcs = floor(left_avail_space / (item_length_qty * item_width_qty * item_height_qty)),
@@ -539,6 +548,16 @@ perform_spacial_computations <- function(data) {
           round(pallet_length_whpk_qty * pallet_height_whpk_qty * pallet_width_whpk_qty * whpk_qty),
         grepl('CABECERA', used_shelf) && rrp_ind == 'N' ~ no_rrp_max_qty,
         grepl('CABECERA', used_shelf) && rrp_ind == 'Y' ~ rrp_max_qty * whpk_qty,
+        grepl('CHIMENEA', used_shelf) && rrp_ind == 'N' ~ 
+          round(
+            pallet_length_item_qty * pallet_height_item_qty * pallet_width_item_qty + 
+              chimney_length_item_qty * chimney_height_item_qty * chimney_width_item_qty
+          ),
+        grepl('CHIMENEA', used_shelf) && rrp_ind == 'Y' ~ 
+          round(
+            pallet_length_whpk_qty * pallet_height_whpk_qty * pallet_width_whpk_qty * whpk_qty + 
+              chimney_length_whpk_qty * chimney_height_whpk_qty * chimney_width_whpk_qty * whpk_qty  
+          ),
         TRUE ~ 0
       )
     )
