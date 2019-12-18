@@ -575,7 +575,7 @@ search_shelves <- function(keys, stores_shelves_df) {
 
 ## Función para elegir mueble y calcular las piezas
 calculate_max_capacity <- function(data){
-  rrp_sync_data <- read_tsv(gl$rrp_sync_database) %>% 
+  rrp_sync_data <- readRDS(gl$rrp_sync_database) %>% 
     set_names(tolower(names(.)))
   initial_columns <- names(data)
   stores_shelves_df <- read_csv(gl$shelves_database) %>% 
