@@ -760,13 +760,71 @@ managementServer <- function(input, output, session, credentials) {
     shiny::updateTextInput(session, 'new_password', value = '')
     shiny::updateSelectInput(session, 'new_role', selected = user$role)
   })
-  
+  shiny::observeEvent(input$update_rrp, {
+    ns <- session$ns
+      shinyalert(
+        type = 'info',
+        title = 'Iniciando sesión en DB2...',
+        closeOnEsc = FALSE,
+        closeOnClickOutside = FALSE,
+        showCancelButton = FALSE,
+        showConfirmButton = FALSE
+      )
+      tryCatch({
+        flog.info(toJSON(list(
+          session_info = msg_cred(credentials()),
+          message = 'ATTEMPTING TO LOG IN INTO DB2',
+          details = list(
+            user = input$db2_user
+          )
+        )))
+        ch <- odbcConnect("DSN5", uid = input$db2_user, pwd = input$db2_password)
+        odbcGetInfo(ch) ## Truena si no se abrió la conexión
+        flog.info(toJSON(list(
+          session_info = msg_cred(credentials()),
+          message = 'DB2 LOGIN SUCCESSFUL',
+          details = list(
+            user = input$db2_user
+          )
+        )))
+        # Run query & update file
+        flog.info(toJSON(list(
+          session_info = msg_cred(credentials()),
+          message = 'TRIGGERING RRP INFO UPDATE MANUALLY',
+          details = list()
+        )))
+        update_rrp_info(ch, credentials())
+        odbcClose(ch)
+        flog.info(toJSON(list(
+          session_info = msg_cred(credentials()),
+          message = 'DB2 LOGOUT SUCCESSFUL',
+          details = list(
+            user = input$db2_user
+          )
+        )))
+        updateTextInput(session, 'db2_user', value = '')
+        updateTextInput(session, 'db2_password', value = '')
+      }, error = function(e){
+        shinyalert(
+          type = "error",
+          title = lang$error,
+          text = "El usuario o la contraseña no son válidos",
+          closeOnClickOutside = TRUE
+        )
+        flog.warn(toJSON(list(
+          session_info = msg_cred(credentials()),
+          message = 'DB2 LOGIN FAILED',
+          details = list(
+            user = input$db2_user
+          )
+        )))
+        updateTextInput(session, 'db2_password', value = '')
+      })
+  })
   msg <- reactiveVal()
   output$msg_text <- renderText(msg())
   shiny::observeEvent(input$button, {
-    
     users <- load_users(gl$user_data_path)
-    
     if (input$action == 'add') {
       users <- users %>% 
         add_user(credentials(), input$new_user, input$new_password, input$new_role)
@@ -780,7 +838,6 @@ managementServer <- function(input, output, session, credentials) {
       users <- users %>% 
         delete_user(credentials(), input$new_user)
     }
-    
     if (users$status == 0) {
       save_users(users$users, gl$user_data_path)
       msg(switch(
@@ -801,7 +858,6 @@ managementServer <- function(input, output, session, credentials) {
         lang$unknown_action
       ))
     }
-    
     shinyjs::show(id = 'msg', anim = TRUE, time = 1, animType = 'fade')
     shinyjs::delay(5000, shinyjs::hide(id = "msg", anim = TRUE, time = 1, animType = "fade"))
   })
