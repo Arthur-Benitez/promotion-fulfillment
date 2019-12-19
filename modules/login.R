@@ -684,11 +684,16 @@ passwordUpdateServer <- function(input, output, session, credentials) {
 ## UI
 managementUI <- function(id) {
   ns <- shiny::NS(id)
-  actions <- c('add', 'update_password', 'update_role', 'delete')
-  names(actions) <- c(lang$add, lang$update_password, lang$update_role, lang$delete)
-  tabBox(
-    width = '100%',
-    tabPanel(
+  shiny::uiOutput(ns('management'))
+}
+
+## Server
+managementServer <- function(input, output, session, credentials) {
+  output$management <- shiny::renderUI({
+    ns <- session$ns
+    actions <- c('add', 'update_password', 'update_role', 'delete')
+    names(actions) <- c(lang$add, lang$update_password, lang$update_role, lang$delete)
+    users_panel <- tabPanel(
       value = 'users',
       title = lang$users,
       shiny::wellPanel(
@@ -710,24 +715,21 @@ managementUI <- function(id) {
           )
         )
       )
-    ),
-    shiny::uiOutput(ns('data_management'))
-  )
-}
-
-## Server
-managementServer <- function(input, output, session, credentials) {
-  output$data_management <- shiny::renderUI({
-    tabPanel(
+    )
+    data_panel <- tabPanel(
       value = 'data',
       title = lang$data,
       shiny::tagList(
-        id = ns('users'),
         h3(lang$rrp_sync_info),
         shiny::textInput(ns('db2_user'), lang$user),
         shiny::passwordInput(ns('db2_password'), lang$db2_password),
         shiny::actionButton(ns('update_rrp'), lang$update_rrp, icon = icon('redo-alt'))
       )
+    )
+    tabBox(
+      width = '100%',
+      users_panel,
+      data_panel
     )
   })
   
