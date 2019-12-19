@@ -47,7 +47,7 @@ lang <- list(
   access_denied = 'Acceso denegado',
   auto_logout_title = 'La sesión se cerró por inactividad',
   password_update = 'Actualizar contraseña',
-  user_management = 'Administrar usuarios',
+  management = 'Administración',
   button = 'Aplicar',
   run = 'Generar exhibiciones',
   reset = 'Reset',
