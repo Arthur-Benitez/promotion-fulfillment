@@ -717,6 +717,20 @@ managementUI <- function(id) {
 
 ## Server
 managementServer <- function(input, output, session, credentials) {
+  output$data_management <- shiny::renderUI({
+    tabPanel(
+      value = 'data',
+      title = lang$data,
+      shiny::tagList(
+        id = ns('users'),
+        h3(lang$rrp_sync_info),
+        shiny::textInput(ns('db2_user'), lang$user),
+        shiny::passwordInput(ns('db2_password'), lang$db2_password),
+        shiny::actionButton(ns('update_rrp'), lang$update_rrp, icon = icon('redo-alt'))
+      )
+    )
+  })
+  
   output$user_list_ui <- shiny::renderUI({
     input$button
     ns <- session$ns
