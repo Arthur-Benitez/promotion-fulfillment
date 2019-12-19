@@ -726,6 +726,9 @@ managementServer <- function(input, output, session, credentials) {
         shiny::actionButton(ns('update_rrp'), lang$update_rrp, icon = icon('redo-alt'))
       )
     )
+    if (!('owner' %in% credentials()$role)) {
+      data_panel <- NULL
+    }
     tabBox(
       width = '100%',
       users_panel,
