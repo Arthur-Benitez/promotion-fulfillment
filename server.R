@@ -29,7 +29,7 @@ shinyServer(function(input, output, session){
         items <- tagList(
           menuItem(tabName = 'promo', text = lang$promo, icon = icon('calculator'), selected = TRUE),
           menuItem(tabName = 'usage_stats', text = lang$usage_stats, icon = icon('tachometer-alt')),
-          menuItem(tabName = 'user_management', text = lang$user_management, icon = icon('users'))
+          menuItem(tabName = 'management', text = lang$management, icon = icon('users'))
         )
       } else {
         items <- tagList(
@@ -58,8 +58,8 @@ shinyServer(function(input, output, session){
             usageStatsUI('usage_stats')
           ),
           tabItem(
-            tabName = 'user_management',
-            userManagementUI('user_management')
+            tabName = 'management',
+            managementUI('management')
           )
         )
       } else {
@@ -131,8 +131,8 @@ shinyServer(function(input, output, session){
   
   ## Administración de usuarios
   callModule(
-    userManagementServer,
-    id = 'user_management',
+    managementServer,
+    id = 'management',
     credentials = reactive(credentials())
   )
   

@@ -682,7 +682,7 @@ passwordUpdateServer <- function(input, output, session, credentials) {
 # Administración de usuarios ----------------------------------------------
 
 ## UI
-userManagementUI <- function(id) {
+managementUI <- function(id) {
   ns <- shiny::NS(id)
   actions <- c('add', 'update_password', 'update_role', 'delete')
   names(actions) <- c(lang$add, lang$update_password, lang$update_role, lang$delete)
@@ -709,7 +709,7 @@ userManagementUI <- function(id) {
 }
 
 ## Server
-userManagementServer <- function(input, output, session, credentials) {
+managementServer <- function(input, output, session, credentials) {
   output$user_list_ui <- shiny::renderUI({
     input$button
     ns <- session$ns
