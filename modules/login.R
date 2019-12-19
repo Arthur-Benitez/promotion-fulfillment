@@ -679,32 +679,39 @@ passwordUpdateServer <- function(input, output, session, credentials) {
 }
 
 
-# Administración de usuarios ----------------------------------------------
+# Panel de administración ----------------------------------------------
 
 ## UI
 managementUI <- function(id) {
   ns <- shiny::NS(id)
   actions <- c('add', 'update_password', 'update_role', 'delete')
   names(actions) <- c(lang$add, lang$update_password, lang$update_role, lang$delete)
-  shiny::wellPanel(
-    id = ns('manage_users'),
-    shiny::h2(lang$manage_users),
-    shiny::uiOutput(ns('user_list_ui')),
-    shiny::textInput(ns('new_user'), lang$user),
-    shiny::textInput(ns('new_password'), lang$password),
-    shiny::selectInput(ns('new_role'), lang$role, choices = rev(names(gl$clearance_levels)), selected = 'basic', multiple = TRUE),
-    shiny::radioButtons(ns('action'), lang$action, choices = actions),
-    shiny::actionButton(ns('button'), lang$button),
-    shinyjs::hidden(
-      shiny::div(
-        id = ns("msg"),
-        shiny::span(
-          textOutput(ns('msg_text')),
-          ## NO SIRVE ESTO
-          style = "color: red; font-weight: bold; padding-top: 5px;", class = "text-center"
+  tabBox(
+    width = '100%',
+    tabPanel(
+      value = 'users',
+      title = lang$users,
+      shiny::wellPanel(
+        id = ns('users'),
+        shiny::uiOutput(ns('user_list_ui')),
+        shiny::textInput(ns('new_user'), lang$user),
+        shiny::textInput(ns('new_password'), lang$password),
+        shiny::selectInput(ns('new_role'), lang$role, choices = rev(names(gl$clearance_levels)), selected = 'basic', multiple = TRUE),
+        shiny::radioButtons(ns('action'), lang$action, choices = actions),
+        shiny::actionButton(ns('button'), lang$button),
+        shinyjs::hidden(
+          shiny::div(
+            id = ns("msg"),
+            shiny::span(
+              textOutput(ns('msg_text')),
+              ## NO SIRVE ESTO
+              style = "color: red; font-weight: bold; padding-top: 5px;", class = "text-center"
+            )
+          )
         )
       )
-    )
+    ),
+    shiny::uiOutput(ns('data_management'))
   )
 }
 
