@@ -475,6 +475,49 @@ all_credentials <- function(session, user_data_path, app_deployment_environment)
   return(res)
 }
 
+update_rrp_info <- function(ch = NULL, credentials, connector = 'production-connector') {
+  query <- readLines('sql/item_rrp_sync.sql') %>% 
+    paste(collapse = '\n')
+  tryCatch({
+    flog.info(toJSON(list(
+      session_info = msg_cred(credentials),
+      message = 'START UPDATING RRP INFO',
+      details = list()
+    )))
+    shinyalert(
+      title = 'Actualizando base de datos de RRP y Sync status...',
+      text = '',
+      type = 'info',
+      closeOnEsc = TRUE,
+      closeOnClickOutside = TRUE
+    )
+    res <- sql_query(
+      ch = ch,
+      connector =  connector,
+      query = query,
+      stringsAsFactors = FALSE
+    )
+    saveRDS(res, gl$rrp_sync_database)
+    flog.info(toJSON(list(
+      session_info = msg_cred(credentials),
+      message = 'DONE UPDATING RRP INFO',
+      details = list()
+    )))
+    shinyalert(
+      title = 'Base de datos de RRP y Sync status actualizada',
+      text = '',
+      type = 'info',
+      closeOnEsc = TRUE,
+      closeOnClickOutside = TRUE
+    )
+  }, error = function(e){
+    flog.warn(toJSON(list(
+      session_info = msg_cred(credentials),
+      message = 'FAILED TO UPDATE RRP INFO',
+      details = list()
+    )))
+  })
+}
 
 # Login -------------------------------------------------------------------
 
