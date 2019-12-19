@@ -716,13 +716,20 @@ managementServer <- function(input, output, session, credentials) {
         )
       )
     )
+    if (gl$app_deployment_environment == 'dev') {
+      login <- shiny::tagList(
+        shiny::textInput(ns('db2_user'), lang$user),
+        shiny::passwordInput(ns('db2_password'), lang$db2_password)
+      )
+    } else {
+      login <- NULL
+    }
     data_panel <- tabPanel(
       value = 'data',
       title = lang$data,
       shiny::tagList(
         h3(lang$rrp_sync_info),
-        shiny::textInput(ns('db2_user'), lang$user),
-        shiny::passwordInput(ns('db2_password'), lang$db2_password),
+        login,
         shiny::actionButton(ns('update_rrp'), lang$update_rrp, icon = icon('redo-alt'))
       )
     )
