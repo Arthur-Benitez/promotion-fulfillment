@@ -172,7 +172,11 @@ lang <- list(
   graph_time_title = 'Tiempo de ejecución en segundos',
   graph_time_event = 'Evento',
   graph_time_event_names = c('Query', 'Gráfica de ventas'),
-  detail_table_tab = 'Detalle'
+  detail_table_tab = 'Detalle',
+  data = 'Datos',
+  rrp_sync_info = 'Información de RRP y estatus de sincronización en GS1',
+  db2_password = 'Contraseña de HOST / DB2',
+  update_rrp = 'Actualizar info de RRP'
 )
 
 lang$need_valid_input <- paste0('El archivo de items no está en el formato correcto.\n', lang$need_input_format)
