@@ -537,6 +537,9 @@ loginUI <- function(id) {
   )
 }
 
+# Trigger para actualizar automáticamente los datos de RRP y Sync
+update_rrp_info_trigger <- reactiveVal(0)
+
 ## Server
 loginServer <- function(input, output, session) {
   
@@ -577,6 +580,7 @@ loginServer <- function(input, output, session) {
           platform = credentials$platform
         )
       )))
+      update_rrp_info_trigger(update_rrp_info_trigger() + 1)
     } else {
       futile.logger::flog.warn(toJSON(list(
         session_info = list(),
@@ -759,7 +763,7 @@ managementServer <- function(input, output, session, credentials) {
         )
       )
     )
-    if (gl$app_deployment_environment == 'dev') {
+    if (gl$is_dev) {
       login <- shiny::tagList(
         shiny::textInput(ns('db2_user'), lang$user),
         shiny::passwordInput(ns('db2_password'), lang$db2_password)
@@ -803,7 +807,51 @@ managementServer <- function(input, output, session, credentials) {
     shiny::updateTextInput(session, 'new_password', value = '')
     shiny::updateSelectInput(session, 'new_role', selected = user$role)
   })
+  
+  shiny::observeEvent(update_rrp_info_trigger, {
+    req(!gl$is_dev)
+    if (file.exists(gl$rrp_sync_database)) {
+      last_updated <- file.info(gl$rrp_sync_database)$mtime
+    } else {
+      last_updated <- as.POSIXct('1900-01-01 00:00:00')
+    }
+    current_time <- Sys.time()
+    elapsed_days <- as.numeric(difftime(current_time, last_updated, units = 'days'))
+    flog.info(toJSON(list(
+      session_info = msg_cred(credentials()),
+      message = 'CHECKING AGE OF RRP INFO FILE',
+      details = list(
+        last_updated = last_updated,
+        timestamp = current_time,
+        elapsed_days = elapsed_days
+      )
+    )))
+    if (elapsed_days > 7) {
+      flog.info(toJSON(list(
+        session_info = msg_cred(credentials()),
+        message = 'TRIGGERING RRP INFO UPDATE AUTOMATICALLY',
+        details = list(
+          last_updated = last_updated,
+          timestamp = current_time,
+          elapsed_days = elapsed_days
+        )
+      )))
+      update_rrp_info(ch = NULL, credentials(), 'db2-production-connector')
+    }
+  })
+  
   shiny::observeEvent(input$update_rrp, {
+    req(!gl$is_dev)
+    flog.info(toJSON(list(
+      session_info = msg_cred(credentials()),
+      message = 'TRIGGERING RRP INFO PROD UPDATE MANUALLY',
+      details = list()
+    )))
+    update_rrp_info(ch = NULL, credentials(), 'db2-production-connector')
+  })
+  
+  shiny::observeEvent(input$update_rrp, {
+    req(gl$is_dev)
     ns <- session$ns
       shinyalert(
         type = 'info',
@@ -833,7 +881,7 @@ managementServer <- function(input, output, session, credentials) {
         # Run query & update file
         flog.info(toJSON(list(
           session_info = msg_cred(credentials()),
-          message = 'TRIGGERING RRP INFO UPDATE MANUALLY',
+          message = 'TRIGGERING RRP INFO DEV UPDATE MANUALLY',
           details = list()
         )))
         update_rrp_info(ch, credentials())
