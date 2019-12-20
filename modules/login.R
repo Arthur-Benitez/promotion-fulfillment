@@ -537,9 +537,6 @@ loginUI <- function(id) {
   )
 }
 
-# Trigger para actualizar automáticamente los datos de RRP y Sync
-update_rrp_info_trigger <- reactiveVal(0)
-
 ## Server
 loginServer <- function(input, output, session) {
   
@@ -580,7 +577,6 @@ loginServer <- function(input, output, session) {
           platform = credentials$platform
         )
       )))
-      update_rrp_info_trigger(update_rrp_info_trigger() + 1)
     } else {
       futile.logger::flog.warn(toJSON(list(
         session_info = list(),
@@ -808,7 +804,7 @@ managementServer <- function(input, output, session, credentials) {
     shiny::updateSelectInput(session, 'new_role', selected = user$role)
   })
   
-  shiny::observeEvent(update_rrp_info_trigger, {
+  shiny::observeEvent(once = TRUE, {
     req(!gl$is_dev)
     if (file.exists(gl$rrp_sync_database)) {
       last_updated <- file.info(gl$rrp_sync_database)$mtime
@@ -841,18 +837,8 @@ managementServer <- function(input, output, session, credentials) {
   })
   
   shiny::observeEvent(input$update_rrp, {
-    req(!gl$is_dev)
-    flog.info(toJSON(list(
-      session_info = msg_cred(credentials()),
-      message = 'TRIGGERING RRP INFO PROD UPDATE MANUALLY',
-      details = list()
-    )))
-    update_rrp_info(ch = NULL, credentials(), 'db2-production-connector')
-  })
-  
-  shiny::observeEvent(input$update_rrp, {
-    req(gl$is_dev)
     ns <- session$ns
+    if (gl$is_dev) {
       shinyalert(
         type = 'info',
         title = 'Iniciando sesión en DB2...',
@@ -861,14 +847,14 @@ managementServer <- function(input, output, session, credentials) {
         showCancelButton = FALSE,
         showConfirmButton = FALSE
       )
+      flog.info(toJSON(list(
+        session_info = msg_cred(credentials()),
+        message = 'ATTEMPTING TO LOG IN INTO DB2',
+        details = list(
+          user = input$db2_user
+        )
+      )))
       tryCatch({
-        flog.info(toJSON(list(
-          session_info = msg_cred(credentials()),
-          message = 'ATTEMPTING TO LOG IN INTO DB2',
-          details = list(
-            user = input$db2_user
-          )
-        )))
         ch <- odbcConnect("DSN5", uid = input$db2_user, pwd = input$db2_password)
         odbcGetInfo(ch) ## Truena si no se abrió la conexión
         flog.info(toJSON(list(
@@ -911,6 +897,14 @@ managementServer <- function(input, output, session, credentials) {
         )))
         updateTextInput(session, 'db2_password', value = '')
       })
+    } else {
+      flog.info(toJSON(list(
+        session_info = msg_cred(credentials()),
+        message = 'TRIGGERING RRP INFO PROD UPDATE MANUALLY',
+        details = list()
+      )))
+      update_rrp_info(ch = NULL, credentials(), 'db2-production-connector')      
+    }
   })
   msg <- reactiveVal()
   output$msg_text <- renderText(msg())
