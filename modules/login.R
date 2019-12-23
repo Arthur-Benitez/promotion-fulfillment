@@ -804,7 +804,7 @@ managementServer <- function(input, output, session, credentials) {
     shiny::updateSelectInput(session, 'new_role', selected = user$role)
   })
   
-  shiny::observeEvent(once = TRUE, {
+  shiny::observeEvent(eventExpr = input$update_rrp, handlerExpr = {
     req(!gl$is_dev)
     if (file.exists(gl$rrp_sync_database)) {
       last_updated <- file.info(gl$rrp_sync_database)$mtime
@@ -822,7 +822,7 @@ managementServer <- function(input, output, session, credentials) {
         elapsed_days = elapsed_days
       )
     )))
-    if (elapsed_days > 7) {
+    if (elapsed_days > gl$rrp_sync_update_period) {
       flog.info(toJSON(list(
         session_info = msg_cred(credentials()),
         message = 'TRIGGERING RRP INFO UPDATE AUTOMATICALLY',
@@ -834,7 +834,7 @@ managementServer <- function(input, output, session, credentials) {
       )))
       update_rrp_info(ch = NULL, credentials(), 'db2-production-connector')
     }
-  })
+  }, ignoreNULL = FALSE, once = TRUE)
   
   shiny::observeEvent(input$update_rrp, {
     ns <- session$ns
@@ -870,7 +870,7 @@ managementServer <- function(input, output, session, credentials) {
           message = 'TRIGGERING RRP INFO DEV UPDATE MANUALLY',
           details = list()
         )))
-        update_rrp_info(ch, credentials())
+        update_rrp_info(ch, credentials(), connector = NULL)
         odbcClose(ch)
         flog.info(toJSON(list(
           session_info = msg_cred(credentials()),
