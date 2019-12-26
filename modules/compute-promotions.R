@@ -1886,7 +1886,11 @@ computePromotionsServer <- function(input, output, session, credentials) {
         need_histogram_ready()
     )
     tryCatch({
-      mfq <- unique(final_results_filt()$max_feature_qty)
+      shelf <- ifelse(
+        all(is.na(final_results_filt()$shelf)),
+        unique(final_results_filt()$default_shelf),
+        unique(final_results_filt()$shelf)
+      )
       quantity_histogram_data() %>% 
         mutate(
           label_y = n_stores + 0.03 * max(n_stores),
@@ -1904,8 +1908,19 @@ computePromotionsServer <- function(input, output, session, credentials) {
         ) %>% 
         add_text(y = ~label_y, text = ~label, name = NULL, color = I('black')) %>% 
         plotly::layout(
-          title = 'Alcance a piezas máximas por tienda',
-          xaxis = list(title = sprintf('Alcance (%% de Max. Feature Qty. = %s)', scales::comma(mfq))),
+          title = 'Alcance porcentual a piezas máximas por tienda',
+          xaxis = list(title = sprintf(
+            '%s',
+            ifelse(
+              is.na(shelf),
+              'Mueble no encontrado',
+              ifelse(
+                is.na(as.numeric(shelf)),
+                'Alcance a capacidad máxima del mueble encontrado para cada tienda',
+                sprintf('Alcance a un máximo de %s piezas', scales::comma(shelf))
+              )
+            )
+          )),
           yaxis = list(title = 'Número de tiendas', separators = '.,'),
           showlegend = FALSE
         )
