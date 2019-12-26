@@ -5,10 +5,10 @@ dept_nbr	numeric	TRUE	TRUE	character	default		Departamento	Número de departamen
 negocio	character	TRUE	TRUE	character	default		Negocio	Formato de negocio (BAE, BODEGA, MIBODEGA, SUPERAMA o SUPERCENTER)
 old_nbr	numeric	FALSE	TRUE	character	default		Artículo (old_nbr)	Número de artículo de HOST (old_nbr en Teradata).
 primary_desc_temp	character	FALSE	TRUE	character	default		Descripción (opcional)	Descripción del artículo sólo para referencia en la página de inputs. En los resultados se sustituye por la descripción del artículo primario.
-min_feature_perc	numeric	TRUE	TRUE	comma	default	2	Mínimo de exhibición (%)	"Porcentaje de la cantidad máxima de piezas en el mueble que se desea en la exhibición (entre todos los artículos). Su efecto depende de la opción seleccionada en ""Lógica mínimo""."
+min_feature_perc	numeric	TRUE	TRUE	percent	default	2	Mínimo de exhibición (%)	"Porcentaje de la cantidad máxima de piezas en el mueble que se desea en la exhibición (entre todos los artículos). Su efecto depende de la opción seleccionada en ""Lógica mínimo""."
 min_feature_qty	numeric	TRUE	FALSE	comma	default	0	Mínimo de exhibición (pzas)	"Mínimas piezas totales en el display (entre todos los artículos). Su efecto depende de la opción seleccionada en ""Lógica mínimo""."
 max_feature_qty	numeric	TRUE	FALSE	comma	default	0	Máximo de exhibición	Máximas piezas totales en el display (entre todos los artículos).
-shelf	character	TRUE	TRUE	character	default		Mueble	Tipo de mueble que tendrá la exhibición (Base, Media Base, Cabecera alta, Cabecera baja, Cabecera circular).
+shelf	character	TRUE	TRUE	character	default		Mueble deseado	Tipo de mueble que tendrá la exhibición (Base, Media Base, Cabecera alta, Cabecera baja, Cabecera circular).
 default_shelf	character	TRUE	TRUE	character	default		Mueble predeterminado	Tipo de mueble que se usará para los cálculos en las combinaciones en las que no se encuentre el mueble deseado.
 max_ddv	numeric	FALSE	TRUE	comma	default	1	Máximo de DDV	Tope máximo de días de venta por artículo.
 semana_ini	numeric	TRUE	TRUE	character	default		Semana inicial cálculo	"Semana Walmart inicial para calcular forecast o ventas (debe ser a pasado si fcst_or_sales = ""S"" y a futuro si es = ""F"")."
@@ -141,3 +141,58 @@ var_digits	numeric		FALSE	comma	default	0	Precisión	Precisión numérica de la 
 var_pretty_name	character		FALSE	character	default		Columna	Nombre de la columna.
 var_description	character		FALSE	character	default		Descripción	Descripción de la columna.
 var_notes	character		FALSE	character	default		Notas	Notas adicionales.
+item_length_qty	numeric		FALSE	comma	default	1	Largo del artículo (cm)	Longitud física de la pieza (cm).
+item_height_qty	numeric		FALSE	comma	default	1	Alto del artículo (cm)	Altura física de la pieza (cm).
+item_width_qty	numeric		FALSE	comma	default	1	Ancho de artículo (cm)	Anchura física de la pieza (cm).
+whpk_length_qty	numeric		FALSE	comma	default	1	Largo del WHPK (cm)	Longitud física del warehouse pack (WHPK) (cm).
+whpk_height_qty	numeric		FALSE	comma	default	1	Alto del WHPK (cm)	Altura física de la warehouse pack (WHPK) (cm).
+whpk_width_qty	numeric		FALSE	comma	default	1	Ancho de WHPK (cm)	Anchura física de la warehouse pack (WHPK) (cm).
+pallet_ti_qty	numeric		FALSE	comma	default	0	Pallet Ti	Número de VNPK's que caben en una cama del artículo.
+pallet_hi_qty	numeric		FALSE	comma	default	0	Pallet Ti	Número de camas que caben en una tarima del artículo.
+alto_cm	numeric		FALSE	comma	default	0	Alto de mueble (cm)	Altura física del mueble usado para los cálculos (ya sea el deseado o el predeterminado, el valor es 0 (cero) si no exite) (cm).
+ancho_cm	numeric		FALSE	comma	default	0	Ancho de mueble (cm)	Anchura física del mueble usado para los cálculos (ya sea el deseado o el predeterminado, el valor es 0 (cero) si no exite) (cm).
+profundo_cm	numeric		FALSE	comma	default	0	Profundo de mueble (cm)	Profundidad física del mueble usado para los cálculos (ya sea el deseado o el predeterminado, el valor es 0 (cero) si no exite) (cm).
+shelfs_qty	numeric		FALSE	comma	default	0	Muebles en zona	Cantidad total de muebles iguales que existen en la misma tienda-zona y que por lo tanto, aplican para los mismos departamentos.
+rrp_ind	character		FALSE	character	default		RRP Index	Bandera que indica si el artículo cuenta con empaque de tipo "Retail Ready Package (RRP)".
+gs1_sync_status	character		FALSE	character	default		Bandera de sincronización	Estatus de sincronización del artículo en el catálogo electrónico (OIF).
+keys	character		FALSE	character	default		Llave de mueble deseado	Llave que se usa para filtrar la base de datos de los muebles por tienda-departamento con base en el mueble deseado.
+default_keys	character		FALSE	character	default		Llave de mueble predeterminado	Llave que se usa para filtrar la base de datos de los muebles con base en el mueble establecido como predeterminado.
+is_forced_default	numeric		FALSE	comma	default	0	Predeterminado forzado	Bandera activada para las combinaciones que no tienen mueble deseado y el mueble predeterminado está en piezas.
+shelf_was_found	numeric		FALSE	comma	default	0	Mueble deseado encontrado	Bandera activada para las combinaciones de las que se buscó y encontró el mueble deseado.
+is_unforced_chr_default	numeric		FALSE	comma	default	0	Predeterminado legítimo en texto	Bandera activada para las combinaciones de las que no se encontró el mueble deseado pero existe un mueble predeterminado como texto.
+used_shelf	character		FALSE	character	default		Mueble utilizado	Mueble que se usó en cada combinación para los cálculos de piezas máximas, 0 si no existe o si no aplica.
+default_shelf_found	numeric		FALSE	comma	default	0	Mueble predeterminado encontrado	Bandera activada para las combinaciones de las que se buscó y encontró el mueble predeterminado.
+no_rrp_shelves_number	numeric		FALSE	comma	default	0	Número de repisas (no RRP)	Cantidad de repisas que se estima que puede tener la cabecera si el artículo no se entregara en RRP.
+no_rrp_ah	numeric		FALSE	comma	default	2	Altura efectiva de la cabecera (no RRP) (cm)	Altura de la cabecera - Espacio reservado por los anaqueles y los dedos de la clienta si el artículo no se entregara en RRP (cm).
+no_rrp_lh	numeric		FALSE	comma	default	2	Altura efectiva del anaquel (no RRP) (cm)	Altura efectiva de la cabecera (no RRP) / Número de repisas (no RRP) (cm).
+no_rrp_avail_space	numeric		FALSE	comma	default	2	Volumen efectivo en el anaquel (no RRP) (cm3)	Volumen del anaquel que puede ser ocupado por mercancía (no RRP) (cm3).
+no_rrp_tiers_per_shelf	numeric		FALSE	comma	default	0	Estibas por anaquel (no RRP)	Máxima cantidad de piezas que pueden apilarse en el anaquel (no RRP).
+no_rrp_tiers_ttl	numeric		FALSE	comma	default	0	Estibas totales (no RRP)	Máxima cantidad de camas que pueden caber en la cabecera (no RRP).
+no_rrp_length_qty	numeric		FALSE	comma	default	0	Piezas en ancho	Máxima cantidad de piezas que pueden caber en el ancho de la cabecera.
+no_rrp_width_qty	numeric		FALSE	comma	default	0	Piezas en profundo	Máxima cantidad de piezas que pueden caber en el profundo de la cabecera.
+no_rrp_max_qty	numeric		FALSE	comma	default	0	Piezas máximas	Máxima cantidad de piezas que pueden en la cabecera.
+rrp_shelves_number	numeric		FALSE	comma	default	0	Número de repisas (RRP)	Cantidad de repisas que se estima que puede tener la cabecera si el artículo se entregara en RRP.
+rrp_ah	numeric		FALSE	comma	default	2	Altura efectiva de la cabecera (RRP) (cm)	Altura de la cabecera - Espacio reservado por los anaqueles y los dedos de la clienta si el artículo se entregara en RRP (cm).
+rrp_lh	numeric		FALSE	comma	default	2	Altura efectiva del anaquel (RRP) (cm)	Altura efectiva de la cabecera (RRP) / Número de repisas (RRP) (cm).
+rrp_avail_space	numeric		FALSE	comma	default	2	Volumen efectivo en el anaquel (RRP) (cm3)	Volumen del anaquel que puede ser ocupado por mercancía (RRP) (cm3).
+rrp_tiers_per_shelf	numeric		FALSE	comma	default	0	Estibas por anaquel (RRP)	Máxima cantidad de WHPK's que pueden apilarse en el anaquel (RRP).
+rrp_tiers_ttl	numeric		FALSE	comma	default	0	Estibas totales (RRP)	Máxima cantidad de camas que pueden caber en la cabecera (RRP).
+rrp_length_qty	numeric		FALSE	comma	default	0	WHPK's en ancho	Máxima cantidad de WHPK's que pueden caber en el ancho de la cabecera.
+rrp_width_qty	numeric		FALSE	comma	default	0	WHPK's en profundo	Máxima cantidad de WHPK's que pueden caber en el profundo de la cabecera.
+rrp_max_qty	numeric		FALSE	comma	default	0	WHPK's máximas	Máxima cantidad de WHPK's que pueden en la cabecera.
+pallet_length_item_qty	numeric		FALSE	comma	default	0	Piezas en largo de tarima	Máxima cantidad de piezas que caben en el largo de la tarima.
+pallet_height_item_qty	numeric		FALSE	comma	default	0	Piezas en alto de tarima	Máxima cantidad de piezas que caben en el alto de la tarima.
+pallet_width_item_qty	numeric		FALSE	comma	default	0	Piezas en ancho de tarima	Máxima cantidad de piezas que caben en el ancho de la tarima.
+pallet_length_whpk_qty	numeric		FALSE	comma	default	0	WHPK's en largo de tarima	Máxima cantidad de WHPK's que caben en el largo de la tarima.
+pallet_height_whpk_qty	numeric		FALSE	comma	default	0	WHPK's en alto de tarima	Máxima cantidad de WHPK's que caben en el alto de la tarima.
+pallet_width_whpk_qty	numeric		FALSE	comma	default	0	WHPK's en ancho de tarima	Máxima cantidad de WHPK's que caben en el ancho de la tarima.
+chimney_length_item_qty	numeric		FALSE	comma	default	0	Piezas en largo de chimenea	Máxima cantidad de piezas que caben en el largo de la chimenea.
+chimney_height_item_qty	numeric		FALSE	comma	default	0	Piezas en alto de chimenea	Máxima cantidad de piezas que caben en el alto de la chimenea.
+chimney_width_item_qty	numeric		FALSE	comma	default	0	Piezas en ancho de chimenea	Máxima cantidad de piezas que caben en el ancho de la chimenea.
+chimney_length_whpk_qty	numeric		FALSE	comma	default	0	WHPK's en largo de chimenea	Máxima cantidad de WHPK's que caben en el largo de la chimenea.
+chimney_height_whpk_qty	numeric		FALSE	comma	default	0	WHPK's en alto de chimenea	Máxima cantidad de WHPK's que caben en el alto de la chimenea.
+chimney_width_whpk_qty	numeric		FALSE	comma	default	0	WHPK's en ancho de chimenea	Máxima cantidad de WHPK's que caben en el ancho de la chimenea.
+rrp_full_vol	numeric		FALSE	comma	default	0	Volumen RRP (cm3)	Volumen ocupado por los RRP's que caben en la cabecera (cm3).
+left_avail_space	numeric		FALSE	comma	default	0	Volumen restante (cm3)	Volumen que sobra disponible en la cabecera luego de restar el Volumen RRP (cm3).
+bkp_extra_pcs	numeric		FALSE	comma	default	0	Piezas adicionales	Piezas que caben en el Volumen restante de acuerdo a su volumetría.
+max_item_capacity	numeric		FALSE	comma	default	0	Capacidad máxima (piezas)	Piezas totales que caben en el mueble de acuerdo al tipo de mueble y todos los cálculos espaciales.
