@@ -494,8 +494,8 @@ create_capacity_columns <- function(data, prefix, measures, constant1, extra_spa
       ah = round(reduced_height - (shelves_number * extra_space), digits = 2),
       lh = round(ah / shelves_number, digits = 2),
       avail_space = round((ancho_cm * profundo_cm * reduced_height) - (shelves_number * extra_space * ancho_cm * profundo_cm), digits = 2),
-      tiers_per_stack = floor(lh / !!measures$height),
-      tiers_ttl = round(tiers_per_stack * shelves_number),
+      tiers_per_shelf = floor(lh / !!measures$height),
+      tiers_ttl = round(tiers_per_shelf * shelves_number),
       length_qty = floor(ancho_cm / !!measures$length),
       width_qty = floor(profundo_cm / !!measures$width),
       max_qty = round(tiers_ttl * width_qty * length_qty)
@@ -568,7 +568,7 @@ search_shelves <- function(keys, stores_shelves_df) {
   stores_shelves_df %>% 
     filter(combs %in% keys) %>% 
     group_by(combs) %>% 
-    arrange(desc(cantidad)) %>% 
+    arrange(desc(shelfs_qty)) %>% 
     filter(row_number() == 1) %>% 
     ungroup()
 }
@@ -579,13 +579,13 @@ calculate_max_capacity <- function(data){
     set_names(tolower(names(.)))
   initial_columns <- names(data)
   stores_shelves_df <- read_csv(gl$shelves_database) %>% 
-    select(store_nbr, shelf, dept_nbr, alto_cm, ancho_cm, profundo_cm, cantidad) %>% 
+    select(store_nbr, shelf, dept_nbr, alto_cm, ancho_cm, profundo_cm, shelfs_qty) %>% 
     mutate(combs = paste(store_nbr, shelf, dept_nbr, sep = '.'))
-  new_vars <- vars(alto_cm, ancho_cm, profundo_cm, cantidad)
+  new_vars <- vars(alto_cm, ancho_cm, profundo_cm, shelfs_qty)
   data <- data %>% 
     left_join(rrp_sync_data, by = 'old_nbr'
     ) %>% 
-    mutate_at(vars('rrp_ind', 'synced'), list(~replace_na(., 'N'))) %>% 
+    mutate_at(vars('rrp_ind', 'gs1_sync_status'), list(~replace_na(., 'N'))) %>% 
     mutate(
       keys = paste(store_nbr, shelf, dept_nbr, sep = '.'),
       default_keys = paste(store_nbr, default_shelf, dept_nbr, sep = '.'),
@@ -615,7 +615,7 @@ calculate_max_capacity <- function(data){
   data <- data %>% 
     left_join(stores_shelves, by = c('store_nbr', 'shelf', 'dept_nbr')) %>% 
     mutate(
-      shelf_was_found = !(is.na(alto_cm) | is.na(ancho_cm) | is.na(profundo_cm) | is.na(cantidad)),
+      shelf_was_found = !(is.na(alto_cm) | is.na(ancho_cm) | is.na(profundo_cm) | is.na(shelfs_qty)),
       # TRUE = No shelf was found AND the default is NOT a number. FALSE = Shelf was found OR default is a number
       is_unforced_chr_default = is.na(as.numeric(default_shelf)) & !shelf_was_found
     )
@@ -643,13 +643,13 @@ calculate_max_capacity <- function(data){
     select(-combs)
   
   data <- data %>% 
-    select(-c(alto_cm, ancho_cm, profundo_cm, cantidad)) %>% 
+    select(-c(alto_cm, ancho_cm, profundo_cm, shelfs_qty)) %>% 
     left_join(
       stores_default_shelves,
       by = c('store_nbr' = 'store_nbr', 'default_shelf' = 'shelf', 'dept_nbr' = 'dept_nbr')
     ) %>% 
     mutate(
-      default_shelf_found = !(is.na(alto_cm) | is.na(ancho_cm) | is.na(profundo_cm) | is.na(cantidad)),
+      default_shelf_found = !(is.na(alto_cm) | is.na(ancho_cm) | is.na(profundo_cm) | is.na(shelfs_qty)),
       used_shelf = ifelse(default_shelf_found, default_shelf, 'NA')
     )
   

@@ -32,8 +32,8 @@ stores_tables <- lapply(stores_paths, function(x){
     read_csv %>% 
     na.omit %>% 
     set_names(tolower(names(.))) %>% 
-    gather('zona', 'cantidad', -(store_nbr:total)) %>% 
-    filter(cantidad > 0)
+    gather('zona', 'shelfs_qty', -(store_nbr:total)) %>% 
+    filter(shelfs_qty > 0)
 })
 
 
