@@ -167,6 +167,8 @@ gl$shelves_database <- 'data/stores-shelves.csv'
 gl$rrp_sync_database <- 'data/item-rrp-sync-result.rds'
 ### Periodo de actualización de base de datos de RRP y Sync (días)
 gl$rrp_sync_update_period <- 7
+### Número de archivos de respaldo de la base de datos
+gl$rrp_sync_backups_n <- 5
 ### Nivel de permisos por tipo de usuario
 gl$clearance_levels <- c(
   'owner' = 0,
