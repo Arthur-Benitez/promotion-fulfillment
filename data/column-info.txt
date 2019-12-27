@@ -5,9 +5,9 @@ dept_nbr	numeric	TRUE	TRUE	character	default		Departamento	Número de departamen
 negocio	character	TRUE	TRUE	character	default		Negocio	Formato de negocio (BAE, BODEGA, MIBODEGA, SUPERAMA o SUPERCENTER)
 old_nbr	numeric	FALSE	TRUE	character	default		Artículo (old_nbr)	Número de artículo de HOST (old_nbr en Teradata).
 primary_desc_temp	character	FALSE	TRUE	character	default		Descripción (opcional)	Descripción del artículo sólo para referencia en la página de inputs. En los resultados se sustituye por la descripción del artículo primario.
-min_feature_perc	numeric	TRUE	TRUE	percent	default	2	Mínimo de exhibición (%)	"Porcentaje de la cantidad máxima de piezas en el mueble que se desea en la exhibición (entre todos los artículos). Su efecto depende de la opción seleccionada en ""Lógica mínimo""."
-min_feature_qty	numeric	TRUE	FALSE	comma	default	0	Mínimo de exhibición (pzas)	"Mínimas piezas totales en el display (entre todos los artículos). Su efecto depende de la opción seleccionada en ""Lógica mínimo""."
-max_feature_qty	numeric	FALSE	FALSE	comma	default	0	Máximo de exhibición	Máximas piezas totales en el display (entre todos los artículos).
+min_feature_perc	numeric	TRUE	TRUE	percent	default	0	Mínimo de exhibición (%)	"Porcentaje de la cantidad máxima de piezas en el mueble que se desea en la exhibición (entre todos los artículos). Su efecto depende de la opción seleccionada en ""Lógica mínimo""."
+min_feature_qty	numeric	TRUE	FALSE	comma	default	0	Mínimo de exhibición (pzas)	"Mínimas piezas totales en el mueble (entre todos los artículos). Su efecto depende de la opción seleccionada en ""Lógica mínimo""."
+max_feature_qty	numeric	FALSE	FALSE	comma	default	0	Máximo de exhibición	Máximas piezas totales en el mueble (entre todos los artículos).
 shelf	character	TRUE	TRUE	character	default		Mueble deseado	Tipo de mueble que tendrá la exhibición (Base, Media Base, Cabecera alta, Cabecera baja, Cabecera circular).
 default_shelf	character	TRUE	TRUE	character	default		Mueble predeterminado	Tipo de mueble que se usará para los cálculos en las combinaciones en las que no se encuentre el mueble deseado.
 max_ddv	numeric	FALSE	TRUE	comma	default	1	Máximo de DDV	Tope máximo de días de venta por artículo.
@@ -143,10 +143,10 @@ var_description	character		FALSE	character	default		Descripción	Descripción de
 var_notes	character		FALSE	character	default		Notas	Notas adicionales.
 item_length_qty	numeric		FALSE	comma	default	1	Largo del artículo (cm)	Longitud física de la pieza (cm).
 item_height_qty	numeric		FALSE	comma	default	1	Alto del artículo (cm)	Altura física de la pieza (cm).
-item_width_qty	numeric		FALSE	comma	default	1	Ancho de artículo (cm)	Anchura física de la pieza (cm).
+item_width_qty	numeric		FALSE	comma	default	1	Ancho del artículo (cm)	Anchura física de la pieza (cm).
 whpk_length_qty	numeric		FALSE	comma	default	1	Largo del WHPK (cm)	Longitud física del warehouse pack (WHPK) (cm).
 whpk_height_qty	numeric		FALSE	comma	default	1	Alto del WHPK (cm)	Altura física de la warehouse pack (WHPK) (cm).
-whpk_width_qty	numeric		FALSE	comma	default	1	Ancho de WHPK (cm)	Anchura física de la warehouse pack (WHPK) (cm).
+whpk_width_qty	numeric		FALSE	comma	default	1	Ancho del WHPK (cm)	Anchura física de la warehouse pack (WHPK) (cm).
 pallet_ti_qty	numeric		FALSE	comma	default	0	Pallet Ti	Número de VNPK's que caben en una cama del artículo.
 pallet_hi_qty	numeric		FALSE	comma	default	0	Pallet Ti	Número de camas que caben en una tarima del artículo.
 alto_cm	numeric		FALSE	comma	default	0	Alto de mueble (cm)	Altura física del mueble usado para los cálculos (ya sea el deseado o el predeterminado, el valor es 0 (cero) si no exite) (cm).
@@ -195,4 +195,4 @@ chimney_width_whpk_qty	numeric		FALSE	comma	default	0	WHPK's en ancho de chimene
 rrp_full_vol	numeric		FALSE	comma	default	0	Volumen RRP (cm3)	Volumen ocupado por los RRP's que caben en la cabecera (cm3).
 left_avail_space	numeric		FALSE	comma	default	0	Volumen restante (cm3)	Volumen que sobra disponible en la cabecera luego de restar el Volumen RRP (cm3).
 bkp_extra_pcs	numeric		FALSE	comma	default	0	Piezas adicionales	Piezas que caben en el Volumen restante de acuerdo a su volumetría.
-max_item_capacity	numeric		FALSE	comma	default	0	Capacidad máxima (piezas)	Piezas totales que caben en el mueble de acuerdo al tipo de mueble y todos los cálculos espaciales.
+max_item_capacity	numeric		FALSE	comma	default	0	Capacidad máxima (piezas)	Máximas piezas totales que caben en el mueble si se llenara con un sólo artículo.
