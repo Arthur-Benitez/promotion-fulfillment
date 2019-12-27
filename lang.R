@@ -96,6 +96,7 @@ lang <- list(
   tab_input = 'Entradas',
   tab_output_histogram = 'Alcance',
   tab_output_summary = 'Resultados',
+  tab_output_item_details = 'Artículos',
   tab_output_table = 'Cálculos',
   tab_input_graph = 'Tabla & Gráfica',
   tab_stores_lists = 'Tiendas especiales',

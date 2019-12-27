@@ -1779,6 +1779,40 @@ computePromotionsServer <- function(input, output, session, credentials) {
       shiny::need(nchar(input$output_feature_select) > 0, lang$need_select_feature)
   })
   
+  ## Tabla que muestra las medidas de los artículos y su estatus de sincronización
+  output$item_details_table <- renderDT({
+    shiny::validate(
+      need_input_ready() %then%
+        need_query_ready()
+    )
+    tryCatch({
+      final_result() %>%
+        group_by(old_nbr) %>% 
+        summarise_at(
+          vars('item_length_qty', 'item_width_qty', 'item_height_qty', 'whpk_length_qty', 'whpk_width_qty', 'whpk_height_qty', 'rrp_ind', 'gs1_sync_status'),
+          first
+        ) %>% 
+        datatable(
+          extensions = c('Buttons', 'FixedColumns', 'KeyTable'),
+          filter = 'top',
+          options = list(
+            dom = 'Bfrtip',
+            buttons = c('copy', 'csv', 'excel'),
+            fixedColumns = list(leftColumns = 1),
+            keys = TRUE,
+            scrollX = TRUE,
+            scrollY = gl$table_height$tall,
+            pageLength = 20
+          ),
+          colnames = remap_names(names(.), gl$cols, to_col = 'pretty_name'),
+          callback = build_callback(names(.), gl$cols)
+        ) %>%
+        format_columns(gl$cols)
+    }, error = function(e){
+      NULL
+    })
+  })
+  
   ## Tabla de salida
   output$detail_table <- renderDT({
     shiny::validate(
@@ -2450,6 +2484,11 @@ computePromotionsUI <- function(id) {
         ),
         plotlyOutput(ns('feature_histogram'), height = gl$plotly_height) %>% withSpinner(type = 8),
         DTOutput(ns('feature_histogram_table'))
+      ),
+      tabPanel(
+        value = 'output_item_details',
+        title = lang$tab_output_item_details,
+        DTOutput(ns('item_details_table')) %>% withSpinner(type = 8)
       ),
       tabPanel(
         value = 'output_detail',
