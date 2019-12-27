@@ -2,16 +2,16 @@ library(tidyverse)
 
 # Variables ---------------------------------------------------------------
 
-path_zonas <- 'data/deptos_zona.csv'
-path_depts <- 'data/deptos_vp.csv'
-path_save <- 'data/stores_shelfs.csv'
+path_zonas <- 'data/deptos-zona.csv'
+path_depts <- 'data/deptos-vp.csv'
+path_save <- 'data/stores-shelfs.csv'
 
 stores_paths <- list(
-  sc = 'data/bases_cabeceras_sc.csv',
-  sp = 'data/bases_cabeceras_sp.csv',
-  ba = 'data/bases_cabeceras_ba.csv',
-  mb = 'data/bases_cabeceras_mb.csv',
-  bae = 'data/bases_cabeceras_bae.csv'
+  sc = 'data/bases-cabeceras-sc.csv',
+  sp = 'data/bases-cabeceras-sp.csv',
+  ba = 'data/bases-cabeceras-ba.csv',
+  mb = 'data/bases-cabeceras-mb.csv',
+  bae = 'data/bases-cabeceras-bae.csv'
 )
 
 previous_levels <- c("ABARROTES Y VINOS", "APERTURAS", "CONSUMIBLES", "FARMACIA", "FRESH", "MG", "PERECEDEROS", "ROPA", "SALUD Y NUEVOS NEGOCIOS", 'PRICHOS')

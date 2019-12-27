@@ -162,9 +162,9 @@ if (!dir.exists(dirname(gl$user_data_path))) {
 }
 
 ### Path de base de datos con los datos de los muebles de las tiendas
-gl$shelves_database <- 'data/stores_shelves.csv'
+gl$shelves_database <- 'data/stores-shelves.csv'
 ### Path de base de datos con los estatuts de RRP y sincronización en GS1
-gl$rrp_sync_database <- 'data/item_rrp_sync_result.rds'
+gl$rrp_sync_database <- 'data/item-rrp-sync-result.rds'
 ### Periodo de actualización de base de datos de RRP y Sync (días)
 gl$rrp_sync_update_period <- 7
 ### Nivel de permisos por tipo de usuario
