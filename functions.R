@@ -35,6 +35,20 @@ fill_vectors <- function(data, value = NA) {
     as_tibble()
 }
 
+## Función para crear un respaldo de un archivo y conservar cierto número de respaldos
+backup_file <- function(data, folder = 'data', complete_file_name, preserved_backups = 3) {
+  file_details <- unlist(strsplit(complete_file_name, split = '\\.'))
+  file_name <- file_details[1]
+  file_extension <- file_details[2]
+  saveRDS(data, sprintf('%s/%s-%s.%s', folder, file_name, format(Sys.time(), '%Y%m%d_%H%M%S'), file_extension))
+  backups <- list.files(paste0(folder, '/'), pattern = paste0(file_name, '-'), full.names = TRUE)
+  total_backups <- length(backups)
+  if(total_backups > preserved_backups) {
+    backups[1:(total_backups - preserved_backups)] %>% 
+    lapply(file.remove)
+  }
+}
+
 ## Función para encadenar condiciones dentro de validate()
 `%then%` <- shiny:::`%OR%`
 
