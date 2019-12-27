@@ -1820,7 +1820,6 @@ computePromotionsServer <- function(input, output, session, credentials) {
         need_query_ready()
     )
     tryCatch({
-      percent_columns <- c('feature_perc_pos_or_fcst')
       final_result() %>%
         select(
           feature_name,
