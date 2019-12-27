@@ -806,7 +806,7 @@ summarise_data <- function(data, group = c('feature_name', 'cid')) {
   group_order <- c('feature_name', 'store_nbr', 'store_name', 'cid', 'old_nbr', 'dc_nbr', 'dc_name')
   grp <- group_order[group_order %in% group]
   ## Variables numéricas de tabla de salida
-  vv <- c('avg_dly_sales', 'avg_dly_forecast', 'min_feature_qty', 'max_feature_qty', 'max_ddv', 'total_cost', 'total_impact_cost', 'total_stock_cost', 'total_qty', 'total_impact_qty', 'total_stock_qty', 'total_ddv', 'total_impact_ddv', 'total_stock_ddv', 'total_vnpk', 'total_impact_vnpk', 'total_stock_vnpk')
+  vv <- c('avg_dly_sales', 'avg_dly_forecast', 'min_feature_qty', 'max_feature_qty', 'max_item_capacity', 'max_ddv', 'total_cost', 'total_impact_cost', 'total_stock_cost', 'total_qty', 'total_impact_qty', 'total_stock_qty', 'total_ddv', 'total_impact_ddv', 'total_stock_ddv', 'total_vnpk', 'total_impact_vnpk', 'total_stock_vnpk')
   if ('store_nbr' %in% grp) {
     val_vars <- vv
   } else {
@@ -828,6 +828,7 @@ summarise_data <- function(data, group = c('feature_name', 'cid')) {
       avg_dly_forecast = ifelse(any(fcst_or_sales == 'F'), sum(avg_dly_pos_or_fcst[fcst_or_sales=='F'], na.rm = TRUE), NA_real_),
       min_feature_qty = mean(min_feature_qty, na.rm = TRUE),
       max_feature_qty = mean(max_feature_qty, na.rm = TRUE),
+      max_item_capacity = mean(max_item_capacity, na.rm = TRUE),
       max_ddv = sum(max_ddv * avg_dly_pos_or_fcst, na.rm = TRUE) / sum(avg_dly_pos_or_fcst, na.rm = TRUE),
       total_cost = sum(store_cost, na.rm = TRUE),
       total_impact_cost = sum(impact_cost, na.rm = TRUE),
