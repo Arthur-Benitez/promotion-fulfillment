@@ -145,10 +145,10 @@ item_length_qty	numeric		FALSE	comma	default	1	Largo del artículo (cm)	Longitud
 item_height_qty	numeric		FALSE	comma	default	1	Alto del artículo (cm)	Altura física de la pieza (cm).
 item_width_qty	numeric		FALSE	comma	default	1	Ancho del artículo (cm)	Anchura física de la pieza (cm).
 whpk_length_qty	numeric		FALSE	comma	default	1	Largo del WHPK (cm)	Longitud física del warehouse pack (WHPK) (cm).
-whpk_height_qty	numeric		FALSE	comma	default	1	Alto del WHPK (cm)	Altura física de la warehouse pack (WHPK) (cm).
-whpk_width_qty	numeric		FALSE	comma	default	1	Ancho del WHPK (cm)	Anchura física de la warehouse pack (WHPK) (cm).
-pallet_ti_qty	numeric		FALSE	comma	default	0	Pallet Ti	Número de VNPK's que caben en una cama del artículo.
-pallet_hi_qty	numeric		FALSE	comma	default	0	Pallet Ti	Número de camas que caben en una tarima del artículo.
+whpk_height_qty	numeric		FALSE	comma	default	1	Alto del WHPK (cm)	Altura física del warehouse pack (WHPK) (cm).
+whpk_width_qty	numeric		FALSE	comma	default	1	Ancho del WHPK (cm)	Anchura física del warehouse pack (WHPK) (cm).
+pallet_ti_qty	numeric		FALSE	comma	default	0	Pallet Ti	Número de VNPKs que caben en una cama del artículo.
+pallet_hi_qty	numeric		FALSE	comma	default	0	Pallet Hi	Número de camas que caben en una tarima del artículo.
 alto_cm	numeric		FALSE	comma	default	0	Alto de mueble (cm)	Altura física del mueble usado para los cálculos (ya sea el deseado o el predeterminado, el valor es 0 (cero) si no exite) (cm).
 ancho_cm	numeric		FALSE	comma	default	0	Ancho de mueble (cm)	Anchura física del mueble usado para los cálculos (ya sea el deseado o el predeterminado, el valor es 0 (cero) si no exite) (cm).
 profundo_cm	numeric		FALSE	comma	default	0	Profundo de mueble (cm)	Profundidad física del mueble usado para los cálculos (ya sea el deseado o el predeterminado, el valor es 0 (cero) si no exite) (cm).
@@ -175,24 +175,24 @@ rrp_shelves_number	numeric		FALSE	comma	default	0	Número de repisas (RRP)	Canti
 rrp_ah	numeric		FALSE	comma	default	2	Altura efectiva de la cabecera (RRP) (cm)	Altura de la cabecera - Espacio reservado por los anaqueles y los dedos de la clienta si el artículo se entregara en RRP (cm).
 rrp_lh	numeric		FALSE	comma	default	2	Altura efectiva del anaquel (RRP) (cm)	Altura efectiva de la cabecera (RRP) / Número de repisas (RRP) (cm).
 rrp_avail_space	numeric		FALSE	comma	default	2	Volumen efectivo en el anaquel (RRP) (cm3)	Volumen del anaquel que puede ser ocupado por mercancía (RRP) (cm3).
-rrp_tiers_per_shelf	numeric		FALSE	comma	default	0	Estibas por anaquel (RRP)	Máxima cantidad de WHPK's que pueden apilarse en el anaquel (RRP).
+rrp_tiers_per_shelf	numeric		FALSE	comma	default	0	Estibas por anaquel (RRP)	Máxima cantidad de WHPKs que pueden apilarse en el anaquel (RRP).
 rrp_tiers_ttl	numeric		FALSE	comma	default	0	Estibas totales (RRP)	Máxima cantidad de camas que pueden caber en la cabecera (RRP).
-rrp_length_qty	numeric		FALSE	comma	default	0	WHPK's en ancho	Máxima cantidad de WHPK's que pueden caber en el ancho de la cabecera.
-rrp_width_qty	numeric		FALSE	comma	default	0	WHPK's en profundo	Máxima cantidad de WHPK's que pueden caber en el profundo de la cabecera.
-rrp_max_qty	numeric		FALSE	comma	default	0	WHPK's máximas	Máxima cantidad de WHPK's que pueden en la cabecera.
+rrp_length_qty	numeric		FALSE	comma	default	0	WHPKs en ancho	Máxima cantidad de WHPKs que pueden caber en el ancho de la cabecera.
+rrp_width_qty	numeric		FALSE	comma	default	0	WHPKs en profundo	Máxima cantidad de WHPKs que pueden caber en el profundo de la cabecera.
+rrp_max_qty	numeric		FALSE	comma	default	0	WHPKs máximas	Máxima cantidad de WHPKs que pueden en la cabecera.
 pallet_length_item_qty	numeric		FALSE	comma	default	0	Piezas en largo de tarima	Máxima cantidad de piezas que caben en el largo de la tarima.
 pallet_height_item_qty	numeric		FALSE	comma	default	0	Piezas en alto de tarima	Máxima cantidad de piezas que caben en el alto de la tarima.
 pallet_width_item_qty	numeric		FALSE	comma	default	0	Piezas en ancho de tarima	Máxima cantidad de piezas que caben en el ancho de la tarima.
-pallet_length_whpk_qty	numeric		FALSE	comma	default	0	WHPK's en largo de tarima	Máxima cantidad de WHPK's que caben en el largo de la tarima.
-pallet_height_whpk_qty	numeric		FALSE	comma	default	0	WHPK's en alto de tarima	Máxima cantidad de WHPK's que caben en el alto de la tarima.
-pallet_width_whpk_qty	numeric		FALSE	comma	default	0	WHPK's en ancho de tarima	Máxima cantidad de WHPK's que caben en el ancho de la tarima.
+pallet_length_whpk_qty	numeric		FALSE	comma	default	0	WHPKs en largo de tarima	Máxima cantidad de WHPKs que caben en el largo de la tarima.
+pallet_height_whpk_qty	numeric		FALSE	comma	default	0	WHPKs en alto de tarima	Máxima cantidad de WHPKs que caben en el alto de la tarima.
+pallet_width_whpk_qty	numeric		FALSE	comma	default	0	WHPKs en ancho de tarima	Máxima cantidad de WHPKs que caben en el ancho de la tarima.
 chimney_length_item_qty	numeric		FALSE	comma	default	0	Piezas en largo de chimenea	Máxima cantidad de piezas que caben en el largo de la chimenea.
 chimney_height_item_qty	numeric		FALSE	comma	default	0	Piezas en alto de chimenea	Máxima cantidad de piezas que caben en el alto de la chimenea.
 chimney_width_item_qty	numeric		FALSE	comma	default	0	Piezas en ancho de chimenea	Máxima cantidad de piezas que caben en el ancho de la chimenea.
-chimney_length_whpk_qty	numeric		FALSE	comma	default	0	WHPK's en largo de chimenea	Máxima cantidad de WHPK's que caben en el largo de la chimenea.
-chimney_height_whpk_qty	numeric		FALSE	comma	default	0	WHPK's en alto de chimenea	Máxima cantidad de WHPK's que caben en el alto de la chimenea.
-chimney_width_whpk_qty	numeric		FALSE	comma	default	0	WHPK's en ancho de chimenea	Máxima cantidad de WHPK's que caben en el ancho de la chimenea.
-rrp_full_vol	numeric		FALSE	comma	default	0	Volumen RRP (cm3)	Volumen ocupado por los RRP's que caben en la cabecera (cm3).
+chimney_length_whpk_qty	numeric		FALSE	comma	default	0	WHPKs en largo de chimenea	Máxima cantidad de WHPKs que caben en el largo de la chimenea.
+chimney_height_whpk_qty	numeric		FALSE	comma	default	0	WHPKs en alto de chimenea	Máxima cantidad de WHPKs que caben en el alto de la chimenea.
+chimney_width_whpk_qty	numeric		FALSE	comma	default	0	WHPKs en ancho de chimenea	Máxima cantidad de WHPKs que caben en el ancho de la chimenea.
+rrp_full_vol	numeric		FALSE	comma	default	0	Volumen RRP (cm3)	Volumen ocupado por los RRPs que caben en la cabecera (cm3).
 left_avail_space	numeric		FALSE	comma	default	0	Volumen restante (cm3)	Volumen que sobra disponible en la cabecera luego de restar el Volumen RRP (cm3).
 bkp_extra_pcs	numeric		FALSE	comma	default	0	Piezas adicionales	Piezas que caben en el Volumen restante de acuerdo a su volumetría.
 max_item_capacity	numeric		FALSE	comma	default	0	Capacidad máxima (piezas)	Máximas piezas totales que caben en el mueble si se llenara con un sólo artículo.
