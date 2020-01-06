@@ -1044,7 +1044,8 @@ generate_sample_input <- function(calendar_day, column_info) {
     old_nbr = c(9506783, 9506804, 9574857, 9506748, 9574857, 9506748),
     primary_desc_temp = c('MARUCHAN CAMARON', 'MARUCHAN CMRONCHILE', 'MARUCHAN CMRONHBNER', 'MARUCHAN POLLO', 'MARUCHAN CMRONHBNER', 'MARUCHAN POLLO'),
     min_feature_perc = c(0.2, 0.2, 0.2, 0.2, 0.1, 0.1),
-    max_feature_qty = c(3000, 3000, 3000, 3000, 2000, 2000),
+    shelf = c('CABECERA ALTA', 'CABECERA ALTA', 'CABECERA ALTA', 'CABECERA ALTA', 'BASE', 'BASE'),
+    default_shelf = c('CABECERA BAJA', 'CABECERA BAJA', 'CABECERA BAJA', 'CABECERA BAJA', 2000, 2000),
     max_ddv = 30,
     fcst_or_sales = c('S', 'S', 'S', 'S', 'F', 'F'),
     semana_ini = c(rep(sales_wks[1], 4), rep(fcst_wks[1], 2)),
@@ -1057,7 +1058,7 @@ generate_sample_input <- function(calendar_day, column_info) {
   )
   names(info) <- remap_names(names(info), column_info, to_col = 'pretty_name')
   stores_lists <- tryCatch({
-    read_csv('data/stores_lists.csv')
+    read_csv('data/stores-lists.csv')
   }, error = function(e){
     list(
       tiendas_muy_chicas = c(3733, 3983, 1424, 2052, 4036),
