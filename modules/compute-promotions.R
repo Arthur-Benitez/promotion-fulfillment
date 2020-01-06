@@ -484,11 +484,11 @@ calculate_shelves_number <- function(height, reduced_shelf_height, extra_space, 
 }
 
 ## Cálculo de máxima cantidad (pzas / rrp)
-create_capacity_columns <- function(data, prefix, measures, constant1, extra_space) {
+create_capacity_columns <- function(data, prefix, measures, waste_space, extra_space) {
   initial_columns <- names(data)
   data <- data %>% 
     mutate(
-      reduced_height = alto_cm - constant1,
+      reduced_height = alto_cm - waste_space,
       max_shelves = 7,
       shelves_number = calculate_shelves_number(!!measures$height, reduced_height, extra_space, max_shelves),
       ah = round(reduced_height - (shelves_number * extra_space), digits = 2),
@@ -507,7 +507,7 @@ create_capacity_columns <- function(data, prefix, measures, constant1, extra_spa
 }
 
 ## Usa las medidas de los muebles para obtener las piezas máximas
-perform_spacial_computations <- function(data) {
+perform_spatial_computations <- function(data) {
   finger_space <- 2.54
   tray_space <- 4.4958
   extra_space <- finger_space + tray_space
@@ -517,13 +517,13 @@ perform_spacial_computations <- function(data) {
   chimney_width <- 61
   chimney_length <- 200
   chimney_height <- 140
-  constant1 <- 11
+  waste_space <- 11
   item_measures <- syms(c(length = 'item_length_qty', height = 'item_height_qty', width = 'item_width_qty'))
   whpk_measures <- syms(c(length = 'whpk_length_qty', height = 'whpk_height_qty', width = 'whpk_width_qty'))
   
   data %>% 
-    create_capacity_columns('no_rrp_', item_measures, constant1, extra_space) %>% 
-    create_capacity_columns('rrp_', whpk_measures, constant1, extra_space) %>% 
+    create_capacity_columns('no_rrp_', item_measures, waste_space, extra_space) %>% 
+    create_capacity_columns('rrp_', whpk_measures, waste_space, extra_space) %>% 
     mutate(
       pallet_length_item_qty = round(pallet_length / item_length_qty),
       pallet_height_item_qty = round(pallet_height / item_height_qty),
@@ -541,18 +541,18 @@ perform_spacial_computations <- function(data) {
       left_avail_space = rrp_avail_space - rrp_full_vol,
       bkp_extra_pcs = floor(left_avail_space / (item_length_qty * item_width_qty * item_height_qty)),
       max_item_capacity = case_when(
-        grepl('BASE', used_shelf) && rrp_ind == 'N' ~ 
+        grepl('BASE', used_shelf) & rrp_ind == 'N' ~ 
           round(pallet_length_item_qty * pallet_height_item_qty * pallet_width_item_qty),
-        grepl('BASE', used_shelf) && rrp_ind == 'Y' ~ 
+        grepl('BASE', used_shelf) & rrp_ind == 'Y' ~ 
           round(pallet_length_whpk_qty * pallet_height_whpk_qty * pallet_width_whpk_qty * whpk_qty),
-        grepl('CABECERA', used_shelf) && rrp_ind == 'N' ~ no_rrp_max_qty,
-        grepl('CABECERA', used_shelf) && rrp_ind == 'Y' ~ rrp_max_qty * whpk_qty,
-        grepl('CHIMENEA', used_shelf) && rrp_ind == 'N' ~ 
+        grepl('CABECERA', used_shelf) & rrp_ind == 'N' ~ no_rrp_max_qty,
+        grepl('CABECERA', used_shelf) & rrp_ind == 'Y' ~ rrp_max_qty * whpk_qty,
+        grepl('CHIMENEA', used_shelf) & rrp_ind == 'N' ~ 
           round(
             pallet_length_item_qty * pallet_height_item_qty * pallet_width_item_qty + 
               chimney_length_item_qty * chimney_height_item_qty * chimney_width_item_qty
           ),
-        grepl('CHIMENEA', used_shelf) && rrp_ind == 'Y' ~ 
+        grepl('CHIMENEA', used_shelf) & rrp_ind == 'Y' ~ 
           round(
             pallet_length_whpk_qty * pallet_height_whpk_qty * pallet_width_whpk_qty * whpk_qty + 
               chimney_length_whpk_qty * chimney_height_whpk_qty * chimney_width_whpk_qty * whpk_qty  
@@ -567,7 +567,7 @@ search_shelves <- function(keys, stores_shelves_df) {
   stores_shelves_df %>% 
     filter(combs %in% keys) %>% 
     group_by(combs) %>% 
-    arrange(desc(shelfs_qty)) %>% 
+    arrange(desc(shelves_qty)) %>% 
     filter(row_number() == 1) %>% 
     ungroup()
 }
@@ -578,16 +578,16 @@ calculate_max_capacity <- function(data){
     set_names(tolower(names(.)))
   initial_columns <- names(data)
   stores_shelves_df <- read_csv(gl$shelves_database) %>% 
-    select(store_nbr, shelf, dept_nbr, alto_cm, ancho_cm, profundo_cm, shelfs_qty) %>% 
-    mutate(combs = paste(store_nbr, shelf, dept_nbr, sep = '.'))
-  new_vars <- vars(alto_cm, ancho_cm, profundo_cm, shelfs_qty)
+    select(store_nbr, shelf, dept_nbr, alto_cm, ancho_cm, profundo_cm, shelves_qty) %>% 
+    mutate(combs = paste(store_nbr, shelf, dept_nbr, sep = '::'))
+  new_vars <- vars(alto_cm, ancho_cm, profundo_cm, shelves_qty)
   data <- data %>% 
     left_join(rrp_sync_data, by = 'old_nbr'
     ) %>% 
     mutate_at(vars('rrp_ind', 'gs1_sync_status'), list(~replace_na(., 'N'))) %>% 
     mutate(
-      keys = paste(store_nbr, shelf, dept_nbr, sep = '.'),
-      default_keys = paste(store_nbr, default_shelf, dept_nbr, sep = '.'),
+      keys = paste(store_nbr, shelf, dept_nbr, sep = '::'),
+      default_keys = paste(store_nbr, default_shelf, dept_nbr, sep = '::'),
       is_forced_default = is.na(shelf) & !is.na(as.numeric(default_shelf))
     ) %>% 
     mutate_at(
@@ -596,14 +596,16 @@ calculate_max_capacity <- function(data){
     )
   
   # Ready - Filas que ya no tienen mueble deseado y el default está en piezas
-  forced_default <- data[data$is_forced_default, ] %>% 
+  forced_default <- data %>% 
+    filter(is_forced_default == TRUE) %>% 
     mutate(
       max_item_capacity = as.numeric(default_shelf),
-      used_shelf = 'NA'
+      used_shelf = NA_character_
     )
   
   # Quitar las filas que ya están listas
-  data <- data[!data$is_forced_default, ]
+  data <- data %>% 
+    filter(is_forced_default == FALSE)
 
   # Buscar y pegar la info del mueble deseado
   stores_shelves <- data %>% 
@@ -614,26 +616,30 @@ calculate_max_capacity <- function(data){
   data <- data %>% 
     left_join(stores_shelves, by = c('store_nbr', 'shelf', 'dept_nbr')) %>% 
     mutate(
-      shelf_was_found = !(is.na(alto_cm) | is.na(ancho_cm) | is.na(profundo_cm) | is.na(shelfs_qty)),
+      shelf_was_found = !(is.na(alto_cm) | is.na(ancho_cm) | is.na(profundo_cm) | is.na(shelves_qty)),
       # TRUE = No shelf was found AND the default is NOT a number. FALSE = Shelf was found OR default is a number
       is_unforced_chr_default = is.na(as.numeric(default_shelf)) & !shelf_was_found
     )
   
   # Filas que ya tienen mueble encontrado
-  shelf_found <- data[data$shelf_was_found, ] %>% 
+  shelf_found <- data %>% 
+    filter(shelf_was_found == TRUE) %>% 
     mutate(used_shelf = shelf)
   
-  data <- data[!data$shelf_was_found, ]
+  data <- data %>% 
+    filter(shelf_was_found == FALSE)
   
   # Ready - Filas que no tienen el mueble deseado y el default está en piezas
-  unforced_default_pcs <- data[!data$is_unforced_chr_default, ] %>% 
+  unforced_default_pcs <- data %>% 
+    filter(is_unforced_chr_default == FALSE) %>% 
     mutate(
       max_item_capacity = as.numeric(default_shelf),
-      used_shelf = 'NA'
+      used_shelf = NA_character_
     )
   
   # Quitar las filas que ya están listas
-  data <- data[data$is_unforced_chr_default, ]
+  data <- data %>% 
+    filter(is_unforced_chr_default == TRUE)
 
   # Buscar y pegar la info del mueble default
   stores_default_shelves <- data %>% 
@@ -642,27 +648,29 @@ calculate_max_capacity <- function(data){
     select(-combs)
   
   data <- data %>% 
-    select(-c(alto_cm, ancho_cm, profundo_cm, shelfs_qty)) %>% 
+    select(-c(alto_cm, ancho_cm, profundo_cm, shelves_qty)) %>% 
     left_join(
       stores_default_shelves,
       by = c('store_nbr' = 'store_nbr', 'default_shelf' = 'shelf', 'dept_nbr' = 'dept_nbr')
     ) %>% 
     mutate(
-      default_shelf_found = !(is.na(alto_cm) | is.na(ancho_cm) | is.na(profundo_cm) | is.na(shelfs_qty)),
-      used_shelf = ifelse(default_shelf_found, default_shelf, 'NA')
+      default_shelf_found = !(is.na(alto_cm) | is.na(ancho_cm) | is.na(profundo_cm) | is.na(shelves_qty)),
+      used_shelf = ifelse(default_shelf_found, default_shelf, NA_character_)
     )
   
   # Filas de las que se buscó y se encontró el mueble default
-  unforced_default_letts <- data[data$default_shelf_found, ]
+  unforced_default_letts <- data %>% 
+    filter(default_shelf_found == TRUE)
   
   # Ready - Filas de las que no se encontró nada de información
-  not_found <- data[!data$default_shelf_found, ] %>% 
+  not_found <- data %>% 
+    filter(default_shelf_found == FALSE) %>% 
     mutate(max_item_capacity = 0)
 
   ## Llamar función que calcula las piezas de acuerdo a tamaños, etc.
   shelf_found %>% 
     bind_rows(unforced_default_letts) %>% 
-    perform_spacial_computations() %>% 
+    perform_spatial_computations() %>% 
     bind_rows(forced_default, unforced_default_pcs, not_found) %>% 
     mutate_at(setdiff(names(.), initial_columns), list(~replace_na(., 0)))
 }
@@ -680,6 +688,7 @@ perform_computations <- function(data, data_ss = NULL, min_feature_qty_toggle = 
         avg_dly_pos_or_fcst
       ),
       feature_perc_pos_or_fcst = avg_dly_pos_or_fcst / sum(avg_dly_pos_or_fcst),
+      ## Esta fórmula para el max_feature_qty se obtiene de una reducción algebráica partiendo de que el volumen total es la suma de los volúmenes de los artículos (V = sum(Vz))
       max_feature_qty = 1 / sum(feature_perc_pos_or_fcst / max_item_capacity),
       min_feature_qty = max_feature_qty * min_feature_perc,
       ## Cantidades sin reglas
@@ -1943,17 +1952,10 @@ computePromotionsServer <- function(input, output, session, credentials) {
         add_text(y = ~label_y, text = ~label, name = NULL, color = I('black')) %>% 
         plotly::layout(
           title = 'Alcance porcentual a piezas máximas por tienda',
-          xaxis = list(title = sprintf(
-            '%s',
-            ifelse(
-              is.na(shelf),
-              'Mueble no encontrado',
-              ifelse(
-                is.na(as.numeric(shelf)),
-                'Alcance a capacidad máxima del mueble encontrado para cada tienda',
-                sprintf('Alcance a un máximo de %s piezas', scales::comma(shelf))
-              )
-            )
+          xaxis = list(title = case_when(
+            is.na(shelf) ~ 'Mueble no encontrado',
+            is.numeric(shelf) ~ sprintf('Alcance a un máximo de %s piezas', scales::comma(shelf)),
+            TRUE ~ 'Alcance a capacidad máxima del mueble encontrado para cada tienda',
           )),
           yaxis = list(title = 'Número de tiendas', separators = '.,'),
           showlegend = FALSE

@@ -152,7 +152,7 @@ pallet_hi_qty	numeric		FALSE	comma	default	0	Pallet Hi	Número de camas que cabe
 alto_cm	numeric		FALSE	comma	default	0	Alto de mueble (cm)	Altura física del mueble usado para los cálculos (ya sea el deseado o el predeterminado, el valor es 0 (cero) si no exite) (cm).
 ancho_cm	numeric		FALSE	comma	default	0	Ancho de mueble (cm)	Anchura física del mueble usado para los cálculos (ya sea el deseado o el predeterminado, el valor es 0 (cero) si no exite) (cm).
 profundo_cm	numeric		FALSE	comma	default	0	Profundo de mueble (cm)	Profundidad física del mueble usado para los cálculos (ya sea el deseado o el predeterminado, el valor es 0 (cero) si no exite) (cm).
-shelfs_qty	numeric		FALSE	comma	default	0	Muebles en zona	Cantidad total de muebles iguales que existen en la misma tienda-zona y que por lo tanto, aplican para los mismos departamentos.
+shelves_qty	numeric		FALSE	comma	default	0	Muebles en zona	Cantidad total de muebles iguales que existen en la misma tienda-zona y que por lo tanto, aplican para los mismos departamentos.
 rrp_ind	character		FALSE	character	default		RRP Index	Bandera que indica si el artículo cuenta con empaque de tipo "Retail Ready Package (RRP)".
 gs1_sync_status	character		FALSE	character	default		Bandera de sincronización	Estatus de sincronización del artículo en el catálogo electrónico (OIF).
 keys	character		FALSE	character	default		Llave de mueble deseado	Llave que se usa para filtrar la base de datos de los muebles por tienda-departamento con base en el mueble deseado.
