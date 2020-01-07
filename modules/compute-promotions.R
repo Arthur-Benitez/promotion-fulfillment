@@ -1068,8 +1068,9 @@ generate_sample_input <- function(calendar_day, column_info) {
       tiendas_grandes = c(3733, 3983, 1424, 2052, 4036)
     )
   })
+  catalog <- list(negocios_validos = gl$negocios, muebles_validos = gl$shelves)
   
-  return(list(promo = info, tiendas_especiales = stores_lists))
+  return(list(promo = info, tiendas_especiales = stores_lists, catalogo = catalog))
 }
 
 # Server ------------------------------------------------------------------
@@ -2181,7 +2182,8 @@ computePromotionsServer <- function(input, output, session, credentials) {
     content = function(file) {
       x <- generate_sample_input(calendar_day, gl$cols)
       x$tiendas_especiales <- fill_vectors(x$tiendas_especiales)
-      openxlsx::write.xlsx(x, file = file, append = FALSE, row.names = FALSE, tabColour = c('#0071ce', '#eb148d'))
+      x$catalogo <- fill_vectors(x$catalogo)
+      openxlsx::write.xlsx(x, file = file, append = FALSE, row.names = FALSE, tabColour = c('#0071ce', '#eb148d', '#ffc220'))
     },
     # Excel content type
     contentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
