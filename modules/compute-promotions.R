@@ -874,23 +874,18 @@ generate_quantity_histogram_data <- function(output_filtered_data, bins = 10) {
     scales::percent(cut_values[-1], accuracy = 1),
     sep = ' - '
   )
-  complete_labels <- c('Sin mueble', cut_labels)
+  no_shelf_label <- 'Sin mueble'
   res %>% 
     mutate(
       perc_max_feature_qty = pmin(1, perc_max_feature_qty),
-      perc_max_feature_qty_bin = as.character(cut(perc_max_feature_qty,
-                                     breaks = cut_values,
-                                     labels = cut_labels,
-                                     include.lowest = TRUE)),
+      perc_max_feature_qty_bin = 
+        cut(perc_max_feature_qty, breaks = cut_values,labels = cut_labels, include.lowest = TRUE) %>% 
+        fct_explicit_na(no_shelf_label) %>% 
+        fct_expand(no_shelf_label) %>% 
+        fct_relevel(no_shelf_label),
       temp_cost = total_cost, # Creadas para evitar name clashes en el summarise
       temp_qty = total_qty,
       temp_avg_store_dly_pos_or_fcst = coalesce(avg_dly_sales, avg_dly_forecast)
-    ) %>% 
-    mutate(
-      perc_max_feature_qty_bin = factor(
-        ifelse(is.na(perc_max_feature_qty_bin), 'Sin mueble', perc_max_feature_qty_bin),
-        levels = complete_labels
-      )
     ) %>% 
     group_by(perc_max_feature_qty_bin) %>% 
     summarise(
@@ -910,7 +905,7 @@ generate_quantity_histogram_data <- function(output_filtered_data, bins = 10) {
     mutate(
       p_stores = n_stores / sum(n_stores)
     ) %>% 
-    right_join(tibble(perc_max_feature_qty_bin = factor(complete_labels, levels = complete_labels)), by = 'perc_max_feature_qty_bin') %>% 
+    right_join(tibble(perc_max_feature_qty_bin = fct_relevel(factor(c(no_shelf_label, cut_labels)), no_shelf_label)), by = 'perc_max_feature_qty_bin') %>% 
     replace(., is.na(.), 0) %>% 
     select(perc_max_feature_qty_bin, n_stores, p_stores, everything())
 }
