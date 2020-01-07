@@ -1911,11 +1911,11 @@ computePromotionsServer <- function(input, output, session, credentials) {
         need_histogram_ready()
     )
     tryCatch({
-      shelf <- ifelse(
-        all(is.na(final_results_filt()$shelf)),
-        unique(final_results_filt()$default_shelf),
-        unique(final_results_filt()$shelf)
-      )
+      if(all(is.na(final_results_filt()$shelf))) {
+        shelf <- unique(final_results_filt()$default_shelf)
+      } else {
+        shelf <- unique(final_results_filt()$shelf)
+      }
       quantity_histogram_data() %>% 
         mutate(
           label_y = n_stores + 0.03 * max(n_stores),
@@ -1936,7 +1936,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
           title = 'Alcance porcentual a piezas máximas por tienda',
           xaxis = list(title = case_when(
             is.na(shelf) ~ 'Mueble no encontrado',
-            is.numeric(shelf) ~ sprintf('Alcance a un máximo de %s piezas', scales::comma(shelf)),
+            is.numeric(shelf) ~ sprintf('Alcance a un máximo de %s piezas', try(scales::comma(shelf))),
             TRUE ~ 'Alcance a capacidad máxima del mueble encontrado para cada tienda',
           )),
           yaxis = list(title = 'Número de tiendas', separators = '.,'),
