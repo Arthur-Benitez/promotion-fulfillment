@@ -1774,7 +1774,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
       shiny::need(!is.null(r$items_file), lang$need_items_file) %then%
       shiny::need(!is.null(r$items), lang$need_valid_input)
   })
-  need_query_ready <- reactive({
+  need_result_ready <- reactive({
     shiny::need(r$query_was_tried, lang$need_run) %then%
       shiny::need(!r$is_running, lang$need_finish_running) %then%
       shiny::need(is.data.frame(query_result()$data), lang$need_query_result) %then%
@@ -1789,7 +1789,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
   output$item_details_table <- renderDT({
     shiny::validate(
       need_input_ready() %then%
-        need_query_ready()
+        need_result_ready()
     )
     tryCatch({
       final_result() %>%
@@ -1808,7 +1808,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
   output$detail_table <- renderDT({
     shiny::validate(
       need_input_ready() %then%
-        need_query_ready()
+        need_result_ready()
     )
     tryCatch({
       final_result() %>%
@@ -1848,7 +1848,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
   output$summary_table <- renderDT({
     shiny::validate(
       need_input_ready() %then%
-        need_query_ready()
+        need_result_ready()
     )
     tryCatch({
       summary_table() %>% 
@@ -1907,7 +1907,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
   quantity_histogram <- reactive({
     shiny::validate(
       need_input_ready() %then%
-        need_query_ready() %then%
+        need_result_ready() %then%
         need_histogram_ready()
     )
     tryCatch({
@@ -1950,7 +1950,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
   dispersion_histogram <- reactive({
     shiny::validate(
       need_input_ready() %then%
-        need_query_ready() %then%
+        need_result_ready() %then%
         need_histogram_ready()
     )
     tryCatch({
@@ -1977,7 +1977,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
   ## Tabla de alcance (output)
   quantity_histogram_table <- reactive({
     needs <- need_input_ready() %then%
-      need_query_ready() %then%
+      need_result_ready() %then%
       need_histogram_ready()
     shiny::validate(
        shiny::need(is.null(needs), '')
@@ -2008,7 +2008,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
   
   dispersion_histogram_table <- reactive({
     needs <- need_input_ready() %then%
-      need_query_ready() %then%
+      need_result_ready() %then%
       need_histogram_ready()
     shiny::validate(
       shiny::need(is.null(needs), '')
