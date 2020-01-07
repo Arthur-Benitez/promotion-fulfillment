@@ -1803,22 +1803,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
           vars('item_length_qty', 'item_width_qty', 'item_height_qty', 'whpk_length_qty', 'whpk_width_qty', 'whpk_height_qty', 'rrp_ind', 'gs1_sync_status'),
           first
         ) %>% 
-        datatable(
-          extensions = c('Buttons', 'FixedColumns', 'KeyTable'),
-          filter = 'top',
-          options = list(
-            dom = 'Bfrtip',
-            buttons = c('copy', 'csv', 'excel'),
-            fixedColumns = list(leftColumns = 1),
-            keys = TRUE,
-            scrollX = TRUE,
-            scrollY = gl$table_height$tall,
-            pageLength = 20
-          ),
-          colnames = remap_names(names(.), gl$cols, to_col = 'pretty_name'),
-          callback = build_callback(names(.), gl$cols)
-        ) %>%
-        format_columns(gl$cols)
+        generate_basic_datatable(column_info = gl$cols, scrollX = TRUE, scrollY = gl$table_height$tall)
     }, error = function(e){
       NULL
     })
