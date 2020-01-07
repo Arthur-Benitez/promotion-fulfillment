@@ -497,11 +497,10 @@ update_rrp_info <- function(ch = NULL, credentials, connector = 'production-conn
       query = query,
       stringsAsFactors = FALSE
     )
-    path_info <- unlist(strsplit(gl$rrp_sync_database, split = '/'))
     backup_file(
       res,
-      folder = path_info[1],
-      complete_file_name = path_info[length(path_info)],
+      folder = dirname(gl$rrp_sync_database),
+      complete_file_name = basename(gl$rrp_sync_database),
       preserved_backups = gl$rrp_sync_backups_n
     )
     saveRDS(res, gl$rrp_sync_database)
