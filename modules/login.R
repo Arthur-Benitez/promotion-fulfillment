@@ -522,6 +522,13 @@ update_rrp_info <- function(ch = NULL, credentials, connector = 'production-conn
       message = 'FAILED TO UPDATE RRP INFO',
       details = list()
     )))
+    shinyalert(
+      title = 'La base de datos de RRP y Sync status NO pudo actualizarse',
+      text = '',
+      type = 'error',
+      closeOnEsc = TRUE,
+      closeOnClickOutside = TRUE
+    )
   })
 }
 
