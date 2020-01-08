@@ -59,7 +59,11 @@ shinyServer(function(input, output, session){
           ),
           tabItem(
             tabName = 'management',
-            managementUI('management')
+            tabBox(
+              width = '100%',
+              user_managementUI('user_management'),
+              data_managementUI('data_management')
+            )
           )
         )
       } else {
@@ -131,8 +135,15 @@ shinyServer(function(input, output, session){
   
   ## Administración de usuarios
   callModule(
-    managementServer,
-    id = 'management',
+    user_managementServer,
+    id = 'user_management',
+    credentials = reactive(credentials())
+  )
+  
+  ## Administración de datos RRP
+  callModule(
+    data_managementServer,
+    id = 'data_management',
     credentials = reactive(credentials())
   )
   
