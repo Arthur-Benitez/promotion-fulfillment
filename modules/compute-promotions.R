@@ -85,9 +85,7 @@ parse_input <- function(input_file, gl, calendar_day, date_format = '%Y-%m-%d') 
   }
   tryCatch({
     column_info <- gl$cols[gl$cols$is_input, ]
-    # Quitar las columnas opcionales
-    required_cols <- column_info %>% 
-      filter(!(name %in% c('white_list', 'black_list', 'primary_desc_temp')))
+    required_cols <- column_info[column_info$is_required_input, ]
     nms <- names(readxl::read_excel(input_file, sheet = 1, n_max = 0))
     if (!all(required_cols$pretty_name %in% nms)) {
       return(sprintf('Las siguientes columnas faltan en el archivo que ingresaste: %s, puedes agregarlas manualmente o descargar el template de ejemplo.', paste(setdiff(required_cols$pretty_name, nms), collapse = ', ')))
@@ -161,7 +159,7 @@ validate_input <- function(data, stores_lists = NULL, gl, calendar_day) {
         ## Checar que no haya valores faltantes
         'No puede haber valores faltantes (blanks). Esto se debe comúnmente a que la fecha está almacenada como texto en Excel. Asegúrate de que Excel reconozca las fechas.',
         data %>% 
-          select(-white_list, -black_list, -primary_desc_temp, -shelf, -default_shelf) %>% 
+          select(-c(deframe(column_info[column_info$allow_na, 'name']))) %>% 
           anyNA() %>% 
           not(),
         ## Checar que feature_name sea de longitid <= 22 caracteres (para que en total sean <= 40 para GRS)
