@@ -78,15 +78,11 @@ data_managementServer <- function(input, output, session, credentials) {
     if (!('owner' %in% credentials()$role)) {
       data_panel <- NULL
     } else {
-      data_panel <- tabPanel(
-        value = 'data',
-        title = lang$data,
-        shiny::tagList(
-          h3(lang$rrp_sync_info),
-          login,
-          shiny::actionButton(ns('update_rrp'), lang$update_rrp, icon = icon('redo-alt'))
-        )
-      ) 
+      data_panel <- shiny::tagList(
+        h3(lang$rrp_sync_info),
+        login,
+        shiny::actionButton(ns('update_rrp'), lang$update_rrp, icon = icon('redo-alt'))
+      )
     }
   })
   

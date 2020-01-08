@@ -61,8 +61,16 @@ shinyServer(function(input, output, session){
             tabName = 'management',
             tabBox(
               width = '100%',
-              user_managementUI('user_management'),
-              data_managementUI('data_management')
+              tabPanel(
+                value = 'users',
+                title = lang$users,
+                user_managementUI('user_management')
+              ),
+              tabPanel(
+                value = 'data',
+                title = lang$data,
+                data_managementUI('data_management')
+              )
             )
           )
         )
