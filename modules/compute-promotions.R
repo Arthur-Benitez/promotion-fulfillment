@@ -173,9 +173,8 @@ validate_input <- function(data, stores_lists = NULL, gl, calendar_day) {
                 paste(gl$feature_const_cols, collapse = ', ')),
         data %>% 
           group_by(feature_name) %>% 
-          summarise_at(gl$feature_const_cols, list(~length(unique(.)))) %>% 
-          ungroup() %>% 
-          select_at(gl$feature_const_cols) %>% 
+          summarise_at(setdiff(gl$feature_const_cols, group_vars(.)), list(~length(unique(.)))) %>% 
+          select(-feature_name) %>%
           equals(1) %>% 
           all(),
         ## Checar los negociosn
