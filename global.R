@@ -124,7 +124,7 @@ gl <- list(
       sep = '\t',
       header = TRUE,
       encoding = 'ISO-8859',
-      colClasses = c('character', 'character', 'logical', 'logical', 'character', 'character', 'numeric', 'character', 'character')
+      colClasses = c('character', 'character', 'logical', 'logical', 'logical', 'logical', 'character', 'character', 'numeric', 'character', 'character')
     ))
   }, error = function(e){
     tribble(~name, ~type, ~is_constant_by_feature, ~pretty_name, ~description)
