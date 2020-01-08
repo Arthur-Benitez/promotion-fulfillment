@@ -577,7 +577,6 @@ calculate_max_capacity <- function(data){
   stores_shelves_df <- read_csv(gl$shelves_database) %>% 
     select(store_nbr, shelf, dept_nbr, alto_cm, ancho_cm, profundo_cm, shelves_qty) %>% 
     mutate(combs = paste(store_nbr, shelf, dept_nbr, sep = '::'))
-  new_vars <- vars(alto_cm, ancho_cm, profundo_cm, shelves_qty)
   data <- data %>% 
     left_join(rrp_sync_data, by = 'old_nbr'
     ) %>% 
@@ -662,13 +661,21 @@ calculate_max_capacity <- function(data){
   # Ready - Filas de las que no se encontró nada de información
   not_found <- data %>% 
     filter(default_shelf_found == FALSE) %>% 
-    mutate(max_item_capacity = 0)
+    select(-c(alto_cm, ancho_cm, profundo_cm, shelves_qty)) %>% 
+    left_join(
+      stores_shelves_df %>% 
+        group_by(shelf) %>% 
+        select(-c(store_nbr, dept_nbr, shelves_qty, combs)) %>% 
+        summarise_all(mean),
+      by = c('default_shelf' = 'shelf')
+    ) %>% 
+    mutate(used_shelf = 'AVERAGE DEFAULT')
 
   ## Llamar función que calcula las piezas de acuerdo a tamaños, etc.
   shelf_found %>% 
-    bind_rows(unforced_default_letts) %>% 
+    bind_rows(unforced_default_letts, not_found) %>% 
     perform_spatial_computations() %>% 
-    bind_rows(forced_default, unforced_default_pcs, not_found) %>% 
+    bind_rows(forced_default, unforced_default_pcs) %>% 
     mutate_at(setdiff(names(.), initial_columns), list(~replace_na(., 0)))
 }
 
