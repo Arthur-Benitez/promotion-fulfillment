@@ -2206,6 +2206,12 @@ computePromotionsServer <- function(input, output, session, credentials) {
             includeHTML('html/instructions-computation.html')
           ),
           tabPanel(
+            title = lang$compute_promotions_shelves,
+            includeHTML('html/instructions-shelves.html') %>%
+            str_replace_all('__shelves__', paste(gl$shelves, collapse = ', ')) %>%
+            HTML()
+          ),
+          tabPanel(
             title = lang$compute_promotions_impact_parameters,
             includeHTML('html/instructions-impact.html')
           ),
