@@ -72,6 +72,7 @@ lang <- list(
   compute_promotions_columns_glossary = 'Glosario de columnas',
   compute_promotions_inputs_title = 'Controles principales. Para más ayuda haz click en "(?) Instrucciones".',
   compute_promotions_computation_parameters = 'Exhibiciones',
+  compute_promotions_shelves = 'Muebles',
   compute_promotions_computation_parameters_title = 'Parámetros que afectan el cálculo de las exhibiciones.',
   compute_promotions_impact_parameters = 'Impacto',
   compute_promotions_impact_parameters_title = 'Parámetros que afectan el cálculo de impacto.',
