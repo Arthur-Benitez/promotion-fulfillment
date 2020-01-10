@@ -95,7 +95,7 @@ flog.info(toJSON(list(
 
 ## Usar esto en lugar de source(., encoding = 'UTF-8') porque truena a menos que cambiemos el locale del sistema con Sys.setlocale('LC_CTYPE', 'en_US.UTF-8') 
 ## Ver: https://stackoverflow.com/questions/5031630/how-to-source-r-file-saved-using-utf-8-encoding
-eval(parse('functions.R', encoding = 'UTF-8'))
+eval(parse('utils/functions.R', encoding = 'UTF-8'))
 eval(parse('lang.R', encoding = 'UTF-8'))
 eval(parse('modules/compute-promotions.R', encoding = 'UTF-8'))
 eval(parse('modules/login.R', encoding = 'UTF-8'))
