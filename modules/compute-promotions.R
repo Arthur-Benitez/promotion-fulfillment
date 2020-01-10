@@ -728,7 +728,7 @@ perform_computations <- function(data, data_ss = NULL, min_feature_qty_toggle = 
   
   data <- data %>%
     replace_na(list(ganador = "Unknown", max_ss = 999999999)) %>%
-    mutate_at(vars(contains("ss")), list(~round(replace_na(., 0), digits = 0))) %>%
+    mutate_at(vars(contains("ss"), -classification), list(~round(replace_na(., 0), digits = 0))) %>%
     mutate(
       comp_sspress_tot = base_press + comp_sspress,
       comp_ss_winner_qty = compare_ss_qty(comp_sspress_tot, sscov_tot, min_ss, max_ss),
