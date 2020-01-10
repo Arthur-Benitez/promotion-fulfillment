@@ -1753,7 +1753,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
       final_result() %>%
         group_by(old_nbr) %>% 
         summarise_at(
-          vars('item_length_qty', 'item_width_qty', 'item_height_qty', 'whpk_length_qty', 'whpk_width_qty', 'whpk_height_qty', 'rrp_ind', 'gs1_sync_status'),
+          vars('primary_desc', 'item_length_qty', 'item_width_qty', 'item_height_qty', 'whpk_length_qty', 'whpk_width_qty', 'whpk_height_qty', 'rrp_ind', 'gs1_sync_status'),
           first
         ) %>% 
         generate_basic_datatable(column_info = gl$cols, scrollX = TRUE, scrollY = gl$table_height$tall)
