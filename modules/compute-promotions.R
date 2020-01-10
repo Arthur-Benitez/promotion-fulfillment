@@ -560,122 +560,76 @@ perform_spatial_computations <- function(data) {
 }
 
 ## Filtra la base de datos dependiendo de la información solicitada
-search_shelves <- function(keys, stores_shelves_df) {
+search_shelves <- function(stores_shelves_df, sufix) {
   stores_shelves_df %>% 
-    filter(combs %in% keys) %>% 
-    group_by(combs) %>% 
+    group_by(store_nbr, shelf, dept_nbr) %>% 
     arrange(desc(shelves_qty)) %>% 
     filter(row_number() == 1) %>% 
-    ungroup()
+    ungroup() %>% 
+    mutate(found = ifelse(is.na(alto_cm) | is.na(ancho_cm) | is.na(profundo_cm) | is.na(shelves_qty), FALSE, TRUE)) %>% 
+    select(-shelves_qty) %>% 
+    rename_at(vars(contains('cm'), found), paste0, sufix)
 }
 
 ## Función para elegir mueble y calcular las piezas
 calculate_max_capacity <- function(data){
   rrp_sync_data <- readRDS(gl$rrp_sync_database) %>% 
     set_names(tolower(names(.)))
-  initial_columns <- names(data)
   stores_shelves_df <- read_csv(gl$shelves_database) %>% 
-    select(store_nbr, shelf, dept_nbr, alto_cm, ancho_cm, profundo_cm, shelves_qty) %>% 
-    mutate(combs = paste(store_nbr, shelf, dept_nbr, sep = '::'))
-  data <- data %>% 
-    left_join(rrp_sync_data, by = 'old_nbr'
-    ) %>% 
+    select(store_nbr, shelf, dept_nbr, alto_cm, ancho_cm, profundo_cm, shelves_qty)
+  stores_shelves <- search_shelves(stores_shelves_df, '_shelves')
+  stores_default_shelves <- search_shelves(stores_shelves_df, '_default_shelves')
+  average_shelves <- stores_shelves_df %>%
+    group_by(shelf) %>%
+    select(-c(store_nbr, dept_nbr, shelves_qty)) %>%
+    summarise_all(mean) %>% 
+    rename_at(vars(contains('cm')), paste0, '_average_shelves')
+  initial_columns <- names(data)
+  
+  classified_data <- data %>% 
+    left_join(rrp_sync_data, by = 'old_nbr') %>% 
     mutate_at(vars('rrp_ind', 'gs1_sync_status'), list(~replace_na(., 'N'))) %>% 
-    mutate(
-      keys = paste(store_nbr, shelf, dept_nbr, sep = '::'),
-      default_keys = paste(store_nbr, default_shelf, dept_nbr, sep = '::'),
-      is_forced_default = is.na(shelf) & !is.na(as.numeric(default_shelf))
-    ) %>% 
-    mutate_at(
-      vars(contains('length'), contains('width'), contains('height')),
-      ~.x * 10 # Convertir de decímetros a centímetros
-    )
-  
-  # Ready - Filas que ya no tienen mueble deseado y el default está en piezas
-  forced_default <- data %>% 
-    filter(is_forced_default == TRUE) %>% 
-    mutate(
-      max_item_capacity = as.numeric(default_shelf),
-      used_shelf = NA_character_
-    )
-  
-  # Quitar las filas que ya están listas
-  data <- data %>% 
-    filter(is_forced_default == FALSE)
-
-  # Buscar y pegar la info del mueble deseado
-  stores_shelves <- data %>% 
-    pull(keys) %>% 
-    search_shelves(stores_shelves_df) %>% 
-    select(-combs)
-  
-  data <- data %>% 
+    # Convertir de decímetros a centímetros
+    mutate_at(vars(contains('length'), contains('width'), contains('height')), ~.x * 10) %>% 
     left_join(stores_shelves, by = c('store_nbr', 'shelf', 'dept_nbr')) %>% 
-    mutate(
-      shelf_was_found = !(is.na(alto_cm) | is.na(ancho_cm) | is.na(profundo_cm) | is.na(shelves_qty)),
-      # TRUE = No shelf was found AND the default is NOT a number. FALSE = Shelf was found OR default is a number
-      is_unforced_chr_default = is.na(as.numeric(default_shelf)) & !shelf_was_found
-    )
-  
-  # Filas que ya tienen mueble encontrado
-  shelf_found <- data %>% 
-    filter(shelf_was_found == TRUE) %>% 
-    mutate(used_shelf = shelf)
-  
-  data <- data %>% 
-    filter(shelf_was_found == FALSE)
-  
-  # Ready - Filas que no tienen el mueble deseado y el default está en piezas
-  unforced_default_pcs <- data %>% 
-    filter(is_unforced_chr_default == FALSE) %>% 
-    mutate(
-      max_item_capacity = as.numeric(default_shelf),
-      used_shelf = NA_character_
-    )
-  
-  # Quitar las filas que ya están listas
-  data <- data %>% 
-    filter(is_unforced_chr_default == TRUE)
-
-  # Buscar y pegar la info del mueble default
-  stores_default_shelves <- data %>% 
-    pull(default_keys) %>% 
-    search_shelves(stores_shelves_df) %>% 
-    select(-combs)
-  
-  data <- data %>% 
-    select(-c(alto_cm, ancho_cm, profundo_cm, shelves_qty)) %>% 
     left_join(
       stores_default_shelves,
       by = c('store_nbr' = 'store_nbr', 'default_shelf' = 'shelf', 'dept_nbr' = 'dept_nbr')
     ) %>% 
     mutate(
-      default_shelf_found = !(is.na(alto_cm) | is.na(ancho_cm) | is.na(profundo_cm) | is.na(shelves_qty)),
-      used_shelf = ifelse(default_shelf_found, default_shelf, NA_character_)
+      classification = case_when(
+        is.na(shelf) & !is.na(as.numeric(default_shelf)) ~ 'FORCED_DEFAULT',
+        found_shelves ~ 'SHELF_FOUND',
+        !is.na(as.numeric(default_shelf)) ~ 'UNFORCED_DEFAULT_PCS',
+        found_default_shelves ~ 'UNFORCED_DEFAULT_CHAR',
+        TRUE ~ 'NOT_FOUND'
+      ),
+      used_shelf = case_when(
+        classification == 'FORCED_DEFAULT' ~ 'PIECES NUMBER',
+        classification == 'SHELF_FOUND' ~ shelf,
+        classification == 'UNFORCED_DEFAULT_PCS' ~ 'PIECES NUMBER',
+        classification == 'UNFORCED_DEFAULT_CHAR' ~ default_shelf,
+        classification == 'NOT_FOUND' ~ default_shelf
+      )
     )
   
-  # Filas de las que se buscó y se encontró el mueble default
-  unforced_default_letts <- data %>% 
-    filter(default_shelf_found == TRUE)
+  ready_classifications <- c('FORCED_DEFAULT', 'UNFORCED_DEFAULT_PCS')
+  ready_data <- classified_data %>% 
+    filter(classification %in% ready_classifications) %>% 
+    mutate(max_item_capacity = as.numeric(default_shelf))
   
-  # Ready - Filas de las que no se encontró nada de información
-  not_found <- data %>% 
-    filter(default_shelf_found == FALSE) %>% 
-    select(-c(alto_cm, ancho_cm, profundo_cm, shelves_qty)) %>% 
-    left_join(
-      stores_shelves_df %>% 
-        group_by(shelf) %>% 
-        select(-c(store_nbr, dept_nbr, shelves_qty, combs)) %>% 
-        summarise_all(mean),
-      by = c('default_shelf' = 'shelf')
-    ) %>% 
-    mutate(used_shelf = 'AVERAGE DEFAULT')
-
   ## Llamar función que calcula las piezas de acuerdo a tamaños, etc.
-  shelf_found %>% 
-    bind_rows(unforced_default_letts, not_found) %>% 
+  classified_data %>% 
+    filter(!(classification %in% ready_classifications)) %>%
+    left_join(average_shelves, by = c('default_shelf' = 'shelf')) %>% 
+    mutate(
+      alto_cm = coalesce(alto_cm_shelves, alto_cm_default_shelves, alto_cm_average_shelves),
+      ancho_cm = coalesce(ancho_cm_shelves, ancho_cm_default_shelves, ancho_cm_average_shelves),
+      profundo_cm = coalesce(profundo_cm_shelves, profundo_cm_default_shelves, profundo_cm_average_shelves)
+    ) %>%
     perform_spatial_computations() %>% 
-    bind_rows(forced_default, unforced_default_pcs) %>% 
+    bind_rows(ready_data) %>% 
+    select(-ends_with('cm_shelves'), -ends_with('cm_default_shelves'), -ends_with('cm_average_shelves')) %>% 
     mutate_at(setdiff(names(.), initial_columns), list(~replace_na(., 0)))
 }
 
