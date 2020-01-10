@@ -1892,14 +1892,14 @@ computePromotionsServer <- function(input, output, session, credentials) {
           hoverinfo = 'text',
           type = 'bar',
           name = NULL,
-          color = I(c('red', rep('#1f76b4', input$quantity_histogram_bin_number)))
+          marker = list(color = c('red', rep('#1f76b4', input$quantity_histogram_bin_number)))
         ) %>% 
-        add_text(y = ~label_y, text = ~label, name = NULL, color = I('black')) %>% 
+        add_text(x = ~perc_max_feature_qty_bin, y = ~label_y, text = ~label, name = NULL, color = I('black'), inherit = FALSE) %>% 
         plotly::layout(
           title = 'Alcance porcentual a piezas máximas por tienda',
           xaxis = list(title = case_when(
             is.na(shelf) ~ 'Mueble no encontrado',
-            is.numeric(shelf) ~ sprintf('Alcance a un máximo de %s piezas', try(scales::comma(shelf))),
+            is.numeric(shelf) ~ sprintf('Alcance a un máximo de %s piezas', try(scales::comma(shelf), silent = TRUE)),
             TRUE ~ 'Alcance a capacidad máxima del mueble encontrado para cada tienda',
           )),
           yaxis = list(title = 'Número de tiendas', separators = '.,'),
