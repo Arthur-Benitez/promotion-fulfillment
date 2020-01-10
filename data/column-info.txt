@@ -9,7 +9,7 @@ min_feature_perc	numeric	TRUE	TRUE	TRUE	FALSE	percent	default	0	Mínimo de exhibi
 min_feature_qty	numeric		FALSE			comma	default	0	Mínimo de exhibición (pzas)	"Mínimas piezas totales en el mueble (entre todos los artículos). Su efecto depende de la opción seleccionada en ""Lógica mínimo""."
 max_feature_qty	numeric		FALSE			comma	default	0	Máximo de exhibición	Máximas piezas totales en el mueble (entre todos los artículos).
 shelf	character	TRUE	TRUE	TRUE	TRUE	character	default		Mueble deseado	"Tipo de mueble que tendrá la exhibición (Base, Media Base, Cabecera alta, Cabecera baja, Cabecera circular)."
-default_shelf	character	TRUE	TRUE	TRUE	TRUE	character	default		Mueble predeterminado	Tipo de mueble que se usará para los cálculos en las combinaciones en las que no se encuentre el mueble deseado.
+default_shelf	character	TRUE	TRUE	TRUE	TRUE	character	default		Mueble predeterminado	Tipo de mueble que se usará para los cálculos en las combinaciones en las que no se encuentre el mueble deseado ó maximas piezas por exhibición.
 max_ddv	numeric	FALSE	TRUE	TRUE	FALSE	comma	default	1	Máximo de DDV	Tope máximo de días de venta por artículo.
 semana_ini	numeric	TRUE	TRUE	TRUE	FALSE	character	default		Semana inicial cálculo	"Semana Walmart inicial para calcular forecast o ventas (debe ser a pasado si fcst_or_sales = ""S"" y a futuro si es = ""F"")."
 semana_fin	numeric	TRUE	TRUE	TRUE	FALSE	character	default		Semana final cálculo	"Semana Walmart final para calcular forecast o ventas (debe ser a pasado si fcst_or_sales = ""S"" y a futuro si es = ""F"")."
