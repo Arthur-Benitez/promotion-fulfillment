@@ -543,7 +543,7 @@ perform_spatial_computations <- function(data) {
         grepl('BASE', used_shelf) & rrp_ind == 'Y' ~ 
           round(pallet_length_whpk_qty * pallet_height_whpk_qty * pallet_width_whpk_qty * whpk_qty),
         grepl('CABECERA', used_shelf) & rrp_ind == 'N' ~ no_rrp_max_qty,
-        grepl('CABECERA', used_shelf) & rrp_ind == 'Y' ~ rrp_max_qty * whpk_qty,
+        grepl('CABECERA', used_shelf) & rrp_ind == 'Y' ~ rrp_max_qty * whpk_qty + bkp_extra_pcs,
         grepl('CHIMENEA', used_shelf) & rrp_ind == 'N' ~ 
           round(
             pallet_length_item_qty * pallet_height_item_qty * pallet_width_item_qty + 
