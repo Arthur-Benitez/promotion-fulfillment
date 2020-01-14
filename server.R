@@ -69,7 +69,7 @@ shinyServer(function(input, output, session){
               tabPanel(
                 value = 'data',
                 title = lang$data,
-                data_managementUI('data_management')
+                dataManagementUI('data_management')
               )
             )
           )
@@ -150,7 +150,7 @@ shinyServer(function(input, output, session){
   
   ## Administración de datos RRP
   callModule(
-    data_managementServer,
+    dataManagementServer,
     id = 'data_management',
     credentials = reactive(credentials())
   )
