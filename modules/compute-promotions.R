@@ -568,7 +568,16 @@ search_shelves <- function(stores_shelves_df, suffix) {
     ungroup() %>% 
     mutate(found = ifelse(is.na(alto_cm) | is.na(ancho_cm) | is.na(profundo_cm) | is.na(shelves_qty), FALSE, TRUE)) %>% 
     select(-shelves_qty) %>% 
-    rename_at(vars(contains('cm'), found), paste0, sufix)
+    rename_at(vars(contains('cm'), found), paste0, suffix)
+}
+
+## Resume la base de datos de muebles a cierto nivel
+mean_shelves <- function(data, groups, suffix) {
+  data %>%
+    group_by(groups) %>%
+    select(-c(store_nbr, dept_nbr, shelves_qty)) %>%
+    summarise_all(mean) %>% 
+    rename_at(vars(contains('cm')), paste0, suffix)
 }
 
 ## Función para elegir mueble y calcular las piezas
@@ -576,17 +585,16 @@ calculate_max_capacity <- function(data){
   rrp_sync_data <- readRDS(gl$rrp_sync_database) %>% 
     set_names(tolower(names(.)))
   stores_shelves_df <- read_csv(gl$shelves_database) %>% 
-    select(store_nbr, shelf, dept_nbr, alto_cm, ancho_cm, profundo_cm, shelves_qty)
+    select(store_nbr, negocio, shelf, dept_nbr, alto_cm, ancho_cm, profundo_cm, shelves_qty)
+  # Esta linea tiene que estar aquí, antes de quitar la columna de nefocio de stores_shelves_df
+  business_average_shelves <- mean_shelves(stores_shelves_df, c('negocio', 'shelf'), '_business_average_shelves')
+  stores_shelves_df <- select(stores_shelves_df, -negocio)
   stores_shelves <- search_shelves(stores_shelves_df, '_shelves')
   stores_default_shelves <- search_shelves(stores_shelves_df, '_default_shelves')
-  average_shelves <- stores_shelves_df %>%
-    group_by(shelf) %>%
-    select(-c(store_nbr, dept_nbr, shelves_qty)) %>%
-    summarise_all(mean) %>% 
-    rename_at(vars(contains('cm')), paste0, '_average_shelves')
+  average_shelves <- mean_shelves(stores_shelves_df, c('shelf'), '_average_shelves')
   initial_columns <- names(data)
   
-  classified_data <- data %>% 
+  sorted_data <- data %>% 
     left_join(rrp_sync_data, by = 'old_nbr') %>% 
     mutate_at(vars('rrp_ind', 'gs1_sync_status'), list(~replace_na(., 'N'))) %>% 
     # Convertir de decímetros a centímetros
@@ -614,22 +622,23 @@ calculate_max_capacity <- function(data){
     )
   
   ready_classifications <- c('FORCED_DEFAULT', 'UNFORCED_DEFAULT_PCS')
-  ready_data <- classified_data %>% 
+  ready_data <- sorted_data %>% 
     filter(classification %in% ready_classifications) %>% 
     mutate(max_item_capacity = as.numeric(default_shelf))
   
   ## Llamar función que calcula las piezas de acuerdo a tamaños, etc.
-  classified_data %>% 
+  sorted_data %>% 
     filter(!(classification %in% ready_classifications)) %>%
+    left_join(business_average_shelves, by = c('default_shelf' = 'shelf', 'negocio' = 'negocio')) %>% 
     left_join(average_shelves, by = c('default_shelf' = 'shelf')) %>% 
     mutate(
-      alto_cm = coalesce(alto_cm_shelves, alto_cm_default_shelves, alto_cm_average_shelves),
-      ancho_cm = coalesce(ancho_cm_shelves, ancho_cm_default_shelves, ancho_cm_average_shelves),
-      profundo_cm = coalesce(profundo_cm_shelves, profundo_cm_default_shelves, profundo_cm_average_shelves)
+      alto_cm = coalesce(alto_cm_shelves, alto_cm_default_shelves, alto_cm_business_average_shelves, alto_cm_average_shelves),
+      ancho_cm = coalesce(ancho_cm_shelves, ancho_cm_default_shelves, ancho_cm_business_average_shelves, ancho_cm_average_shelves),
+      profundo_cm = coalesce(profundo_cm_shelves, profundo_cm_default_shelves, profundo_cm_business_average_shelves, profundo_cm_average_shelves)
     ) %>%
     perform_spatial_computations() %>% 
     bind_rows(ready_data) %>% 
-    select(-ends_with('cm_shelves'), -ends_with('cm_default_shelves'), -ends_with('cm_average_shelves')) %>% 
+    select(-ends_with('cm_shelves'), -ends_with('cm_default_shelves'), -ends_with('cm_business_average_shelves'), -ends_with('cm_average_shelves')) %>% 
     mutate_at(setdiff(names(.), initial_columns), list(~replace_na(., 0)))
 }
 
