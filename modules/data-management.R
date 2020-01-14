@@ -58,32 +58,33 @@ update_rrp_info <- function(ch = NULL, credentials, connector = 'production-conn
 }
 
 ## UI
-data_managementUI <- function(id) {
+dataManagementUI <- function(id) {
   ns <- shiny::NS(id)
   shiny::uiOutput(ns('data_management'))
 }
 
 ## Server
-data_managementServer <- function(input, output, session, credentials) {
+dataManagementServer <- function(input, output, session, credentials) {
   output$data_management <- shiny::renderUI({
     ns <- session$ns
-    if (gl$is_dev) {
-      login <- shiny::tagList(
-        shiny::textInput(ns('db2_user'), lang$user),
-        shiny::passwordInput(ns('db2_password'), lang$db2_password)
-      )
-    } else {
-      login <- NULL
-    }
     if (!('owner' %in% credentials()$role)) {
       data_panel <- NULL
     } else {
+      if (gl$is_dev) {
+        login <- shiny::tagList(
+          shiny::textInput(ns('db2_user'), lang$user),
+          shiny::passwordInput(ns('db2_password'), lang$db2_password)
+        )
+      } else {
+        login <- NULL
+      }
       data_panel <- shiny::tagList(
         h3(lang$rrp_sync_info),
         login,
         shiny::actionButton(ns('update_rrp'), lang$update_rrp, icon = icon('redo-alt'))
       )
     }
+    data_panel
   })
   
   shiny::observeEvent(eventExpr = input$update_rrp, handlerExpr = {
