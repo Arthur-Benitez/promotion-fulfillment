@@ -3,6 +3,7 @@ require(purrr)
 lang <- list(
   ## login
   user = 'Usuario',
+  users = 'Usuarios',
   user_name = 'Usuario',
   tribu = 'Tribu',
   puesto = 'Puesto',
@@ -36,7 +37,7 @@ lang <- list(
   update_password_error = 'Error al actualizar contraseña. Verifique que el usuario no exista y que tenga permisos menores a los de usted',
   update_role_error = 'Error al actualizar permisos. Verifique que el usuario exista y que sus nuevos permisos sean válidos e inferiores a los de usted',
   delete_error = 'Error al eliminar usuario. El usuario no existe o usted no tiene permiso para eliminarlo',
-  users = 'Usuarios',
+  manage_users = 'Administrar usuarios',
   action = 'Acción',
   selected_user = 'Usuarios disponibles',
   ## UI

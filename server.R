@@ -64,7 +64,7 @@ shinyServer(function(input, output, session){
               tabPanel(
                 value = 'users',
                 title = lang$users,
-                user_managementUI('user_management')
+                userManagementUI('user_management')
               ),
               tabPanel(
                 value = 'data',
@@ -143,7 +143,7 @@ shinyServer(function(input, output, session){
   
   ## Administración de usuarios
   callModule(
-    user_managementServer,
+    userManagementServer,
     id = 'user_management',
     credentials = reactive(credentials())
   )
