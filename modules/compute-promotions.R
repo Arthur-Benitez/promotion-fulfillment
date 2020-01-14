@@ -159,7 +159,7 @@ validate_input <- function(data, stores_lists = NULL, gl, calendar_day) {
         ## Checar que no haya valores faltantes
         'No puede haber valores faltantes (blanks). Esto se debe comúnmente a que la fecha está almacenada como texto en Excel. Asegúrate de que Excel reconozca las fechas.',
         data %>% 
-          select(-c(deframe(column_info[column_info$allow_na, 'name']))) %>% 
+          select(setdiff(names(.), column_info[column_info$allow_na]$name)) %>% 
           anyNA() %>% 
           not(),
         ## Checar que feature_name sea de longitid <= 22 caracteres (para que en total sean <= 40 para GRS)
@@ -560,7 +560,7 @@ perform_spatial_computations <- function(data) {
 }
 
 ## Filtra la base de datos dependiendo de la información solicitada
-search_shelves <- function(stores_shelves_df, sufix) {
+search_shelves <- function(stores_shelves_df, suffix) {
   stores_shelves_df %>% 
     group_by(store_nbr, shelf, dept_nbr) %>% 
     arrange(desc(shelves_qty)) %>% 
@@ -646,7 +646,16 @@ perform_computations <- function(data, data_ss = NULL, min_feature_qty_toggle = 
         avg_dly_pos_or_fcst
       ),
       feature_perc_pos_or_fcst = avg_dly_pos_or_fcst / sum(avg_dly_pos_or_fcst),
-      ## Esta fórmula para el max_feature_qty se obtiene de una reducción algebráica partiendo de que el volumen total es la suma de los volúmenes de los artículos (V = sum(Vz))
+      ## Esta fórmula para el max_feature_qty se obtiene de una reducción algebráica.
+      # V = Volumen total,              Vz = Volumen de cada artículo
+      # Q = Cantidad total de piezas,   Qz = Cantidad de piezas de cada artículo
+      # Uz = Volumen unitario ajustado para cada pieza (ajustado por el algoritmo de cálculo de espacios)
+      # Pz = Participación de venta de cada artículo con respecto a la exhibición
+      # Mz = Máxima cantidad de piezas que caben en la exhibición por artículo (max_item_capacity)
+      
+      # Hipótesis inicial: El volumen total es la suma de los volúmenes de los artículos:
+      # V = sum(Vz)   =>    V = sum(Qz * Uz)    =>    V = Q * sum(Pz * Uz)
+      # Por lo tanto...   Q = V / sum(Pz * Uz)    =>    Q = V / sum(Pz * (V/Mz))    =>    Q = 1 / sum(Pz / Mz)
       max_feature_qty = 1 / sum(feature_perc_pos_or_fcst / max_item_capacity),
       min_feature_qty = max_feature_qty * min_feature_perc,
       ## Cantidades sin reglas
