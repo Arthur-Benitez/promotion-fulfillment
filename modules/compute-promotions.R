@@ -23,10 +23,11 @@ alert_param <- function(combs_info, timestamp) {
     group_by(feature_name) %>% 
     summarise(
       any_empty = any(is_empty),
-      all_empty = all(is_empty)
+      all_empty = all(is_empty),
+      any_measures_empty = any(measures_empty)
     )
-  good_features <- with(feature_info, feature_name[!any_empty])
-  partial_features <- with(feature_info, feature_name[any_empty & !all_empty])
+  good_features <- with(feature_info, feature_name[!any_empty & !any_measures_empty])
+  partial_features <- with(feature_info, feature_name[(any_empty | any_measures_empty) & !all_empty])
   empty_features <- with(feature_info, feature_name[all_empty])
   
   if (length(good_features) > 0 && length(partial_features) == 0 && length(empty_features) == 0) {
@@ -34,9 +35,10 @@ alert_param <- function(combs_info, timestamp) {
     text1 <- sprintf('La información fue descargada de Teradata en %s.', format_difftime(difftime(Sys.time(), timestamp)))
     type1 <- 'success'
     message1 <- 'DOWNLOAD SUCCESSFUL'
+    table1 <- NULL
   } else if (length(good_features) > 0 || length(partial_features) > 0) {
     partial_combs <- combs_info %>% 
-      filter(is_empty == TRUE & feature_name %in% partial_features) %>% 
+      filter(feature_name %in% partial_features & (is_empty | measures_empty)) %>%
       group_by(feature_name) %>% 
       summarise(
         sum_text = ifelse(
@@ -62,11 +64,22 @@ alert_param <- function(combs_info, timestamp) {
     title1 <- lang$warning
     text1 <- sprintf(
       '<div style="text-align:left;">
-      No se encontró información bajo los parámetros especificados para las siguientes combinaciones de exhibición-artículo: <br><ul><li>%s</li></ul>
-      Las exhibiciones con al menos un artículo no encontrado serán completamente omitidas de los resultados.
-      Te sugerimos <b>revisar que el departamento y formato que ingresaste para ellas sean correctos.
-      </b></div>',
+      Hubo problemas descargando la información para las siguientes combinaciones de exhibición-artículo: <br><ul><li>%s</li></ul>
+      Las exhibiciones con al menos una combinación en la lista anterior serán completamente omitidas de los resultados.
+      Te sugerimos <b>revisar que el departamento y formato que ingresaste para ellas sean correctos.</b> Para más información, revisa la tabla de detalles del problema en la pestaña de Resultados.
+      </div>',
       paste0(empty_list_displayed, collapse  = '</li><li>'))
+    
+    table1 <- combs_info %>% 
+      filter(feature_name %in% partial_features & (is_empty | measures_empty)) %>% 
+      mutate(old_nbr = as.character(old_nbr)) %>% 
+      bind_rows(tibble(feature_name = empty_features, old_nbr = "Todos", is_empty = TRUE)) %>% 
+      mutate(reason  = case_when(
+        is_empty ~ 'No se encontró información.',
+        measures_empty ~ 'Una o más de las medidas están vacías.',
+        TRUE ~ 'Otra razón.'
+      )) %>% 
+      select(feature_name, old_nbr, reason)
     type1 <- 'warning'
     message1 <- 'DOWNLOAD PARTIALLY FAILED'
   } else if (length(good_features) == 0 && length(partial_features) == 0 && length(empty_features) >= 0) {
@@ -74,8 +87,9 @@ alert_param <- function(combs_info, timestamp) {
     text1 <- 'No se encontró información para ninguna de las promociones ingresadas, favor de revisar que sean correctos los datos.'
     type1 <- 'error'
     message1 <- 'DOWNLOAD FAILED'   
+    table1 <- NULL
   }
-  return(list(title = title1, text = text1, type = type1, message = message1, good_features = good_features))
+  return(list(title = title1, text = text1, type = type1, message = message1, good_features = good_features, table = table1))
 }
 
 ## Leer entrada
@@ -456,21 +470,19 @@ compare_ss_name <- function(sspress_tot, sscov_tot, min_ss, max_ss, sspress, bas
   return(win_ss)
 }
 
-## Checar que el query haya regresado algo
-check_query_result_is_empty <- function(result, input) {
-  new_vars <- setdiff(names(result), names(input))
-  all(is.na(result[new_vars]))
-}
-
 ## Regresar nombre de displays que no tuvieron info
 get_empty_combs <- function(result, input) {
+  measures_cols <- result %>% 
+    select(contains('length_qty'), contains('height_qty'), contains('width_qty')) %>% 
+    names()
   result %>% 
     group_by(feature_name, old_nbr) %>% 
     nest() %>% 
     mutate(
-      is_empty = map_lgl(data, ~check_query_result_is_empty(.x, input))
+      is_empty = map_lgl(data, ~all(is.na(.x[setdiff(names(result), names(input))]))),
+      measures_empty = map_lgl(data, ~any(is.na(.x[measures_cols])))
     ) %>% 
-    select(feature_name, old_nbr, is_empty)
+    select(feature_name, old_nbr, is_empty, measures_empty)
 }
 
 ## Cálculo de número de anaqueles basado en las alturas
@@ -1675,6 +1687,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
   good_features_rv <- reactiveVal()
   observeEvent(query_result(), {
     r$is_running <- FALSE
+    closeAlert()
     if (!is.data.frame(query_result()$data)) {
       alert_info <- list(
         title = lang$error,
@@ -1688,13 +1701,30 @@ computePromotionsServer <- function(input, output, session, credentials) {
       alert_info <- alert_param(combs_info, query_result()$timestamp)
       good_features_rv(alert_info$good_features)
     }
-    shinyalert::shinyalert(
-      type = alert_info$type,
-      title = alert_info$title,
-      text = alert_info$text,
-      closeOnClickOutside = TRUE,
-      html = TRUE
-    )
+    
+    if(is.null(alert_info$table)){
+      shinyalert::shinyalert(
+        type = alert_info$type,
+        title = alert_info$title,
+        text = alert_info$text,
+        closeOnClickOutside = TRUE,
+        html = TRUE
+      )
+    } else {
+      output$alert_info_table <- renderDT(alert_info$table)
+      showModal(modalDialog(
+        size = 'l',
+        easyClose = TRUE,
+        title = alert_info$title,
+        tags$div(
+          alert_info$text,
+          HTML(knitr::kable(alert_info$table, format = 'html'))
+        ),
+        modalButton(NULL, icon = icon('times')),
+        footer = NULL
+      ))
+    }
+    
     flog.info(toJSON(list(
       session_info = msg_cred(isolate(credentials())),
       message = alert_info$message,
