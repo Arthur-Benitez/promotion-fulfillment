@@ -489,7 +489,7 @@ get_empty_combs <- function(result, input) {
     mutate(
       is_empty = map_lgl(data, ~all(is.na(.x[setdiff(names(result), names(input))]))),
       measures_empty = map_lgl(data, ~any(is.na(.x[measures_cols]))),
-      default_pieces_applies = is.numeric(first(default_shelf)) & is.na(first(shelf))
+      default_pieces_applies = map_lgl(data, ~!is.na(as.numeric(first(.x$default_shelf))) & is.na(first(.x$shelf)))
     ) %>% 
     select(feature_name, old_nbr, is_empty, measures_empty, default_pieces_applies)
 }
