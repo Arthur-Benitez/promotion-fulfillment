@@ -580,23 +580,11 @@ perform_spatial_computations <- function(data) {
     )
 }
 
-## Filtra la base de datos dependiendo de la información solicitada
-search_shelves <- function(stores_shelves_df, suffix) {
-  stores_shelves_df %>% 
-    group_by(store_nbr, shelf, dept_nbr) %>% 
-    arrange(desc(shelves_qty)) %>% 
-    filter(row_number() == 1) %>% 
-    ungroup() %>% 
-    mutate(found = ifelse(is.na(alto_cm) | is.na(ancho_cm) | is.na(profundo_cm) | is.na(shelves_qty), FALSE, TRUE)) %>% 
-    select(-shelves_qty) %>% 
-    rename_at(vars(contains('cm'), found), paste0, suffix)
-}
-
 ## Resume la base de datos de muebles a cierto nivel
 mean_shelves <- function(data, groups, suffix) {
   data %>%
     group_by(!!!syms(groups)) %>%
-    select(-c(store_nbr, dept_nbr, shelves_qty)) %>%
+    select(!!!syms(groups), contains('cm')) %>%
     summarise_all(mean) %>% 
     rename_at(vars(contains('cm')), paste0, suffix) %>% 
     ungroup()
@@ -604,17 +592,26 @@ mean_shelves <- function(data, groups, suffix) {
 
 ## Función para elegir mueble y calcular las piezas
 calculate_max_capacity <- function(data){
+  initial_columns <- names(data)
+  # Bases de datos externas
   rrp_sync_data <- readRDS(gl$rrp_sync_database) %>% 
     set_names(tolower(names(.)))
   stores_shelves_df <- read_csv(gl$shelves_database) %>% 
-    select(store_nbr, negocio, shelf, dept_nbr, alto_cm, ancho_cm, profundo_cm, shelves_qty)
-  # Esta linea tiene que estar aquí, antes de quitar la columna de nefocio de stores_shelves_df
+    select(negocio, store_nbr, shelf, dept_nbr, alto_cm, ancho_cm, profundo_cm, shelves_qty) %>% 
+    group_by(store_nbr, shelf, dept_nbr) %>% 
+    arrange(desc(shelves_qty)) %>% 
+    filter(row_number() == 1) %>% 
+    ungroup() %>% 
+    mutate(found = ifelse(is.na(alto_cm) | is.na(ancho_cm) | is.na(profundo_cm) | is.na(shelves_qty), FALSE, TRUE))
+  # Bases de datos internas
   business_average_shelves <- mean_shelves(stores_shelves_df, c('negocio', 'shelf'), '_business_average_shelves')
-  stores_shelves_df <- select(stores_shelves_df, -negocio)
-  stores_shelves <- search_shelves(stores_shelves_df, '_shelves')
-  stores_default_shelves <- search_shelves(stores_shelves_df, '_default_shelves')
   average_shelves <- mean_shelves(stores_shelves_df, c('shelf'), '_average_shelves')
-  initial_columns <- names(data)
+  stores_shelves <- stores_shelves_df %>% 
+    select(-c(negocio, shelves_qty)) %>% 
+    rename_at(vars(contains('cm'), found), paste0, '_shelves')
+  stores_default_shelves <- stores_shelves_df %>% 
+    select(-c(negocio, shelves_qty)) %>% 
+    rename_at(vars(contains('cm'), found), paste0, '_default_shelves')
   
   sorted_data <- data %>% 
     left_join(rrp_sync_data, by = 'old_nbr') %>% 
