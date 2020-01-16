@@ -23,10 +23,12 @@ alert_param <- function(combs_info, timestamp) {
     group_by(feature_name) %>% 
     summarise(
       any_empty = any(is_empty),
-      all_empty = all(is_empty)
+      all_empty = all(is_empty),
+      any_measures_empty = any(measures_empty),
+      any_default_pieces_applies = any(default_pieces_applies)
     )
-  good_features <- with(feature_info, feature_name[!any_empty])
-  partial_features <- with(feature_info, feature_name[any_empty & !all_empty])
+  good_features <- with(feature_info, feature_name[!any_empty & (!any_measures_empty | any_default_pieces_applies)])
+  partial_features <- with(feature_info, feature_name[(any_empty | (any_measures_empty & !any_default_pieces_applies)) & !all_empty])
   empty_features <- with(feature_info, feature_name[all_empty])
   
   if (length(good_features) > 0 && length(partial_features) == 0 && length(empty_features) == 0) {
@@ -34,9 +36,10 @@ alert_param <- function(combs_info, timestamp) {
     text1 <- sprintf('La información fue descargada de Teradata en %s.', format_difftime(difftime(Sys.time(), timestamp)))
     type1 <- 'success'
     message1 <- 'DOWNLOAD SUCCESSFUL'
+    table1 <- NULL
   } else if (length(good_features) > 0 || length(partial_features) > 0) {
     partial_combs <- combs_info %>% 
-      filter(is_empty == TRUE & feature_name %in% partial_features) %>% 
+      filter(feature_name %in% partial_features & (is_empty | measures_empty)) %>%
       group_by(feature_name) %>% 
       summarise(
         sum_text = ifelse(
@@ -62,11 +65,29 @@ alert_param <- function(combs_info, timestamp) {
     title1 <- lang$warning
     text1 <- sprintf(
       '<div style="text-align:left;">
-      No se encontró información bajo los parámetros especificados para las siguientes combinaciones de exhibición-artículo: <br><ul><li>%s</li></ul>
-      Las exhibiciones con al menos un artículo no encontrado serán completamente omitidas de los resultados.
-      Te sugerimos <b>revisar que el departamento y formato que ingresaste para ellas sean correctos.
-      </b></div>',
+      Hubo problemas descargando la información para las siguientes combinaciones de exhibición-artículo: <br><ul><li>%s</li></ul>
+      Las exhibiciones con al menos una combinación en la lista anterior serán completamente omitidas de los resultados.
+      Te sugerimos <b>revisar que el departamento y formato que ingresaste para ellas sean correctos.</b> Para más información, revisa la tabla de combinaciones problemáticas en la pestaña de Resultados.
+      </div>',
       paste0(empty_list_displayed, collapse  = '</li><li>'))
+    
+    table1 <- combs_info %>% 
+      filter(feature_name %in% partial_features & (is_empty | measures_empty)) %>% 
+      mutate(old_nbr = as.character(old_nbr)) %>% 
+      bind_rows(tibble(feature_name = empty_features, old_nbr = "Todos", is_empty = TRUE)) %>% 
+      mutate(
+        reason = case_when(
+        is_empty ~ 'No se encontró información.',
+        measures_empty ~ 'Una o más de las medidas del artículo están vacías.',
+        TRUE ~ 'Otra razón.'
+        ),
+        solution = case_when(
+          is_empty ~ 'Revisar que el departamento y formato sean correctos y que el artículo esté activo y resurtible.',
+          measures_empty ~ 'Añadir medidas faltantes en el OIF / Usar el mueble predeterminado en piezas y dejar en blanco el mueble deseado.',
+          TRUE ~ 'Sin solución recomendada.'
+        )
+      ) %>% 
+      select(feature_name, old_nbr, reason, solution)
     type1 <- 'warning'
     message1 <- 'DOWNLOAD PARTIALLY FAILED'
   } else if (length(good_features) == 0 && length(partial_features) == 0 && length(empty_features) >= 0) {
@@ -74,23 +95,22 @@ alert_param <- function(combs_info, timestamp) {
     text1 <- 'No se encontró información para ninguna de las promociones ingresadas, favor de revisar que sean correctos los datos.'
     type1 <- 'error'
     message1 <- 'DOWNLOAD FAILED'   
+    table1 <- NULL
   }
-  return(list(title = title1, text = text1, type = type1, message = message1, good_features = good_features))
+  return(list(title = title1, text = text1, type = type1, message = message1, good_features = good_features, table = table1))
 }
 
 ## Leer entrada
 parse_input <- function(input_file, gl, calendar_day, date_format = '%Y-%m-%d') {
   if (tools::file_ext(input_file) != 'xlsx') {
-    return('¡Cuidado! De ahora en adelante, el template de carga debe estar en formato de Excel (.xlsx). Te sugerimos que descarges el formato ejemplo de nuevo.')
+    return('¡Cuidado! El template de carga debe estar en formato de Excel (.xlsx). Te sugerimos que descarges el formato ejemplo de nuevo.')
   }
   tryCatch({
     column_info <- gl$cols[gl$cols$is_input, ]
-    # Quitar las columnas opcionales
-    required_cols <- column_info %>% 
-      filter(!(name %in% c('white_list', 'black_list')))
+    required_cols <- column_info[column_info$is_required_input, ]
     nms <- names(readxl::read_excel(input_file, sheet = 1, n_max = 0))
     if (!all(required_cols$pretty_name %in% nms)) {
-      return(sprintf('Las siguientes columnas faltan en el archivo de entrada: %s', paste(setdiff(required_cols$pretty_name, nms), collapse = ', ')))
+      return(sprintf('Las siguientes columnas faltan en el archivo que ingresaste: %s, puedes agregarlas manualmente o descargar el template de ejemplo.', paste(setdiff(required_cols$pretty_name, nms), collapse = ', ')))
     }
     nms <- remap_names(columns = nms, column_info, from_col = 'pretty_name', to_col = 'name')
     col_types <- generate_cols_spec(column_info, nms)
@@ -111,6 +131,10 @@ parse_input <- function(input_file, gl, calendar_day, date_format = '%Y-%m-%d') 
         fcst_or_sales = toupper(fcst_or_sales),
         display_key = paste(dept_nbr, old_nbr, negocio, sep = '.'),
         split_var = paste(semana_ini, semana_fin, fcst_or_sales, white_list, black_list, sep = '-')
+      ) %>% 
+      mutate_at(
+        vars(shelf, default_shelf),
+        ~toupper(str_replace(., '_', ' '))
       )
     
     stores_lists <- tryCatch({
@@ -157,7 +181,7 @@ validate_input <- function(data, stores_lists = NULL, gl, calendar_day) {
         ## Checar que no haya valores faltantes
         'No puede haber valores faltantes (blanks). Esto se debe comúnmente a que la fecha está almacenada como texto en Excel. Asegúrate de que Excel reconozca las fechas.',
         data %>% 
-          select(-white_list, -black_list) %>% 
+          select(setdiff(names(.), column_info$name[column_info$allow_na])) %>% 
           anyNA() %>% 
           not(),
         ## Checar que feature_name sea de longitid <= 22 caracteres (para que en total sean <= 40 para GRS)
@@ -171,9 +195,8 @@ validate_input <- function(data, stores_lists = NULL, gl, calendar_day) {
                 paste(gl$feature_const_cols, collapse = ', ')),
         data %>% 
           group_by(feature_name) %>% 
-          summarise_at(gl$feature_const_cols, list(~length(unique(.)))) %>% 
-          ungroup() %>% 
-          select_at(gl$feature_const_cols) %>% 
+          summarise_at(setdiff(gl$feature_const_cols, group_vars(.)), list(~length(unique(.)))) %>% 
+          select(-feature_name) %>%
           equals(1) %>% 
           all(),
         ## Checar los negociosn
@@ -212,12 +235,9 @@ validate_input <- function(data, stores_lists = NULL, gl, calendar_day) {
         ## Checar que Priority sea un entero entre 1 y 100
         sprintf('Priority debe ser un entero entre 1 y 100'),
         with(data, all(Priority == as.integer(Priority) & between(Priority, 1, 100))),
-        ## Checar que max_feature_qty sea estrictamente positivo
-        'max_feature_qty debe ser un entero mayor o igual a 1.',
-        with(data, all(max_feature_qty >= 1)),
-        ## Checar que min_feature_qty esté entre 1 y max_feature_qty
-        'min_feature_qty debe ser un entero entre 1 y max_feature_qty.',
-        with(data, all(1 <= min_feature_qty & min_feature_qty <= max_feature_qty)),
+        ## Checar que min_feature_perc esté entre 0 y 1
+        'min_feature_perc debe ser un número entre 0 y 1 que represente un porcentaje de la capacidad máxima del mueble.',
+        with(data, all(0 <= min_feature_perc & min_feature_perc <= 1)),
         ## Todas las listas usadas deben existir
         'Alguna de las columnas con las tiendas especiales a incluir o excluir no existe.',
         (is.null(stores_lists) && all(is.na(data$white_list)) && all(is.na(data$black_list))) || (all(discard(unique(data$white_list), is.na) %in% names(stores_lists)) && all(discard(unique(data$black_list), is.na) %in% names(stores_lists))),
@@ -225,7 +245,21 @@ validate_input <- function(data, stores_lists = NULL, gl, calendar_day) {
         'Las columnas de tiendas especiales deben contener sólo números.',
         stores_lists %>% 
           map_lgl(~typeof(.x) == 'double') %>% 
-          all()
+          all(),
+        ## Checar los tipos de muebles deseados
+        sprintf('El mueble debe ser uno de: %s', paste(gl$shelves, collapse = ', ')),
+        all(data$shelf %in% gl$shelves | is.na(data$shelf)),
+        ## Checar los datos de muebles default
+        sprintf('El mueble predeterminado no puede estar vacío al mismo tiempo que el mueble deseado, especifica al menos uno. El mueble predeterminado debe ser uno de: %s, o bien, la cantidad de piezas que se desea simular como máximo de capacidad en el mueble.', paste(gl$shelves, collapse = ', ')),
+        data %>% 
+          mutate(
+            validation = 
+              !is.na(shelf) | 
+              !is.na(as.numeric(default_shelf)) | 
+              default_shelf %in% gl$shelves
+          ) %>% 
+          pull(validation) %>% 
+          all
       )
       failed_idx <- which(!cond$passed)
       if (length(failed_idx) == 0) {
@@ -250,16 +284,16 @@ save_files <- function(data_files, gl, credentials) {
 }
 
 ## Correr query
-prepare_query <- function(query, keys, old_nbrs, wk_inicio, wk_final, white_list, black_list) {
+prepare_query <- function(query, keys, old_nbrs, negocios, wk_inicio, wk_final, white_list, black_list) {
   # Condición para sustituir el string en el query
   if (is.null(white_list)) {
     if (is.null(black_list)) {
       cond_str <- '1=1'
     } else {
-      cond_str <- sprintf('T1.STORE_NBR NOT IN (%s)', paste(black_list, collapse = ","))
+      cond_str <- sprintf('T.STORE_NBR NOT IN (%s)', paste(black_list, collapse = ","))
     }
   } else {
-    cond_str <- sprintf('T1.STORE_NBR IN (%s)', paste(white_list, collapse = ","))
+    cond_str <- sprintf('T.STORE_NBR IN (%s)', paste(white_list, collapse = ","))
   }
   
   query %>% 
@@ -268,6 +302,7 @@ prepare_query <- function(query, keys, old_nbrs, wk_inicio, wk_final, white_list
     str_replace_all('\\?WK_INICIO', as.character(wk_inicio)) %>% 
     str_replace_all('\\?WK_FINAL', as.character(wk_final)) %>% 
     str_replace_all('\\?COND_STR', cond_str) %>% 
+    str_replace_all('\\?NEGOCIOS', paste0("'", paste(unique(negocios), collapse = "','"), "'")) %>% 
     str_subset('^\\s*--', negate = TRUE) %>%  #quitar lineas de comentarios
     stringi::stri_trans_general('ASCII') %>% # quitar no ASCII porque truena en producción
     paste(collapse = '\n')
@@ -289,6 +324,7 @@ run_query_once <- function(ch, input_data, white_list, black_list, connector = '
     query = query,
     keys = input_data$display_key,
     old_nbrs = input_data$old_nbr,
+    negocios = input_data$negocio,
     wk_inicio = wk_inicio,
     wk_final = wk_final,
     white_list = white_list,
@@ -430,21 +466,187 @@ compare_ss_name <- function(sspress_tot, sscov_tot, min_ss, max_ss, sspress, bas
   return(win_ss)
 }
 
-## Checar que el query haya regresado algo
-check_query_result_is_empty <- function(result, input) {
-  new_vars <- setdiff(names(result), names(input))
-  all(is.na(result[new_vars]))
-}
-
 ## Regresar nombre de displays que no tuvieron info
 get_empty_combs <- function(result, input) {
+  measures_cols <- result %>% 
+    select(contains('length_qty'), contains('height_qty'), contains('width_qty')) %>% 
+    names()
   result %>% 
     group_by(feature_name, old_nbr) %>% 
     nest() %>% 
     mutate(
-      is_empty = map_lgl(data, ~check_query_result_is_empty(.x, input))
+      is_empty = map_lgl(data, ~all(is.na(.x[setdiff(names(result), names(input))]))),
+      measures_empty = map_lgl(data, ~any(is.na(.x[measures_cols]))),
+      default_pieces_applies = map_lgl(data, ~!is.na(as.numeric(first(.x$default_shelf))) & is.na(first(.x$shelf)))
     ) %>% 
-    select(feature_name, old_nbr, is_empty)
+    select(feature_name, old_nbr, is_empty, measures_empty, default_pieces_applies)
+}
+
+## Cálculo de número de anaqueles basado en las alturas
+calculate_shelves_number <- function(height, reduced_shelf_height, extra_space, max_shelves) {
+  stacks <- ceiling((reduced_shelf_height - extra_space * max_shelves) / (height * max_shelves))
+  shelves <- floor(reduced_shelf_height / (extra_space + height * stacks))
+  shelves
+}
+
+## Cálculo de máxima cantidad (pzas / rrp)
+create_capacity_columns <- function(data, prefix, measures, waste_space, extra_space) {
+  initial_columns <- names(data)
+  data <- data %>% 
+    mutate(
+      reduced_height = alto_cm - waste_space,
+      max_shelves = 7,
+      shelves_number = calculate_shelves_number(!!measures$height, reduced_height, extra_space, max_shelves),
+      ah = round(reduced_height - (shelves_number * extra_space), digits = 2),
+      lh = round(ah / shelves_number, digits = 2),
+      avail_space = round((ancho_cm * profundo_cm * reduced_height) - (shelves_number * extra_space * ancho_cm * profundo_cm), digits = 2),
+      tiers_per_shelf = floor(lh / !!measures$height),
+      tiers_ttl = round(tiers_per_shelf * shelves_number),
+      length_qty = floor(ancho_cm / !!measures$length),
+      width_qty = floor(profundo_cm / !!measures$width),
+      max_qty = round(tiers_ttl * width_qty * length_qty)
+    ) %>% 
+    select(-c(reduced_height, max_shelves))
+  new_names <- setdiff(names(data), initial_columns)
+  new_modified_names <- c(initial_columns, paste0(prefix, new_names))
+  set_names(data, new_modified_names)
+}
+
+## Usa las medidas de los muebles para obtener las piezas máximas
+perform_spatial_computations <- function(data) {
+  finger_space <- 2.54
+  tray_space <- 4.4958
+  extra_space <- finger_space + tray_space
+  pallet_width <- 122
+  pallet_length <- 100
+  pallet_height <- 150
+  chimney_width <- 61
+  chimney_length <- 200
+  chimney_height <- 140
+  waste_space <- 11
+  item_measures <- syms(c(length = 'item_length_qty', height = 'item_height_qty', width = 'item_width_qty'))
+  whpk_measures <- syms(c(length = 'whpk_length_qty', height = 'whpk_height_qty', width = 'whpk_width_qty'))
+  
+  data %>% 
+    create_capacity_columns('no_rrp_', item_measures, waste_space, extra_space) %>% 
+    create_capacity_columns('rrp_', whpk_measures, waste_space, extra_space) %>% 
+    mutate(
+      pallet_length_item_qty = round(pallet_length / item_length_qty),
+      pallet_height_item_qty = round(pallet_height / item_height_qty),
+      pallet_width_item_qty  = round(pallet_width  / item_width_qty),
+      pallet_length_whpk_qty = round(pallet_length / whpk_length_qty),
+      pallet_height_whpk_qty = round(pallet_height / whpk_height_qty),
+      pallet_width_whpk_qty  = round(pallet_width  / whpk_width_qty),
+      chimney_length_item_qty = round(chimney_length / item_length_qty),
+      chimney_height_item_qty = round(chimney_height / item_height_qty),
+      chimney_width_item_qty  = round(chimney_width  / item_width_qty),
+      chimney_length_whpk_qty = round(chimney_length / whpk_length_qty),
+      chimney_height_whpk_qty = round(chimney_height / whpk_height_qty),
+      chimney_width_whpk_qty  = round(chimney_width  / whpk_width_qty),
+      rrp_full_vol = round(rrp_max_qty * whpk_length_qty * whpk_width_qty * whpk_height_qty, digits = 2),
+      left_avail_space = rrp_avail_space - rrp_full_vol,
+      bkp_extra_pcs = floor(left_avail_space / (item_length_qty * item_width_qty * item_height_qty)),
+      max_item_capacity = case_when(
+        grepl('BASE', used_shelf) & rrp_ind == 'N' ~ 
+          round(pallet_length_item_qty * pallet_height_item_qty * pallet_width_item_qty),
+        grepl('BASE', used_shelf) & rrp_ind == 'Y' ~ 
+          round(pallet_length_whpk_qty * pallet_height_whpk_qty * pallet_width_whpk_qty * whpk_qty),
+        grepl('CABECERA', used_shelf) & rrp_ind == 'N' ~ no_rrp_max_qty,
+        grepl('CABECERA', used_shelf) & rrp_ind == 'Y' ~ rrp_max_qty * whpk_qty + bkp_extra_pcs,
+        grepl('CHIMENEA', used_shelf) & rrp_ind == 'N' ~ 
+          round(
+            pallet_length_item_qty * pallet_height_item_qty * pallet_width_item_qty + 
+              chimney_length_item_qty * chimney_height_item_qty * chimney_width_item_qty
+          ),
+        grepl('CHIMENEA', used_shelf) & rrp_ind == 'Y' ~ 
+          round(
+            pallet_length_whpk_qty * pallet_height_whpk_qty * pallet_width_whpk_qty * whpk_qty + 
+              chimney_length_whpk_qty * chimney_height_whpk_qty * chimney_width_whpk_qty * whpk_qty  
+          ),
+        TRUE ~ 0
+      )
+    )
+}
+
+## Resume la base de datos de muebles a cierto nivel
+mean_shelves <- function(data, groups, suffix) {
+  data %>%
+    group_by(!!!syms(groups)) %>%
+    select(!!!syms(groups), contains('cm')) %>%
+    summarise_all(mean) %>% 
+    rename_at(vars(contains('cm')), paste0, suffix) %>% 
+    ungroup()
+}
+
+## Función para elegir mueble y calcular las piezas
+calculate_max_capacity <- function(data){
+  initial_columns <- names(data)
+  # Bases de datos externas
+  rrp_sync_data <- readRDS(gl$rrp_sync_database) %>% 
+    set_names(tolower(names(.)))
+  stores_shelves_df <- read_csv(gl$shelves_database) %>% 
+    select(negocio, store_nbr, shelf, dept_nbr, alto_cm, ancho_cm, profundo_cm, shelves_qty) %>% 
+    group_by(store_nbr, shelf, dept_nbr) %>% 
+    arrange(desc(shelves_qty)) %>% 
+    filter(row_number() == 1) %>% 
+    ungroup() %>% 
+    mutate(found = ifelse(is.na(alto_cm) | is.na(ancho_cm) | is.na(profundo_cm) | is.na(shelves_qty), FALSE, TRUE))
+  # Bases de datos internas
+  business_average_shelves <- mean_shelves(stores_shelves_df, c('negocio', 'shelf'), '_business_average_shelves')
+  average_shelves <- mean_shelves(stores_shelves_df, c('shelf'), '_average_shelves')
+  stores_shelves <- stores_shelves_df %>% 
+    select(-c(negocio, shelves_qty)) %>% 
+    rename_at(vars(contains('cm'), found), paste0, '_shelves')
+  stores_default_shelves <- stores_shelves_df %>% 
+    select(-c(negocio, shelves_qty)) %>% 
+    rename_at(vars(contains('cm'), found), paste0, '_default_shelves')
+  
+  sorted_data <- data %>% 
+    left_join(rrp_sync_data, by = 'old_nbr') %>% 
+    mutate_at(vars('rrp_ind', 'gs1_sync_status'), list(~replace_na(., 'N'))) %>% 
+    # Convertir de decímetros a centímetros
+    mutate_at(vars(contains('length'), contains('width'), contains('height')), ~.x * 10) %>% 
+    left_join(stores_shelves, by = c('store_nbr', 'shelf', 'dept_nbr')) %>% 
+    left_join(
+      stores_default_shelves,
+      by = c('store_nbr' = 'store_nbr', 'default_shelf' = 'shelf', 'dept_nbr' = 'dept_nbr')
+    ) %>% 
+    mutate(
+      classification = case_when(
+        is.na(shelf) & !is.na(as.numeric(default_shelf)) ~ 'FORCED_DEFAULT',
+        found_shelves ~ 'SHELF_FOUND',
+        !is.na(as.numeric(default_shelf)) ~ 'UNFORCED_DEFAULT_PCS',
+        found_default_shelves ~ 'UNFORCED_DEFAULT_CHAR',
+        TRUE ~ 'NOT_FOUND'
+      ),
+      used_shelf = case_when(
+        classification == 'FORCED_DEFAULT' ~ 'PIECES NUMBER',
+        classification == 'SHELF_FOUND' ~ shelf,
+        classification == 'UNFORCED_DEFAULT_PCS' ~ 'PIECES NUMBER',
+        classification == 'UNFORCED_DEFAULT_CHAR' ~ default_shelf,
+        classification == 'NOT_FOUND' ~ default_shelf
+      )
+    )
+  
+  ready_classifications <- c('FORCED_DEFAULT', 'UNFORCED_DEFAULT_PCS')
+  ready_data <- sorted_data %>% 
+    filter(classification %in% ready_classifications) %>% 
+    mutate(max_item_capacity = as.numeric(default_shelf))
+  
+  ## Llamar función que calcula las piezas de acuerdo a tamaños, etc.
+  sorted_data %>% 
+    filter(!(classification %in% ready_classifications)) %>%
+    left_join(business_average_shelves, by = c('default_shelf' = 'shelf', 'negocio' = 'negocio')) %>% 
+    left_join(average_shelves, by = c('default_shelf' = 'shelf')) %>% 
+    mutate(
+      alto_cm = coalesce(alto_cm_shelves, alto_cm_default_shelves, alto_cm_business_average_shelves, alto_cm_average_shelves),
+      ancho_cm = coalesce(ancho_cm_shelves, ancho_cm_default_shelves, ancho_cm_business_average_shelves, ancho_cm_average_shelves),
+      profundo_cm = coalesce(profundo_cm_shelves, profundo_cm_default_shelves, profundo_cm_business_average_shelves, profundo_cm_average_shelves)
+    ) %>%
+    perform_spatial_computations() %>% 
+    bind_rows(ready_data) %>% 
+    select(-ends_with('cm_shelves'), -ends_with('cm_default_shelves'), -ends_with('cm_business_average_shelves'), -ends_with('cm_average_shelves')) %>% 
+    mutate_at(setdiff(names(.), initial_columns), list(~replace_na(., 0)))
 }
 
 ## Lógica en R
@@ -460,6 +662,18 @@ perform_computations <- function(data, data_ss = NULL, min_feature_qty_toggle = 
         avg_dly_pos_or_fcst
       ),
       feature_perc_pos_or_fcst = avg_dly_pos_or_fcst / sum(avg_dly_pos_or_fcst),
+      ## Esta fórmula para el max_feature_qty se obtiene de una reducción algebráica.
+      # V = Volumen total,              Vz = Volumen de cada artículo
+      # Q = Cantidad total de piezas,   Qz = Cantidad de piezas de cada artículo
+      # Uz = Volumen unitario ajustado para cada pieza (ajustado por el algoritmo de cálculo de espacios)
+      # Pz = Participación de venta de cada artículo con respecto a la exhibición
+      # Mz = Máxima cantidad de piezas que caben en la exhibición por artículo (max_item_capacity)
+      
+      # Hipótesis inicial: El volumen total es la suma de los volúmenes de los artículos:
+      # V = sum(Vz)   =>    V = sum(Qz * Uz)    =>    V = Q * sum(Pz * Uz)
+      # Por lo tanto...   Q = V / sum(Pz * Uz)    =>    Q = V / sum(Pz * (V/Mz))    =>    Q = 1 / sum(Pz / Mz)
+      max_feature_qty = 1 / sum(feature_perc_pos_or_fcst / max_item_capacity),
+      min_feature_qty = max_feature_qty * min_feature_perc,
       ## Cantidades sin reglas
       feature_qty_req_min = feature_perc_pos_or_fcst * min_feature_qty,
       feature_qty_req = feature_perc_pos_or_fcst * max_feature_qty,
@@ -539,7 +753,7 @@ perform_computations <- function(data, data_ss = NULL, min_feature_qty_toggle = 
   
   data <- data %>%
     replace_na(list(ganador = "Unknown", max_ss = 999999999)) %>%
-    mutate_at(vars(contains("ss")), list(~round(replace_na(., 0), digits = 0))) %>%
+    mutate_at(vars(contains("ss"), -classification), list(~round(replace_na(., 0), digits = 0))) %>%
     mutate(
       comp_sspress_tot = base_press + comp_sspress,
       comp_ss_winner_qty = compare_ss_qty(comp_sspress_tot, sscov_tot, min_ss, max_ss),
@@ -584,7 +798,7 @@ summarise_data <- function(data, group = c('feature_name', 'cid')) {
   group_order <- c('feature_name', 'store_nbr', 'store_name', 'cid', 'old_nbr', 'dc_nbr', 'dc_name')
   grp <- group_order[group_order %in% group]
   ## Variables numéricas de tabla de salida
-  vv <- c('avg_dly_sales', 'avg_dly_forecast', 'min_feature_qty', 'max_feature_qty', 'max_ddv', 'total_cost', 'total_impact_cost', 'total_stock_cost', 'total_qty', 'total_impact_qty', 'total_stock_qty', 'total_ddv', 'total_impact_ddv', 'total_stock_ddv', 'total_vnpk', 'total_impact_vnpk', 'total_stock_vnpk')
+  vv <- c('avg_dly_sales', 'avg_dly_forecast', 'min_feature_qty', 'max_feature_qty', 'max_item_capacity', 'max_ddv', 'total_cost', 'total_impact_cost', 'total_stock_cost', 'total_qty', 'total_impact_qty', 'total_stock_qty', 'total_ddv', 'total_impact_ddv', 'total_stock_ddv', 'total_vnpk', 'total_impact_vnpk', 'total_stock_vnpk')
   if ('store_nbr' %in% grp) {
     val_vars <- vv
   } else {
@@ -606,6 +820,7 @@ summarise_data <- function(data, group = c('feature_name', 'cid')) {
       avg_dly_forecast = ifelse(any(fcst_or_sales == 'F'), sum(avg_dly_pos_or_fcst[fcst_or_sales=='F'], na.rm = TRUE), NA_real_),
       min_feature_qty = mean(min_feature_qty, na.rm = TRUE),
       max_feature_qty = mean(max_feature_qty, na.rm = TRUE),
+      max_item_capacity = mean(max_item_capacity, na.rm = TRUE),
       max_ddv = sum(max_ddv * avg_dly_pos_or_fcst, na.rm = TRUE) / sum(avg_dly_pos_or_fcst, na.rm = TRUE),
       total_cost = sum(store_cost, na.rm = TRUE),
       total_impact_cost = sum(impact_cost, na.rm = TRUE),
@@ -642,13 +857,15 @@ generate_quantity_histogram_data <- function(output_filtered_data, bins = 10) {
     scales::percent(cut_values[-1], accuracy = 1),
     sep = ' - '
   )
+  no_shelf_label <- 'Sin mueble'
   res %>% 
     mutate(
       perc_max_feature_qty = pmin(1, perc_max_feature_qty),
-      perc_max_feature_qty_bin = cut(perc_max_feature_qty,
-                                     breaks = cut_values,
-                                     labels = cut_labels,
-                                     include.lowest = TRUE),
+      perc_max_feature_qty_bin = 
+        cut(perc_max_feature_qty, breaks = cut_values,labels = cut_labels, include.lowest = TRUE) %>% 
+        fct_explicit_na(no_shelf_label) %>% 
+        fct_expand(no_shelf_label) %>% 
+        fct_relevel(no_shelf_label),
       temp_cost = total_cost, # Creadas para evitar name clashes en el summarise
       temp_qty = total_qty,
       temp_avg_store_dly_pos_or_fcst = coalesce(avg_dly_sales, avg_dly_forecast)
@@ -671,7 +888,7 @@ generate_quantity_histogram_data <- function(output_filtered_data, bins = 10) {
     mutate(
       p_stores = n_stores / sum(n_stores)
     ) %>% 
-    right_join(tibble(perc_max_feature_qty_bin = factor(cut_labels, levels = cut_labels)), by = 'perc_max_feature_qty_bin') %>% 
+    right_join(tibble(perc_max_feature_qty_bin = fct_relevel(factor(c(no_shelf_label, cut_labels)), no_shelf_label)), by = 'perc_max_feature_qty_bin') %>% 
     replace(., is.na(.), 0) %>% 
     select(perc_max_feature_qty_bin, n_stores, p_stores, everything())
 }
@@ -802,10 +1019,11 @@ generate_sample_input <- function(calendar_day, column_info) {
     user = 'm1234xy',
     dept_nbr = 95,
     negocio = 'BAE',
-    old_nbr = c(9506783, 9506804, 9574857, 9506748, 9574857, 9506748),
-    primary_desc_temp = c('MARUCHAN CAMARON', 'MARUCHAN CMRONCHILE', 'MARUCHAN CMRONHBNER', 'MARUCHAN POLLO', 'MARUCHAN CMRONHBNER', 'MARUCHAN POLLO'),
-    min_feature_qty = c(600, 600, 600, 600, 300, 300),
-    max_feature_qty = c(3000, 3000, 3000, 3000, 2000, 2000),
+    old_nbr = c(9539931, 9562307, 9574850, 9533187, 9539931, 9562307),
+    primary_desc_temp = c('MARUCHAN CAMARON', 'MARUCHAN POLLO', 'MARUCHAN CMRONHBNER', 'MARUCHAN RAMEN HABAN', 'MARUCHAN CAMARON', 'MARUCHAN POLLO'),
+    min_feature_perc = c(0.2, 0.2, 0.2, 0.2, 0.1, 0.1),
+    shelf = c('CABECERA ALTA', 'CABECERA ALTA', 'CABECERA ALTA', 'CABECERA ALTA', 'BASE', 'BASE'),
+    default_shelf = c('CABECERA BAJA', 'CABECERA BAJA', 'CABECERA BAJA', 'CABECERA BAJA', 2000, 2000),
     max_ddv = 30,
     fcst_or_sales = c('S', 'S', 'S', 'S', 'F', 'F'),
     semana_ini = c(rep(sales_wks[1], 4), rep(fcst_wks[1], 2)),
@@ -818,7 +1036,7 @@ generate_sample_input <- function(calendar_day, column_info) {
   )
   names(info) <- remap_names(names(info), column_info, to_col = 'pretty_name')
   stores_lists <- tryCatch({
-    read_csv('data/stores_lists.csv')
+    read_csv('data/stores-lists.csv')
   }, error = function(e){
     list(
       tiendas_muy_chicas = c(3733, 3983, 1424, 2052, 4036),
@@ -828,8 +1046,14 @@ generate_sample_input <- function(calendar_day, column_info) {
       tiendas_grandes = c(3733, 3983, 1424, 2052, 4036)
     )
   })
+  catalog <- list(negocios_validos = gl$negocios, muebles_validos = gl$shelves)
   
-  return(list(promo = info, tiendas_especiales = stores_lists))
+  dictionary <- gl$cols %>% 
+    filter(is_input) %>% 
+    select(pretty_name, description) %>% 
+    set_names(c('Nombre de columna', 'Descripción'))
+  
+  return(list(promo = info, tiendas_especiales = stores_lists, catalogo = catalog, glosario = dictionary))
 }
 
 # Server ------------------------------------------------------------------
@@ -1456,6 +1680,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
     )
   })
   good_features_rv <- reactiveVal()
+  failed_combinations <- reactiveVal(NULL)
   observeEvent(query_result(), {
     r$is_running <- FALSE
     if (!is.data.frame(query_result()$data)) {
@@ -1471,6 +1696,9 @@ computePromotionsServer <- function(input, output, session, credentials) {
       alert_info <- alert_param(combs_info, query_result()$timestamp)
       good_features_rv(alert_info$good_features)
     }
+    # Si falla parcialmente, asigna la tabla, de otra forma asigna un NULL
+    failed_combinations(alert_info$table)
+    
     shinyalert::shinyalert(
       type = alert_info$type,
       title = alert_info$title,
@@ -1485,6 +1713,21 @@ computePromotionsServer <- function(input, output, session, credentials) {
     )))
     r$final_result_trigger <- r$final_result_trigger + 1
   })
+  output$alert_info_dt <- renderDT({
+    req(!is.null(failed_combinations()))
+    generate_basic_datatable(failed_combinations(), gl$cols)
+  })
+    
+  output$alert_info_ui <- renderUI({
+    req(!is.null(failed_combinations()))
+    ns <- session$ns
+    tags$div(
+      tags$h2('Combinaciones problemáticas'),
+      tags$h5('Hubo problemas al realizar la descarga de información de las combinaciones de promoción-artículo que se muestran en la tabla de abajo. No se encontró la información necesaria de las mismas para ser procesadas por la aplicación, por lo que las promociones a las que pertencen fueron completamente excluidas de los resultados.'),
+      DTOutput(ns('alert_info_dt'))
+    )
+  })
+
   ### Ahora sí cálculos
   final_result <- eventReactive({
     input$min_feature_qty_toggle
@@ -1495,20 +1738,38 @@ computePromotionsServer <- function(input, output, session, credentials) {
     req(r$final_result_trigger > 0)
     req(query_result()$data)
     if (length(good_features_rv()) > 0) {
-      flog.info(toJSON(list(
-        session_info = msg_cred(isolate(credentials())),
-        message = 'PERFORMING COMPUTATIONS',
-        details = list()
-      )))
       good_data <- query_result()$data %>% 
         filter(feature_name %in% good_features_rv())
-      purrr::safely(perform_computations)(
-        data = good_data,
-        data_ss = query_result()$data_ss,
-        min_feature_qty_toggle = input$min_feature_qty_toggle,
-        sspres_benchmark_toggle = input$sspres_benchmark_toggle,
-        impact_toggle = input$impact_toggle
-      )$result
+      if(file.exists(gl$shelves_database)) {
+        flog.info(toJSON(list(
+          session_info = msg_cred(isolate(credentials())),
+          message = 'CALCULATING SHELVES MAX CAPACITY',
+          details = list()
+        )))
+        shelf_data <- purrr::safely(calculate_max_capacity)(
+          data = good_data
+        )$result
+        flog.info(toJSON(list(
+          session_info = msg_cred(isolate(credentials())),
+          message = 'PERFORMING COMPUTATIONS',
+          details = list()
+        )))
+        purrr::safely(perform_computations)(
+          data = shelf_data,
+          data_ss = query_result()$data_ss,
+          min_feature_qty_toggle = input$min_feature_qty_toggle,
+          sspres_benchmark_toggle = input$sspres_benchmark_toggle,
+          impact_toggle = input$impact_toggle
+        )$result
+      } else {
+        flog.info(toJSON(list(
+          session_info = msg_cred(credentials()),
+          message = 'SHELVES DATABASE NOT FOUND',
+          details = list(
+            user = input$user
+          )
+        )))
+      }
     } else {
       NULL
     }
@@ -1520,7 +1781,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
       shiny::need(!is.null(r$items_file), lang$need_items_file) %then%
       shiny::need(!is.null(r$items), lang$need_valid_input)
   })
-  need_query_ready <- reactive({
+  need_result_ready <- reactive({
     shiny::need(r$query_was_tried, lang$need_run) %then%
       shiny::need(!r$is_running, lang$need_finish_running) %then%
       shiny::need(is.data.frame(query_result()$data), lang$need_query_result) %then%
@@ -1531,14 +1792,32 @@ computePromotionsServer <- function(input, output, session, credentials) {
       shiny::need(nchar(input$output_feature_select) > 0, lang$need_select_feature)
   })
   
+  ## Tabla que muestra las medidas de los artículos y su estatus de sincronización
+  output$item_details_table <- renderDT({
+    shiny::validate(
+      need_input_ready() %then%
+        need_result_ready()
+    )
+    tryCatch({
+      final_result() %>%
+        group_by(old_nbr) %>% 
+        summarise_at(
+          vars('primary_desc', 'item_length_qty', 'item_width_qty', 'item_height_qty', 'whpk_length_qty', 'whpk_width_qty', 'whpk_height_qty', 'rrp_ind', 'gs1_sync_status'),
+          first
+        ) %>% 
+        generate_basic_datatable(column_info = gl$cols, scrollX = TRUE, scrollY = gl$table_height$tall)
+    }, error = function(e){
+      NULL
+    })
+  })
+  
   ## Tabla de salida
   output$detail_table <- renderDT({
     shiny::validate(
       need_input_ready() %then%
-        need_query_ready()
+        need_result_ready()
     )
     tryCatch({
-      percent_columns <- c('feature_perc_pos_or_fcst')
       final_result() %>%
         select(
           feature_name,
@@ -1576,7 +1855,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
   output$summary_table <- renderDT({
     shiny::validate(
       need_input_ready() %then%
-        need_query_ready()
+        need_result_ready()
     )
     tryCatch({
       summary_table() %>% 
@@ -1635,22 +1914,38 @@ computePromotionsServer <- function(input, output, session, credentials) {
   quantity_histogram <- reactive({
     shiny::validate(
       need_input_ready() %then%
-        need_query_ready() %then%
+        need_result_ready() %then%
         need_histogram_ready()
     )
     tryCatch({
-      mfq <- unique(final_results_filt()$max_feature_qty)
+      if(all(is.na(final_results_filt()$shelf))) {
+        shelf <- unique(final_results_filt()$default_shelf)
+      } else {
+        shelf <- unique(final_results_filt()$shelf)
+      }
       quantity_histogram_data() %>% 
         mutate(
           label_y = n_stores + 0.03 * max(n_stores),
           label = scales::percent(p_stores),
           text = sprintf('Tiendas: %s (%s)<br>Costo total: %s<br>Costo promedio: %s<br>Cant. total: %s<br>Cant. promedio: %s<br>%s promedio: %s', scales::comma(n_stores, accuracy = 1), scales::percent(p_stores), scales::comma(total_cost, accuracy = 1), scales::comma(avg_store_cost, accuracy = 1), scales::comma(total_qty, accuracy = 1), scales::comma(avg_store_qty, accuracy = 1), ifelse(first(fcst_or_sales) == 'F', 'Forecast', 'Venta'), scales::comma(avg_store_dly_pos_or_fcst, accuracy = 1))
         ) %>% 
-        plot_ly(x = ~perc_max_feature_qty_bin, y = ~n_stores, text = ~text, hoverinfo = 'text', type = 'bar', name = NULL) %>% 
-        add_text(y = ~label_y, text = ~label, name = NULL) %>% 
+        plot_ly(
+          x = ~perc_max_feature_qty_bin,
+          y = ~n_stores,
+          text = ~text,
+          hoverinfo = 'text',
+          type = 'bar',
+          name = NULL,
+          marker = list(color = c('red', rep('#1f76b4', input$quantity_histogram_bin_number)))
+        ) %>% 
+        add_text(x = ~perc_max_feature_qty_bin, y = ~label_y, text = ~label, name = NULL, color = I('black'), inherit = FALSE) %>% 
         plotly::layout(
-          title = 'Alcance a piezas máximas por tienda',
-          xaxis = list(title = sprintf('Alcance (%% de Max. Feature Qty. = %s)', scales::comma(mfq))),
+          title = 'Alcance porcentual a piezas máximas por tienda',
+          xaxis = list(title = case_when(
+            is.na(shelf) ~ 'Mueble no encontrado',
+            is.numeric(shelf) ~ sprintf('Alcance a un máximo de %s piezas', try(scales::comma(shelf), silent = TRUE)),
+            TRUE ~ 'Alcance a capacidad máxima del mueble encontrado para cada tienda',
+          )),
           yaxis = list(title = 'Número de tiendas', separators = '.,'),
           showlegend = FALSE
         )
@@ -1662,7 +1957,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
   dispersion_histogram <- reactive({
     shiny::validate(
       need_input_ready() %then%
-        need_query_ready() %then%
+        need_result_ready() %then%
         need_histogram_ready()
     )
     tryCatch({
@@ -1689,7 +1984,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
   ## Tabla de alcance (output)
   quantity_histogram_table <- reactive({
     needs <- need_input_ready() %then%
-      need_query_ready() %then%
+      need_result_ready() %then%
       need_histogram_ready()
     shiny::validate(
        shiny::need(is.null(needs), '')
@@ -1720,7 +2015,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
   
   dispersion_histogram_table <- reactive({
     needs <- need_input_ready() %then%
-      need_query_ready() %then%
+      need_result_ready() %then%
       need_histogram_ready()
     shiny::validate(
       shiny::need(is.null(needs), '')
@@ -1814,6 +2109,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
     graph_table(NULL)
     query_result(NULL)
     r$query_was_tried <- NULL
+    failed_combinations(NULL)
   })
   
   ## Descargar cálculos
@@ -1874,7 +2170,8 @@ computePromotionsServer <- function(input, output, session, credentials) {
     content = function(file) {
       x <- generate_sample_input(calendar_day, gl$cols)
       x$tiendas_especiales <- fill_vectors(x$tiendas_especiales)
-      openxlsx::write.xlsx(x, file = file, append = FALSE, row.names = FALSE, tabColour = c('#0071ce', '#eb148d'))
+      x$catalogo <- fill_vectors(x$catalogo)
+      openxlsx::write.xlsx(x, file = file, append = FALSE, row.names = FALSE, tabColour = c('#0071ce', '#eb148d', '#ffc220', '#76c043'))
     },
     # Excel content type
     contentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
@@ -1911,6 +2208,12 @@ computePromotionsServer <- function(input, output, session, credentials) {
           tabPanel(
             title = lang$compute_promotions_computation_parameters,
             includeHTML('html/instructions-computation.html')
+          ),
+          tabPanel(
+            title = lang$compute_promotions_shelves,
+            includeHTML('html/instructions-shelves.html') %>%
+            str_replace_all('__shelves__', paste(gl$shelves, collapse = ', ')) %>%
+            HTML()
           ),
           tabPanel(
             title = lang$compute_promotions_impact_parameters,
@@ -2160,7 +2463,8 @@ computePromotionsUI <- function(id) {
             )
           )
         ),
-        DTOutput(ns('summary_table')) %>% withSpinner(type = 8)
+        DTOutput(ns('summary_table')) %>% withSpinner(type = 8),
+        uiOutput(ns('alert_info_ui'))
       ),
       tabPanel(
         value = 'output_histogram',
@@ -2179,6 +2483,11 @@ computePromotionsUI <- function(id) {
         ),
         plotlyOutput(ns('feature_histogram'), height = gl$plotly_height) %>% withSpinner(type = 8),
         DTOutput(ns('feature_histogram_table'))
+      ),
+      tabPanel(
+        value = 'output_item_details',
+        title = lang$tab_output_item_details,
+        DTOutput(ns('item_details_table')) %>% withSpinner(type = 8)
       ),
       tabPanel(
         value = 'output_detail',

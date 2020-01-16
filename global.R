@@ -95,12 +95,13 @@ flog.info(toJSON(list(
 
 ## Usar esto en lugar de source(., encoding = 'UTF-8') porque truena a menos que cambiemos el locale del sistema con Sys.setlocale('LC_CTYPE', 'en_US.UTF-8') 
 ## Ver: https://stackoverflow.com/questions/5031630/how-to-source-r-file-saved-using-utf-8-encoding
-eval(parse('functions.R', encoding = 'UTF-8'))
+eval(parse('utils/functions.R', encoding = 'UTF-8'))
 eval(parse('lang.R', encoding = 'UTF-8'))
 eval(parse('modules/compute-promotions.R', encoding = 'UTF-8'))
 eval(parse('modules/login.R', encoding = 'UTF-8'))
 eval(parse('modules/usage-stats.R', encoding = 'UTF-8'))
 eval(parse('modules/notifications.R', encoding = 'UTF-8'))
+eval(parse('modules/data-management.R', encoding = 'UTF-8'))
 
 # Parámetros globales -----------------------------------------------------
 
@@ -119,7 +120,13 @@ gl <- list(
   app_version_date = '2019-11-28',
   ## Compute promotions
   cols = tryCatch({
-    read_tsv('data/column-info.txt', col_types = 'ccllccncc')
+    as_tibble(read.table(
+      file = 'data/column-info.txt',
+      sep = '\t',
+      header = TRUE,
+      encoding = 'ISO-8859',
+      colClasses = c('character', 'character', 'logical', 'logical', 'logical', 'logical', 'character', 'character', 'numeric', 'character', 'character')
+    ))
   }, error = function(e){
     tribble(~name, ~type, ~is_constant_by_feature, ~pretty_name, ~description)
   }),
@@ -131,6 +138,13 @@ gl <- list(
     'BAE',
     'MEDIMART',
     'OTRO'
+  ),
+  shelves = c(
+    'BASE',
+    'MEDIA BASE',
+    'CABECERA ALTA',
+    'CABECERA BAJA',
+    'CHIMENEA'
   ),
   max_input_rows = 500,
   max_output_rows = 100000,
@@ -153,6 +167,15 @@ gl$user_data_path <- paste0(gl$app_deployment_environment, '/etc/psswd')
 if (!dir.exists(dirname(gl$user_data_path))) {
   dir.create(dirname(gl$user_data_path), recursive = TRUE)
 }
+
+### Path de base de datos con los datos de los muebles de las tiendas
+gl$shelves_database <- 'data/stores-shelves.csv'
+### Path de base de datos con los estatuts de RRP y sincronización en GS1
+gl$rrp_sync_database <- 'data/item-rrp-sync-result.rds'
+### Periodo de actualización de base de datos de RRP y Sync (días)
+gl$rrp_sync_update_period <- 7
+### Número de archivos de respaldo de la base de datos
+gl$rrp_sync_backups_n <- 5
 ### Nivel de permisos por tipo de usuario
 gl$clearance_levels <- c(
   'owner' = 0,
