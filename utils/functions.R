@@ -104,13 +104,24 @@ extended_colorblind_pal <- function(n) {
 ## Run a query in dev or prod
 sql_query <- function(ch = NULL, connector = NULL, query, stringsAsFactors = FALSE, ...) {
   if (is.null(ch)) {
-    res <- mlutils::dataset.load(name = connector, query = query, ...)
-    if (!stringsAsFactors) {
-      res <- res %>%
-        mutate_if(is.factor, as.character)
+    res <- purrr::safely(mlutils::dataset.load)(name = connector, query = query, ...)
+    if (is.data.frame(res$result)) {
+      res <- res$result
+      if (!stringsAsFactors) {
+        res <- res %>%
+          dplyr::mutate_if(is.factor, as.character)
+      }
     }
   } else {
     res <- RODBC::sqlQuery(ch, query, stringsAsFactors = stringsAsFactors, ...)
+    if (!is.data.frame(res)) {
+      res <- paste(res, collapse = ' ')
+    }
+  }
+  if (!is.data.frame(res)) {
+    errmsg <- sprintf('QUERY FAILED %s', substr(res, 1, 200))
+    try(futile.logger::flog.debug(errmsg))
+    stop(errmsg)
   }
   return(res)
 }
