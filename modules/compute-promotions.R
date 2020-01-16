@@ -250,7 +250,7 @@ validate_input <- function(data, stores_lists = NULL, gl, calendar_day) {
         sprintf('El mueble debe ser uno de: %s', paste(gl$shelves, collapse = ', ')),
         all(data$shelf %in% gl$shelves | is.na(data$shelf)),
         ## Checar los datos de muebles default
-        sprintf('El mueble predeterminado es requerido para todas las filas y debe ser uno de: %s, o bien, la cantidad de piezas que se desea simular como máximo de capacidad en el mueble.', paste(gl$shelves, collapse = ', ')),
+        sprintf('El mueble predeterminado no puede estar vacío al mismo tiempo que el mueble deseado, especifica al menos uno. El mueble predeterminado debe ser uno de: %s, o bien, la cantidad de piezas que se desea simular como máximo de capacidad en el mueble.', paste(gl$shelves, collapse = ', ')),
         data %>% 
           mutate(
             validation = 
