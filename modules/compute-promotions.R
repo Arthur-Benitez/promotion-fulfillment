@@ -586,10 +586,11 @@ search_shelves <- function(stores_shelves_df, suffix) {
 ## Resume la base de datos de muebles a cierto nivel
 mean_shelves <- function(data, groups, suffix) {
   data %>%
-    group_by(groups) %>%
+    group_by(!!!syms(groups)) %>%
     select(-c(store_nbr, dept_nbr, shelves_qty)) %>%
     summarise_all(mean) %>% 
-    rename_at(vars(contains('cm')), paste0, suffix)
+    rename_at(vars(contains('cm')), paste0, suffix) %>% 
+    ungroup()
 }
 
 ## Función para elegir mueble y calcular las piezas
