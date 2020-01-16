@@ -111,6 +111,8 @@ sql_query <- function(ch = NULL, connector = NULL, query, stringsAsFactors = FAL
         res <- res %>%
           dplyr::mutate_if(is.factor, as.character)
       }
+    } else {
+      res <- paste(res$error, collapse = ' ')
     }
   } else {
     res <- RODBC::sqlQuery(ch, query, stringsAsFactors = stringsAsFactors, ...)
@@ -120,7 +122,7 @@ sql_query <- function(ch = NULL, connector = NULL, query, stringsAsFactors = FAL
   }
   if (!is.data.frame(res)) {
     errmsg <- sprintf('QUERY FAILED %s', substr(res, 1, 200))
-    try(futile.logger::flog.debug(errmsg))
+    try(futile.logger::flog.error(errmsg))
     stop(errmsg)
   }
   return(res)
