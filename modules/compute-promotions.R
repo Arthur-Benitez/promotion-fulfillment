@@ -1686,9 +1686,9 @@ computePromotionsServer <- function(input, output, session, credentials) {
     )
   })
   good_features_rv <- reactiveVal()
+  failed_combinations <- reactiveVal(NULL)
   observeEvent(query_result(), {
     r$is_running <- FALSE
-    closeAlert()
     if (!is.data.frame(query_result()$data)) {
       alert_info <- list(
         title = lang$error,
@@ -1702,30 +1702,17 @@ computePromotionsServer <- function(input, output, session, credentials) {
       alert_info <- alert_param(combs_info, query_result()$timestamp)
       good_features_rv(alert_info$good_features)
     }
-    
-    if(is.null(alert_info$table)){
-      shinyalert::shinyalert(
-        type = alert_info$type,
-        title = alert_info$title,
-        text = alert_info$text,
-        closeOnClickOutside = TRUE,
-        html = TRUE
-      )
-    } else {
-      output$alert_info_table <- renderDT(alert_info$table)
-      showModal(modalDialog(
-        size = 'l',
-        easyClose = TRUE,
-        title = alert_info$title,
-        tags$div(
-          alert_info$text,
-          HTML(knitr::kable(alert_info$table, format = 'html'))
-        ),
-        modalButton(NULL, icon = icon('times')),
-        footer = NULL
-      ))
+    if(!is.null(alert_info$table)){
+      failed_combinations(alert_info$table)
     }
     
+    shinyalert::shinyalert(
+      type = alert_info$type,
+      title = alert_info$title,
+      text = alert_info$text,
+      closeOnClickOutside = TRUE,
+      html = TRUE
+    )
     flog.info(toJSON(list(
       session_info = msg_cred(isolate(credentials())),
       message = alert_info$message,
@@ -1733,6 +1720,21 @@ computePromotionsServer <- function(input, output, session, credentials) {
     )))
     r$final_result_trigger <- r$final_result_trigger + 1
   })
+  output$alert_info_dt <- renderDT({
+    req(!is.null(failed_combinations()))
+    generate_basic_datatable(failed_combinations(), gl$cols)
+  })
+    
+  output$alert_info_ui <- renderUI({
+    req(!is.null(failed_combinations()))
+    ns <- session$ns
+    tags$div(
+      tags$h2('Combinaciones problemáticas'),
+      tags$h5('Hubo problemas al realizar la descarga de información de las combinaciones de promoción-artículo que se muestran en la tabla de abajo. No se encontró la información necesaria de las mismas para ser procesadas por la aplicación, por lo que las promociones a las que pertencen fueron completamente excluidas de los resultados.'),
+      DTOutput(ns('alert_info_dt'))
+    )
+  })
+
   ### Ahora sí cálculos
   final_result <- eventReactive({
     input$min_feature_qty_toggle
@@ -2114,6 +2116,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
     graph_table(NULL)
     query_result(NULL)
     r$query_was_tried <- NULL
+    failed_combinations(NULL)
   })
   
   ## Descargar cálculos
@@ -2467,7 +2470,8 @@ computePromotionsUI <- function(id) {
             )
           )
         ),
-        DTOutput(ns('summary_table')) %>% withSpinner(type = 8)
+        DTOutput(ns('summary_table')) %>% withSpinner(type = 8),
+        uiOutput(ns('alert_info_ui'))
       ),
       tabPanel(
         value = 'output_histogram',
