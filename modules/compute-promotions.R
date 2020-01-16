@@ -75,11 +75,18 @@ alert_param <- function(combs_info, timestamp) {
       filter(feature_name %in% partial_features & (is_empty | measures_empty)) %>% 
       mutate(old_nbr = as.character(old_nbr)) %>% 
       bind_rows(tibble(feature_name = empty_features, old_nbr = "Todos", is_empty = TRUE)) %>% 
-      mutate(reason  = case_when(
+      mutate(
+        reason = case_when(
         is_empty ~ 'No se encontró información.',
         measures_empty ~ 'Una o más de las medidas están vacías.',
         TRUE ~ 'Otra razón.'
-      )) %>% 
+        ),
+        solution = case_when(
+          is_empty ~ 'Revisar que el departamento y formato sean correctos y que el artículo esté activo y resurtible.',
+          measures_empty ~ 'Añadir medidas faltantes en el OIF / Usar el mueble predeterminado en piezas.',
+          TRUE ~ 'Sin solución recomendada.'
+        )
+      ) %>% 
       select(feature_name, old_nbr, reason)
     type1 <- 'warning'
     message1 <- 'DOWNLOAD PARTIALLY FAILED'
