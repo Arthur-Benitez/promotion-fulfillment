@@ -1711,9 +1711,8 @@ computePromotionsServer <- function(input, output, session, credentials) {
       alert_info <- alert_param(combs_info, query_result()$timestamp)
       good_features_rv(alert_info$good_features)
     }
-    if(!is.null(alert_info$table)){
-      failed_combinations(alert_info$table)
-    }
+    # Si falla parcialmente, asigna la tabla, de otra forma asigna un NULL
+    failed_combinations(alert_info$table)
     
     shinyalert::shinyalert(
       type = alert_info$type,
