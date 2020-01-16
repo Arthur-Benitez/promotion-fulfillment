@@ -78,16 +78,16 @@ alert_param <- function(combs_info, timestamp) {
       mutate(
         reason = case_when(
         is_empty ~ 'No se encontró información.',
-        measures_empty ~ 'Una o más de las medidas están vacías.',
+        measures_empty ~ 'Una o más de las medidas del artículo están vacías.',
         TRUE ~ 'Otra razón.'
         ),
         solution = case_when(
           is_empty ~ 'Revisar que el departamento y formato sean correctos y que el artículo esté activo y resurtible.',
-          measures_empty ~ 'Añadir medidas faltantes en el OIF / Usar el mueble predeterminado en piezas.',
+          measures_empty ~ 'Añadir medidas faltantes en el OIF / Usar el mueble predeterminado en piezas y dejar en blanco el mueble deseado.',
           TRUE ~ 'Sin solución recomendada.'
         )
       ) %>% 
-      select(feature_name, old_nbr, reason)
+      select(feature_name, old_nbr, reason, solution)
     type1 <- 'warning'
     message1 <- 'DOWNLOAD PARTIALLY FAILED'
   } else if (length(good_features) == 0 && length(partial_features) == 0 && length(empty_features) >= 0) {
