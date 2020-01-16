@@ -155,13 +155,10 @@ profundo_cm	numeric		FALSE			comma	default	0	Profundo de mueble (cm)	"Profundida
 shelves_qty	numeric		FALSE			comma	default	0	Muebles en zona	"Cantidad total de muebles iguales que existen en la misma tienda-zona y que por lo tanto, aplican para los mismos departamentos."
 rrp_ind	character		FALSE			character	default		RRP Index	"Bandera que indica si el artículo cuenta con empaque de tipo ""Retail Ready Package (RRP)""."
 gs1_sync_status	character		FALSE			character	default		Bandera de sincronización	Estatus de sincronización del artículo en el catálogo electrónico (OIF).
-keys	character		FALSE			character	default		Llave de mueble deseado	Llave que se usa para filtrar la base de datos de los muebles por tienda-departamento con base en el mueble deseado.
-default_keys	character		FALSE			character	default		Llave de mueble predeterminado	Llave que se usa para filtrar la base de datos de los muebles con base en el mueble establecido como predeterminado.
-is_forced_default	numeric		FALSE			comma	default	0	Predeterminado forzado	Bandera activada para las combinaciones que no tienen mueble deseado y el mueble predeterminado está en piezas.
-shelf_was_found	numeric		FALSE			comma	default	0	Mueble deseado encontrado	Bandera activada para las combinaciones de las que se buscó y encontró el mueble deseado.
-is_unforced_chr_default	numeric		FALSE			comma	default	0	Predeterminado legítimo en texto	Bandera activada para las combinaciones de las que no se encontró el mueble deseado pero existe un mueble predeterminado como texto.
+found_shelves	character		FALSE			character	default		Mueble deseado encontrado	Bandera activada para las combinaciones de las que se buscó y encontró el mueble deseado.
+found_default_shelves	character		FALSE			character	default		Mueble predeterminado encontrado	Bandera activada para las combinaciones de las que se buscó y encontró el mueble predeterminado.
+classification	character		FALSE			character	default		Clasificación	Tipo de procesamiento que se le dio a la combinación de acuerdo a la información que presenta.
 used_shelf	character		FALSE			character	default		Mueble utilizado	"Mueble que se usó en cada combinación para los cálculos de piezas máximas, 0 si no existe o si no aplica."
-default_shelf_found	numeric		FALSE			comma	default	0	Mueble predeterminado encontrado	Bandera activada para las combinaciones de las que se buscó y encontró el mueble predeterminado.
 no_rrp_shelves_number	numeric		FALSE			comma	default	0	Número de repisas (no RRP)	Cantidad de repisas que se estima que puede tener la cabecera si el artículo no se entregara en RRP.
 no_rrp_ah	numeric		FALSE			comma	default	2	Altura efectiva de la cabecera (no RRP) (cm)	Altura de la cabecera - Espacio reservado por los anaqueles y los dedos de la clienta si el artículo no se entregara en RRP (cm).
 no_rrp_lh	numeric		FALSE			comma	default	2	Altura efectiva del anaquel (no RRP) (cm)	Altura efectiva de la cabecera (no RRP) / Número de repisas (no RRP) (cm).
@@ -196,3 +193,5 @@ rrp_full_vol	numeric		FALSE			comma	default	0	Volumen RRP (cm3)	Volumen ocupado 
 left_avail_space	numeric		FALSE			comma	default	0	Volumen restante (cm3)	Volumen que sobra disponible en la cabecera luego de restar el Volumen RRP (cm3).
 bkp_extra_pcs	numeric		FALSE			comma	default	0	Piezas adicionales	Piezas que caben en el Volumen restante de acuerdo a su volumetría.
 max_item_capacity	numeric		FALSE			comma	default	0	Capacidad máxima (piezas)	Máximas piezas totales que caben en el mueble si se llenara con un sólo artículo.
+reason	character		FALSE			character	default		Razón	Razón por la que la combinación tuvo problemas en su descarga.
+solution	character		FALSE			character	default		Solución	Posible solución para la resolver el problema que tuvo cada combinación.
