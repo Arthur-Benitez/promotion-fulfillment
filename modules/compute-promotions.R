@@ -25,10 +25,10 @@ alert_param <- function(combs_info, timestamp) {
       any_empty = any(is_empty),
       all_empty = all(is_empty),
       any_measures_empty = any(measures_empty),
-      any_default_shelf_is_numeric = any(default_shelf_is_numeric)
+      any_default_pieces_applies = any(default_pieces_applies)
     )
-  good_features <- with(feature_info, feature_name[!any_empty & (!any_measures_empty | any_default_shelf_is_numeric)])
-  partial_features <- with(feature_info, feature_name[(any_empty | (any_measures_empty & !any_default_shelf_is_numeric)) & !all_empty])
+  good_features <- with(feature_info, feature_name[!any_empty & (!any_measures_empty | any_default_pieces_applies)])
+  partial_features <- with(feature_info, feature_name[(any_empty | (any_measures_empty & !any_default_pieces_applies)) & !all_empty])
   empty_features <- with(feature_info, feature_name[all_empty])
   
   if (length(good_features) > 0 && length(partial_features) == 0 && length(empty_features) == 0) {
@@ -489,9 +489,9 @@ get_empty_combs <- function(result, input) {
     mutate(
       is_empty = map_lgl(data, ~all(is.na(.x[setdiff(names(result), names(input))]))),
       measures_empty = map_lgl(data, ~any(is.na(.x[measures_cols]))),
-      default_shelf_is_numeric = is.numeric(first(default_shelf))
+      default_pieces_applies = is.numeric(first(default_shelf)) & is.na(first(shelf))
     ) %>% 
-    select(feature_name, old_nbr, is_empty, measures_empty)
+    select(feature_name, old_nbr, is_empty, measures_empty, default_pieces_applies)
 }
 
 ## Cálculo de número de anaqueles basado en las alturas
