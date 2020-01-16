@@ -67,7 +67,7 @@ alert_param <- function(combs_info, timestamp) {
       '<div style="text-align:left;">
       Hubo problemas descargando la información para las siguientes combinaciones de exhibición-artículo: <br><ul><li>%s</li></ul>
       Las exhibiciones con al menos una combinación en la lista anterior serán completamente omitidas de los resultados.
-      Te sugerimos <b>revisar que el departamento y formato que ingresaste para ellas sean correctos.</b> Para más información, revisa la tabla de detalles del problema en la pestaña de Resultados.
+      Te sugerimos <b>revisar que el departamento y formato que ingresaste para ellas sean correctos.</b> Para más información, revisa la tabla de combinaciones problemáticas en la pestaña de Resultados.
       </div>',
       paste0(empty_list_displayed, collapse  = '</li><li>'))
     
