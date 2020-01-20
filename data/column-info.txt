@@ -191,6 +191,6 @@ chimney_width_whpk_qty	numeric		FALSE			comma	default	0	WHPKs en ancho de chimen
 rrp_full_vol	numeric		FALSE			comma	default	0	Volumen RRP (cm3)	Volumen ocupado por los RRPs que caben en la cabecera (cm3).
 left_avail_space	numeric		FALSE			comma	default	0	Volumen restante (cm3)	Volumen que sobra disponible en la cabecera luego de restar el Volumen RRP (cm3).
 bkp_extra_pcs	numeric		FALSE			comma	default	0	Piezas adicionales	Piezas que caben en el Volumen restante de acuerdo a su volumetría.
-max_item_capacity	numeric		FALSE			comma	default	0	Capacidad máxima (piezas)	Máximas piezas totales que caben en el mueble si se llenara con un sólo artículo.
+max_item_capacity	character		FALSE			character	default		Capacidad máxima por artículo (piezas)	Máximas piezas totales que caben en el mueble si se llenara con un sólo artículo.
 reason	character		FALSE			character	default		Razón	Razón por la que la combinación tuvo problemas en su descarga.
 solution	character		FALSE			character	default		Solución	Posible solución para la resolver el problema que tuvo cada combinación.
