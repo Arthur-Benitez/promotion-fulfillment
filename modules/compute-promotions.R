@@ -1014,25 +1014,27 @@ generate_sample_input <- function(calendar_day, column_info) {
     filter(date >= Sys.Date() - 90 & date <= Sys.Date() - 60) %>% 
     pull(wm_yr_wk) %>%
     range()
+  feature_times_vector <- c(4, 4, 4, 6, 5, 4)
+  query_times_vector <- c(18, 9)
   info <- tibble(
-    feature_name = c('MARUCHAN', 'MARUCHAN', 'MARUCHAN', 'MARUCHAN', 'MARUCHAN_MINI', 'MARUCHAN_MINI'),
+    feature_name = rep(c('LICORES', 'ADEREZOS', 'CAFE', 'HIGIENE_FEM', 'BEBES', 'DETERGENTE'), feature_times_vector),
     user = 'm1234xy',
-    dept_nbr = 95,
-    negocio = 'BAE',
-    old_nbr = c(9539931, 9562307, 9574850, 9533187, 9539931, 9562307),
-    primary_desc_temp = c('MARUCHAN CAMARON', 'MARUCHAN POLLO', 'MARUCHAN CMRONHBNER', 'MARUCHAN RAMEN HABAN', 'MARUCHAN CAMARON', 'MARUCHAN POLLO'),
-    min_feature_perc = c(0.2, 0.2, 0.2, 0.2, 0.1, 0.1),
-    shelf = c('CABECERA ALTA', 'CABECERA ALTA', 'CABECERA ALTA', 'CABECERA ALTA', 'BASE', 'BASE'),
-    default_shelf = c('CABECERA BAJA', 'CABECERA BAJA', 'CABECERA BAJA', 'CABECERA BAJA', 2000, 2000),
-    max_ddv = 30,
-    fcst_or_sales = c('S', 'S', 'S', 'S', 'F', 'F'),
-    semana_ini = c(rep(sales_wks[1], 4), rep(fcst_wks[1], 2)),
-    semana_fin = c(rep(sales_wks[2], 4), rep(fcst_wks[2], 2)),
-    StartDate = c(rep(Sys.Date() + 7, 4), rep(Sys.Date() + 14, 2)),
-    EndDate = c(rep(Sys.Date() + 35, 4), rep(Sys.Date() + 49, 2)),
+    dept_nbr = rep(c(96, 95, 92, 40, 69, 13), feature_times_vector),
+    negocio = rep(c('SUPERCENTER', 'SUPERAMA', 'MIBODEGA', 'SUPERCENTER', 'BODEGA', 'BODEGA'), feature_times_vector),
+    old_nbr = c(9660826, 100327654, 9609839, 9614873, 9554113, 100206810, 100236976, 100336602, 9289651, 9272072, 100101190, 100183858, 100369418, 4088042, 100276420, 100276070, 4078775, 100085127, 100273950, 6909653, 6909632, 6901253, 100290506, 100191564, 100379555, 100122572, 1319359),
+    primary_desc_temp = c('GRAN CENTENARIO BCO', 'DON JULIO 70 700ML', 'CAZADORES REP 1.75LT', 'CORRALEJO 1LT+TARRO', 'HEINZ CATSUP ORGANIC', 'HEINZ SALSA CATSUP', 'ZAASCHILA SALS ARBOL', 'KNORR ROJA MARTAJADA', 'NESCAFE CLASICO 60G', 'AU CAFE SOLUBLE 100G', 'AU CAFE SOL LATA400G', 'AU CAFE LIGERO 400G', 'BENZAL WASH DURAZNO', 'LACTACYD FRESH 220M', 'SHAMPOO ESOS DIAS', 'TOALLAS HUMEDAS', 'BENZAL SPRAY BABY P', 'SPRAY ISLAND SPLASH', 'BEBYTO T4 72S', 'BEBYTO T5 40', 'BEBYTO T4 40', 'BEBYTO T3 14', 'TH PARENTS CHOICE 80', 'BOLD AMORES 5KG', 'ACE REGULAR 4 KG', 'GV DETERG POLVO 3KG', 'FOCA DET 1K'),
+    min_feature_perc = rep(c(0.3, 0.2, 0.35, 0.4, 0.1, 0.15), feature_times_vector),
+    shelf = rep(c('CABECERA_ALTA', 'CABECERA BAJA', 'BASE', NA, 'MEDIA_BASE', 'CHIMENEA'), feature_times_vector),
+    default_shelf = rep(c('CABECERA_BAJA', 250, NA, 500, 80, 'MEDIA BASE'), feature_times_vector),
+    max_ddv = rep(c(20, 15, 18, 30, 10, 15), feature_times_vector),
+    fcst_or_sales = rep(c('S', 'F'), query_times_vector),
+    semana_ini = rep(c(sales_wks[1], fcst_wks[1]), query_times_vector),
+    semana_fin = rep(c(sales_wks[2], fcst_wks[2]), query_times_vector),
+    StartDate = rep(c(Sys.Date() + 7, Sys.Date() + 14), query_times_vector),
+    EndDate = rep(c(Sys.Date() + 35, Sys.Date() + 49), query_times_vector),
     Priority = 12,
-    white_list = c('tiendas_grandes', 'tiendas_grandes', 'tiendas_grandes', 'tiendas_grandes', NA, NA),
-    black_list = c(NA, NA, NA, NA, 'tiendas_muy_chicas', 'tiendas_muy_chicas')
+    white_list = rep(c('tiendas_grandes', NA), c(4, 23)),
+    black_list = rep(c(NA, 'tiendas_chicas_y_muy_chicas', NA), c(4, 4, 19))
   )
   names(info) <- remap_names(names(info), column_info, to_col = 'pretty_name')
   stores_lists <- tryCatch({
