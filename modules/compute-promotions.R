@@ -517,9 +517,6 @@ perform_spatial_computations <- function(data) {
   finger_space <- 2.54
   tray_space <- 4.4958
   extra_space <- finger_space + tray_space
-  pallet_width <- 122
-  pallet_length <- 100
-  pallet_height <- 150
   chimney_width <- 61
   chimney_length <- 200
   chimney_height <- 140
@@ -531,12 +528,12 @@ perform_spatial_computations <- function(data) {
     create_capacity_columns('no_rrp_', item_measures, waste_space, extra_space) %>% 
     create_capacity_columns('rrp_', whpk_measures, waste_space, extra_space) %>% 
     mutate(
-      pallet_length_item_qty = round(pallet_length / item_length_qty),
-      pallet_height_item_qty = round(pallet_height / item_height_qty),
-      pallet_width_item_qty  = round(pallet_width  / item_width_qty),
-      pallet_length_whpk_qty = round(pallet_length / whpk_length_qty),
-      pallet_height_whpk_qty = round(pallet_height / whpk_height_qty),
-      pallet_width_whpk_qty  = round(pallet_width  / whpk_width_qty),
+      pallet_length_item_qty = round(ancho_cm / item_length_qty),
+      pallet_height_item_qty = round(alto_cm / item_height_qty),
+      pallet_width_item_qty  = round(profundo_cm  / item_width_qty),
+      pallet_length_whpk_qty = round(ancho_cm / whpk_length_qty),
+      pallet_height_whpk_qty = round(alto_cm / whpk_height_qty),
+      pallet_width_whpk_qty  = round(profundo_cm  / whpk_width_qty),
       chimney_length_item_qty = round(chimney_length / item_length_qty),
       chimney_height_item_qty = round(chimney_height / item_height_qty),
       chimney_width_item_qty  = round(chimney_width  / item_width_qty),
