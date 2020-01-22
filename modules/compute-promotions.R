@@ -517,8 +517,9 @@ perform_spatial_computations <- function(data) {
   finger_space <- 2.54
   tray_space <- 4.4958
   extra_space <- finger_space + tray_space
-  chimney_width <- 61
-  chimney_length <- 200
+  # La bases de datos de los muebles trae para las chimeneas, las medidas de la parte superior de la chimenea (100 * 61 * 150), por lo que aquí debe calcularse sólo la parte baja, que equivale a un pallet o a una base estándar (100 * 122 * 150). Pero se usan 140cm de altura porque la suma debe ser de 2.9m y la parte alta que viene de la base de datos tienen una altura de 150cm en vez de 140cm como debiera ser.
+  chimney_width <- 122
+  chimney_length <- 100
   chimney_height <- 140
   waste_space <- 11
   item_measures <- syms(c(length = 'item_length_qty', height = 'item_height_qty', width = 'item_width_qty'))
