@@ -1681,6 +1681,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
   })
   good_features_rv <- reactiveVal()
   failed_combinations <- reactiveVal(NULL)
+  incorrect_measures <- reactiveVal(NULL)
   observeEvent(query_result(), {
     r$is_running <- FALSE
     if (!is.data.frame(query_result()$data)) {
@@ -1719,11 +1720,22 @@ computePromotionsServer <- function(input, output, session, credentials) {
   })
     
   output$alert_info_ui <- renderUI({
-    req(!is.null(failed_combinations()))
+    req(!is.null(failed_combinations()) | !is.null(incorrect_measures()))
     ns <- session$ns
+    if(!is.null(failed_combinations())) {
+      failed_combinations_text <- tags$h5('Hubo problemas al realizar la descarga de información de las combinaciones de promoción-artículo que se muestran en la tabla de abajo. No se encontró la información necesaria de las mismas para ser procesadas por la aplicación, por lo que las promociones a las que pertencen fueron completamente excluidas de los resultados.')
+    } else {
+      failed_combinations_text <- NULL
+    }
+    if(!is.null(incorrect_measures())) {
+      incorrect_measures_text <- tags$h4(sprintf('Hemos detectado que algunos muebles tienen espacio para almacenar una gran cantidad de DDV de algunos de los artículos que incluíste en ellos. Por favor, revisa que los muebles que especificaste sean los adecuados y que las medidas de los siguientes artículos sean correctas: %s', paste(incorrect_measures(), collapse =  ', ')))
+    } else {
+      incorrect_measures_text <- NULL
+    }
     tags$div(
-      tags$h2('Combinaciones problemáticas'),
-      tags$h5('Hubo problemas al realizar la descarga de información de las combinaciones de promoción-artículo que se muestran en la tabla de abajo. No se encontró la información necesaria de las mismas para ser procesadas por la aplicación, por lo que las promociones a las que pertencen fueron completamente excluidas de los resultados.'),
+      tags$h2('Problemas'),
+      incorrect_measures_text,
+      failed_combinations_text,
       DTOutput(ns('alert_info_dt'))
     )
   })
@@ -1773,6 +1785,17 @@ computePromotionsServer <- function(input, output, session, credentials) {
     } else {
       NULL
     }
+  })
+  
+  observeEvent(final_result(), {
+    req(!is.null(final_result()))
+    final_result() %>% 
+      group_by(feature_name, old_nbr) %>% 
+      summarise_at(vars('feature_ddv_req', 'max_ddv'), mean) %>% 
+      filter(feature_ddv_req >= max_ddv * 10) %>% 
+      pull(old_nbr) %>% 
+      unique() %>% 
+      incorrect_measures()
   })
   
   ## Validaciones
