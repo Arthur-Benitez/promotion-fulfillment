@@ -356,7 +356,8 @@ run_query <- function(ch, input_data, stores_lists, connector = 'production-conn
       run_query_once(ch, x, white_list, black_list, connector)
     })) %>% 
     map('result') %>% 
-    keep(~is.data.frame(.x) && !all(is.na(.x$store_nbr)) && nrow(.x) > 0)
+    keep(~is.data.frame(.x) && !all(is.na(.x$store_nbr)) && nrow(.x) > 0) %>% 
+    lapply(function(x) {mutate_at(x, vars(size_desc), as.character)})
   if (length(res) > 0) {
     res <- bind_rows(res)
   } else {
