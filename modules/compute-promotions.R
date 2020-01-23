@@ -1789,13 +1789,16 @@ computePromotionsServer <- function(input, output, session, credentials) {
   
   observeEvent(final_result(), {
     req(!is.null(final_result()))
-    final_result() %>% 
+    items_list <- final_result() %>% 
       group_by(feature_name, old_nbr) %>% 
       summarise_at(vars('feature_ddv_req', 'max_ddv'), mean) %>% 
       filter(feature_ddv_req >= max_ddv * 10) %>% 
       pull(old_nbr) %>% 
-      unique() %>% 
-      incorrect_measures()
+      unique()
+    if (length(items_list) <= 0) {
+      items_list <- NULL
+    }
+    incorrect_measures(items_list)
   })
   
   ## Validaciones
@@ -2133,6 +2136,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
     query_result(NULL)
     r$query_was_tried <- NULL
     failed_combinations(NULL)
+    incorrect_measures(NULL)
   })
   
   ## Descargar cálculos
