@@ -6,7 +6,7 @@ negocio	character	TRUE	TRUE	TRUE	FALSE	character	default		Negocio	"Formato de ne
 old_nbr	numeric	FALSE	TRUE	TRUE	FALSE	character	default		Artículo (old_nbr)	Número de artículo de HOST (old_nbr en Teradata).
 primary_desc_temp	character	FALSE	TRUE	FALSE	TRUE	character	default		Descripción (opcional)	Descripción del artículo sólo para referencia en la página de inputs. En los resultados se sustituye por la descripción del artículo primario.
 min_feature_perc	numeric	TRUE	TRUE	TRUE	FALSE	percent	default	0	Mínimo de exhibición (%)	"Porcentaje de la cantidad máxima de piezas en el mueble que se desea en la exhibición (entre todos los artículos). Su efecto depende de la opción seleccionada en ""Lógica mínimo""."
-min_feature_qty	numeric		FALSE			comma	default	0	Mínimo de exhibición (piezas)	"Mínimas piezas totales en el mueble (entre todos los artículos). Su efecto depende de la opción seleccionada en ""Lógica mínimo""."
+min_feature_qty	numeric		FALSE			comma	default	0	Mínimo de exhibición	"Mínimas piezas totales en el mueble (entre todos los artículos). Su efecto depende de la opción seleccionada en ""Lógica mínimo""."
 max_feature_qty	numeric		FALSE			comma	default	0	Máximo de exhibición	Máximas piezas totales en el mueble (entre todos los artículos).
 shelf	character	TRUE	TRUE	TRUE	TRUE	character	default		Mueble deseado	"Tipo de mueble que tendrá la exhibición (Base, Media Base, Cabecera alta, Cabecera baja, Cabecera circular)."
 default_shelf	character	TRUE	TRUE	TRUE	TRUE	character	default		Mueble predeterminado	Tipo de mueble que se usará para los cálculos en las combinaciones en las que no se encuentre el mueble deseado ó maximas piezas por exhibición.
@@ -191,6 +191,6 @@ chimney_width_whpk_qty	numeric		FALSE			comma	default	0	WHPKs en ancho de chimen
 rrp_full_vol	numeric		FALSE			comma	default	0	Volumen RRP (cm3)	Volumen ocupado por los RRPs que caben en la cabecera (cm3).
 left_avail_space	numeric		FALSE			comma	default	0	Volumen restante (cm3)	Volumen que sobra disponible en la cabecera luego de restar el Volumen RRP (cm3).
 bkp_extra_pcs	numeric		FALSE			comma	default	0	Piezas adicionales	Piezas que caben en el Volumen restante de acuerdo a su volumetría.
-max_item_capacity	character		FALSE			character	default		Capacidad máxima por artículo (piezas)	Máximas piezas totales que caben en el mueble si se llenara con un sólo artículo.
+max_item_capacity	character		FALSE			character	default		Capacidad máxima por artículo	Máximas piezas totales que caben en el mueble si se llenara con un sólo artículo.
 reason	character		FALSE			character	default		Razón	Razón por la que la combinación tuvo problemas en su descarga.
 solution	character		FALSE			character	default		Solución	Posible solución para la resolver el problema que tuvo cada combinación.
