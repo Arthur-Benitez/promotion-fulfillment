@@ -1728,7 +1728,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
       failed_combinations_text <- NULL
     }
     if(!is.null(incorrect_measures())) {
-      incorrect_measures_text <- tags$h4(sprintf('Hemos detectado que algunos muebles tienen espacio para almacenar una gran cantidad de DDV de algunos de los artículos que incluíste en ellos. Por favor, revisa que los muebles que especificaste sean los adecuados y que las medidas de los siguientes artículos sean correctas: %s', paste(incorrect_measures(), collapse =  ', ')))
+      incorrect_measures_text <- tags$h4(sprintf('Hemos detectado que algunos muebles tienen espacio para almacenar una gran cantidad de DDV de algunos de los artículos que incluíste en ellos. Por favor, revisa que los muebles que especificaste sean los adecuados y que las medidas de los artículos sean correctas para las siguientes combinaciones de exhibición-artículo: %s.', paste(incorrect_measures(), collapse =  ', ')))
     } else {
       incorrect_measures_text <- NULL
     }
@@ -1793,8 +1793,8 @@ computePromotionsServer <- function(input, output, session, credentials) {
       group_by(feature_name, old_nbr) %>% 
       summarise_at(vars('feature_ddv_req', 'max_ddv'), mean) %>% 
       filter(feature_ddv_req >= max_ddv * 10) %>% 
-      pull(old_nbr) %>% 
-      unique()
+      select(feature_name, old_nbr) %>% 
+      apply(1, paste, collapse = '-')
     if (length(items_list) <= 0) {
       items_list <- NULL
     }
