@@ -1681,7 +1681,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
   })
   good_features_rv <- reactiveVal()
   failed_combinations <- reactiveVal(NULL)
-  incorrect_measures <- reactiveVal(NULL)
+  risky_combinations <- reactiveVal(NULL)
   observeEvent(query_result(), {
     r$is_running <- FALSE
     if (!is.data.frame(query_result()$data)) {
@@ -1714,29 +1714,41 @@ computePromotionsServer <- function(input, output, session, credentials) {
     )))
     r$final_result_trigger <- r$final_result_trigger + 1
   })
-  output$alert_info_dt <- renderDT({
+  output$failed_combinations_dt <- renderDT({
     req(!is.null(failed_combinations()))
     generate_basic_datatable(failed_combinations(), gl$cols)
   })
+  
+  output$risky_combinations_dt <- renderDT({
+    req(!is.null(risky_combinations()))
+    generate_basic_datatable(risky_combinations(), gl$cols)
+  })
     
   output$alert_info_ui <- renderUI({
-    req(!is.null(failed_combinations()) | !is.null(incorrect_measures()))
+    req(!is.null(failed_combinations()) | !is.null(risky_combinations()))
     ns <- session$ns
-    if(!is.null(failed_combinations())) {
-      failed_combinations_text <- tags$h5('Hubo problemas al realizar la descarga de información de las combinaciones de promoción-artículo que se muestran en la tabla de abajo. No se encontró la información necesaria de las mismas para ser procesadas por la aplicación, por lo que las promociones a las que pertencen fueron completamente excluidas de los resultados.')
-    } else {
-      failed_combinations_text <- NULL
+    risky_combinations_text <- NULL
+    failed_combinations_text <- NULL
+    if(!is.null(risky_combinations())) {
+      risky_combinations_text <- tags$div(
+        tags$h3('Combinaciones en riesgo'),
+        tags$h5(
+          'Hemos detectado que los muebles de algunas exhibiciones tienen espacio para almacenar una gran cantidad de DDV de algunos de los artículos que incluíste en ellos. Por favor, revisa que los muebles que especificaste sean los adecuados y que las medidas de los artículos sean correctas para las combinaciones de exhibición-artículoque se muestran abajo.'
+        )
+      )
     }
-    if(!is.null(incorrect_measures())) {
-      incorrect_measures_text <- tags$h4(sprintf('Hemos detectado que algunos muebles tienen espacio para almacenar una gran cantidad de DDV de algunos de los artículos que incluíste en ellos. Por favor, revisa que los muebles que especificaste sean los adecuados y que las medidas de los artículos sean correctas para las siguientes combinaciones de exhibición-artículo: %s.', paste(incorrect_measures(), collapse =  ', ')))
-    } else {
-      incorrect_measures_text <- NULL
+    if(!is.null(failed_combinations())) {
+      failed_combinations_text <- tags$div(
+        tags$h3('Combinaciones en conflicto'),
+        tags$h5('Hubo problemas al realizar la descarga de información de las combinaciones de promoción-artículo que se muestran en la tabla de abajo. No se encontró la información necesaria de las mismas para ser procesadas por la aplicación, por lo que las promociones a las que pertencen fueron completamente excluidas de los resultados.')
+      )
     }
     tags$div(
-      tags$h2('Problemas'),
-      incorrect_measures_text,
+      tags$h2('Alertas'),
+      risky_combinations_text,
+      DTOutput(ns('risky_combinations_dt')),
       failed_combinations_text,
-      DTOutput(ns('alert_info_dt'))
+      DTOutput(ns('failed_combinations_dt'))
     )
   })
 
@@ -1790,15 +1802,13 @@ computePromotionsServer <- function(input, output, session, credentials) {
   observeEvent(final_result(), {
     req(!is.null(final_result()))
     items_list <- final_result() %>% 
-      group_by(feature_name, old_nbr) %>% 
-      summarise_at(vars('feature_ddv_req', 'max_ddv'), mean) %>% 
-      filter(feature_ddv_req >= max_ddv * 10) %>% 
-      select(feature_name, old_nbr) %>% 
-      apply(1, paste, collapse = '-')
+      group_by(feature_name, old_nbr, used_shelf) %>% 
+      summarise_at(vars(feature_qty_req, feature_ddv_req, max_ddv), mean) %>% 
+      filter(feature_ddv_req >= max_ddv * 10)
     if (length(items_list) <= 0) {
       items_list <- NULL
     }
-    incorrect_measures(items_list)
+    risky_combinations(items_list)
   })
   
   ## Validaciones
@@ -2136,7 +2146,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
     query_result(NULL)
     r$query_was_tried <- NULL
     failed_combinations(NULL)
-    incorrect_measures(NULL)
+    risky_combinations(NULL)
   })
   
   ## Descargar cálculos
