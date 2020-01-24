@@ -518,10 +518,6 @@ perform_spatial_computations <- function(data) {
   finger_space <- 2.54
   tray_space <- 4.4958
   extra_space <- finger_space + tray_space
-  # La bases de datos de los muebles trae para las chimeneas, las medidas de la parte superior de la chimenea (100 * 61 * 150), por lo que aquí debe calcularse sólo la parte baja, que equivale a un pallet o a una base estándar (100 * 122 * 150). Pero se usan 140cm de altura porque la suma debe ser de 2.9m y la parte alta que viene de la base de datos tienen una altura de 150cm en vez de 140cm como debiera ser.
-  chimney_width <- 122
-  chimney_length <- 100
-  chimney_height <- 140
   waste_space <- 11
   item_measures <- syms(c(length = 'item_length_qty', height = 'item_height_qty', width = 'item_width_qty'))
   whpk_measures <- syms(c(length = 'whpk_length_qty', height = 'whpk_height_qty', width = 'whpk_width_qty'))
@@ -536,12 +532,6 @@ perform_spatial_computations <- function(data) {
       pallet_length_whpk_qty = round(ancho_cm / whpk_length_qty),
       pallet_height_whpk_qty = round(alto_cm / whpk_height_qty),
       pallet_width_whpk_qty  = round(profundo_cm  / whpk_width_qty),
-      chimney_length_item_qty = round(chimney_length / item_length_qty),
-      chimney_height_item_qty = round(chimney_height / item_height_qty),
-      chimney_width_item_qty  = round(chimney_width  / item_width_qty),
-      chimney_length_whpk_qty = round(chimney_length / whpk_length_qty),
-      chimney_height_whpk_qty = round(chimney_height / whpk_height_qty),
-      chimney_width_whpk_qty  = round(chimney_width  / whpk_width_qty),
       rrp_full_vol = round(rrp_max_qty * whpk_length_qty * whpk_width_qty * whpk_height_qty, digits = 2),
       left_avail_space = rrp_avail_space - rrp_full_vol,
       bkp_extra_pcs = floor(left_avail_space / (item_length_qty * item_width_qty * item_height_qty)),
@@ -552,16 +542,11 @@ perform_spatial_computations <- function(data) {
           round(pallet_length_whpk_qty * pallet_height_whpk_qty * pallet_width_whpk_qty * whpk_qty),
         grepl('CABECERA', used_shelf) & rrp_ind == 'N' ~ no_rrp_max_qty,
         grepl('CABECERA', used_shelf) & rrp_ind == 'Y' ~ rrp_max_qty * whpk_qty + bkp_extra_pcs,
+        # Se multiplican por 3 porque la base de datos trae las medidas de una media base, y una chimenea equivale a una media base sobre una base, es decir, 3 medias bases.
         grepl('CHIMENEA', used_shelf) & rrp_ind == 'N' ~ 
-          round(
-            pallet_length_item_qty * pallet_height_item_qty * pallet_width_item_qty + 
-              chimney_length_item_qty * chimney_height_item_qty * chimney_width_item_qty
-          ),
+          round(pallet_length_item_qty * pallet_height_item_qty * pallet_width_item_qty * 3),
         grepl('CHIMENEA', used_shelf) & rrp_ind == 'Y' ~ 
-          round(
-            pallet_length_whpk_qty * pallet_height_whpk_qty * pallet_width_whpk_qty * whpk_qty + 
-              chimney_length_whpk_qty * chimney_height_whpk_qty * chimney_width_whpk_qty * whpk_qty  
-          ),
+          round(pallet_length_whpk_qty * pallet_height_whpk_qty * pallet_width_whpk_qty * whpk_qty * 3),
         TRUE ~ 0
       )
     )
