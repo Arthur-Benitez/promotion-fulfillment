@@ -67,7 +67,7 @@ alert_param <- function(combs_info, timestamp) {
       '<div style="text-align:left;">
       Hubo problemas descargando la información para las siguientes combinaciones de exhibición-artículo: <br><ul><li>%s</li></ul>
       Las exhibiciones con al menos una combinación en la lista anterior serán completamente omitidas de los resultados.
-      Te sugerimos <b>revisar que el departamento y formato que ingresaste para ellas sean correctos.</b> Para más información, revisa la tabla de combinaciones problemáticas en la pestaña de Resultados.
+      Te sugerimos <b>revisar que el departamento y formato que ingresaste para ellas sean correctos.</b> Para más información, revisa la tabla de "Combinaciones en conflicto" en la pestaña de Resultados.
       </div>',
       paste0(empty_list_displayed, collapse  = '</li><li>'))
     
@@ -1726,13 +1726,14 @@ computePromotionsServer <- function(input, output, session, credentials) {
   })
     
   output$alert_info_ui <- renderUI({
+    req(final_result())
     req(!is.null(failed_combinations()) | !is.null(risky_combinations()))
     ns <- session$ns
     risky_combinations_text <- NULL
     failed_combinations_text <- NULL
     if(!is.null(risky_combinations())) {
       risky_combinations_text <- tags$div(
-        tags$h3('Combinaciones en riesgo'),
+        tags$h3(tags$span(style = "color: #f47521", 'Combinaciones en riesgo')),
         tags$h5(
           'Hemos detectado que los muebles de algunas exhibiciones tienen espacio para almacenar una gran cantidad de DDV de algunos de los artículos que incluíste en ellos. Por favor, revisa que los muebles que especificaste sean los adecuados y que las medidas de los artículos sean correctas para las combinaciones de exhibición-artículoque se muestran abajo.'
         )
@@ -1740,12 +1741,12 @@ computePromotionsServer <- function(input, output, session, credentials) {
     }
     if(!is.null(failed_combinations())) {
       failed_combinations_text <- tags$div(
-        tags$h3('Combinaciones en conflicto'),
+        tags$h3(tags$span(style = "color: red", 'Combinaciones en conflicto')),
         tags$h5('Hubo problemas al realizar la descarga de información de las combinaciones de promoción-artículo que se muestran en la tabla de abajo. No se encontró la información necesaria de las mismas para ser procesadas por la aplicación, por lo que las promociones a las que pertencen fueron completamente excluidas de los resultados.')
       )
     }
     tags$div(
-      tags$h2('Alertas'),
+      tags$h2(tags$b('Alertas')),
       risky_combinations_text,
       DTOutput(ns('risky_combinations_dt')),
       failed_combinations_text,
@@ -1759,6 +1760,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
     input$sspres_benchmark_toggle
     input$impact_toggle
     r$final_result_trigger
+    r$items
   }, {
     req(r$final_result_trigger > 0)
     req(query_result()$data)
