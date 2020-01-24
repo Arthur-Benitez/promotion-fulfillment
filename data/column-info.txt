@@ -30,10 +30,10 @@ total_impact_cost	numeric		FALSE			comma	header-theme1	0	Impacto en costo	Impact
 total_stock_cost	numeric		FALSE			comma	header-theme1	0	Costo final	Costo de la mercancía que habría en las tiendas considerando el OH y el impacto de la promoción.
 total_qty	numeric		FALSE			comma	header-theme2	1	Piezas estrategia	Piezas totales de la estrategia sin tomar en cuenta otros safeties.
 total_impact_qty	numeric		FALSE			comma	header-theme2	1	Impacto en piezas	Impacto en la compra en piezas tomando en cuenta los demás safeties.
-total_stock_qty	numeric		FALSE			comma	header-theme2	1	Piezas finales	Inventario final sumando el impacto en piezas al OH actual de las tiendas.
+total_stock_qty	numeric		FALSE			comma	header-theme2	1	Inventario final	Inventario final sumando el impacto en piezas al OH actual de las tiendas.
 total_ddv	numeric		FALSE			comma	header-theme3	1	DDV estrategia	Días de venta totales de la estrategia sin tomar en cuenta otros safeties.
 total_impact_ddv	numeric		FALSE			comma	header-theme3	1	Impacto en DDV	Impacto en días de venta tomando en cuenta los demás safeties.
-total_stock_ddv	numeric		FALSE			comma	header-theme3	1	DDV finales	DDV que representan las piezas del impacto sumadas a las piezas OH de las tiendas.
+total_stock_ddv	numeric		FALSE			comma	header-theme3	1	DDV inventario final	DDV que representan las piezas del impacto sumadas a las piezas OH de las tiendas.
 total_vnpk	numeric		FALSE			comma	header-theme4	1	VNPK estrategia	Vendor packs totales de la estrategia sin tomar en cuenta otros safeties.
 total_impact_vnpk	numeric		FALSE			comma	header-theme4	1	Impacto en VNPK	Impacto en la compra en vendor packs tomando en cuenta los demás safeties.
 total_stock_vnpk	numeric		FALSE			comma	header-theme4	1	VNPK finales	VNPKs (cajas) que representan las piezas que hay en las tiendas (OH) más las del impacto de la promoción.
@@ -59,7 +59,7 @@ feature_qty_fin	numeric		FALSE			comma	default	1	Piezas finales	"Piezas finales 
 feature_ddv_fin	numeric		FALSE			comma	default	1	DDV finales	"Días de venta finales recomendadas después de aplicar la ""Lógica mínimo""."
 display_key	character		FALSE			character	default		Llave de artículos en query	Llaves para filtrar los resultados del query.
 split_var	character		FALSE			character	default		Llave de query	El query corre una vez por cada valor distinto de esta variable.
-acct_dept_nbr	numeric		FALSE			character	default		Departamento	Número de departamento (sin ceros a la izquierda).
+acct_dept_nbr	numeric		FALSE			character	default		Departamento de query	Número de departamento descargado del query (sin ceros a la izquierda).
 vendor9_nbr	numeric		FALSE			character	default		Proveedor	Número del proveedor a 9 dígitos.
 vendor_name	character		FALSE			character	default		Nombre del proveedor	Nombre del proveedor.
 status_grs	character		FALSE			character	default		Status GRS	Status GRS.
@@ -107,9 +107,9 @@ impact_qty	numeric		FALSE			comma	default	1	Impacto en piezas	Impacto en la comp
 impact_cost	numeric		FALSE			comma	default	0	Impacto en costo	Impacto en la compra en pesos a costo tomando en cuenta los demás safeties.
 impact_ddv	numeric		FALSE			comma	default	1	Impacto en DDV	Impacto en días de venta tomando en cuenta los demás safeties.
 impact_vnpk	numeric		FALSE			comma	default	1	Impacto en VNPK	Impacto en la compra en vendor packs tomando en cuenta los demás safeties.
-stock_qty	numeric		FALSE			comma	default	1	Piezas finales	Inventario final sumando el impacto en piezas al OH actual de las tiendas.
+stock_qty	numeric		FALSE			comma	default	1	Inventario final	Inventario final sumando el impacto en piezas al OH actual de las tiendas.
 stock_cost	numeric		FALSE			comma	default	0	Costo final	Costo de la mercancía que habría en las tiendas considerando el OH y el impacto de la promoción.
-stock_ddv	numeric		FALSE			comma	default	1	DDV finales	DDV que representan las piezas del impacto sumadas a las piezas OH de las tiendas.
+stock_ddv	numeric		FALSE			comma	default	1	DDV inventario final	DDV que representan las piezas del impacto sumadas a las piezas OH de las tiendas.
 stock_vnpk	numeric		FALSE			comma	default	1	Cajas finales	VNPKs (cajas) que representan las piezas que hay en las tiendas (OH) más las del impacto de la promoción.
 date	date		FALSE			date	default		Fecha	Fecha.
 all	character		FALSE			character	default		Todos	Todos.
