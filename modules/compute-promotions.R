@@ -1720,7 +1720,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
       risky_combinations_text <- tags$div(
         tags$h3(tags$span(style = "color: #f47521", 'Combinaciones en riesgo')),
         tags$h5(
-          'Hemos detectado que los muebles de algunas exhibiciones tienen espacio para almacenar una gran cantidad de DDV de algunos de los artículos que incluíste en ellos. Por favor, revisa que los muebles que especificaste sean los adecuados y que las medidas de los artículos sean correctas para las combinaciones de exhibición-artículoque se muestran abajo.'
+          'Hemos detectado que los muebles de algunas exhibiciones tienen espacio para almacenar una gran cantidad de DDV de algunos de los artículos que incluiste en ellos. Por favor, revisa que los muebles que especificaste sean los adecuados y que las medidas de los artículos sean correctas para las combinaciones de exhibición-artículo que se muestran abajo. Si no son correctas, usa piezas en el mueble predeterminado.'
         )
       )
     }
