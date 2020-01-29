@@ -1792,7 +1792,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
     items_list <- final_result() %>% 
       group_by(feature_name, old_nbr, used_shelf) %>% 
       summarise_at(vars(feature_qty_req, feature_ddv_req, max_ddv), mean) %>% 
-      filter(feature_ddv_req >= max_ddv * 10)
+      filter(feature_ddv_req >= max_ddv * 3)
     if (length(items_list) <= 0) {
       items_list <- NULL
     }
