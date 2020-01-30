@@ -120,13 +120,11 @@ gl <- list(
   app_version_date = '2019-11-28',
   ## Compute promotions
   cols = tryCatch({
-    as_tibble(read.table(
+    read_tsv(
       file = 'data/column-info.txt',
-      sep = '\t',
-      header = TRUE,
-      encoding = 'ISO-8859',
-      colClasses = c('character', 'character', 'logical', 'logical', 'logical', 'logical', 'character', 'character', 'numeric', 'character', 'character')
-    ))
+      locale = locale(encoding = 'ISO-8859-1'),
+      col_types = 'ccllllccdcc'
+    )
   }, error = function(e){
     tribble(~name, ~type, ~is_constant_by_feature, ~pretty_name, ~description)
   }),
