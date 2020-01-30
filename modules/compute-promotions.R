@@ -500,7 +500,7 @@ create_capacity_columns <- function(data, prefix, measures, waste_space, extra_s
       shelves_number = calculate_shelves_number(!!measures$height, reduced_height, extra_space, max_shelves),
       ah = round(reduced_height - (shelves_number * extra_space), digits = 2),
       lh = round(ah / shelves_number, digits = 2),
-      avail_space = round((ancho_cm * profundo_cm * reduced_height) - (shelves_number * extra_space * ancho_cm * profundo_cm), digits = 2),
+      avail_space = round(ancho_cm * profundo_cm * ah, digits = 2),
       tiers_per_shelf = floor(lh / !!measures$height),
       tiers_ttl = round(tiers_per_shelf * shelves_number),
       length_qty = floor(ancho_cm / !!measures$length),
