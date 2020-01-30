@@ -67,7 +67,7 @@ alert_param <- function(combs_info, timestamp) {
       '<div style="text-align:left;">
       Hubo problemas descargando la información para las siguientes combinaciones de exhibición-artículo: <br><ul><li>%s</li></ul>
       Las exhibiciones con al menos una combinación en la lista anterior serán completamente omitidas de los resultados.
-      Te sugerimos <b>revisar que el departamento y formato que ingresaste para ellas sean correctos.</b> Para más información, revisa la tabla de combinaciones problemáticas en la pestaña de Resultados.
+      Te sugerimos <b>revisar que el departamento y formato que ingresaste para ellas sean correctos.</b> Para más información, revisa la tabla de "Combinaciones en conflicto" en la pestaña de Resultados.
       </div>',
       paste0(empty_list_displayed, collapse  = '</li><li>'))
     
@@ -356,7 +356,8 @@ run_query <- function(ch, input_data, stores_lists, connector = 'production-conn
       run_query_once(ch, x, white_list, black_list, connector)
     })) %>% 
     map('result') %>% 
-    keep(~is.data.frame(.x) && !all(is.na(.x$store_nbr)) && nrow(.x) > 0)
+    keep(~is.data.frame(.x) && !all(is.na(.x$store_nbr)) && nrow(.x) > 0) %>% 
+    lapply(function(x) {mutate_at(x, vars(size_desc), as.character)})
   if (length(res) > 0) {
     res <- bind_rows(res)
   } else {
@@ -517,12 +518,6 @@ perform_spatial_computations <- function(data) {
   finger_space <- 2.54
   tray_space <- 4.4958
   extra_space <- finger_space + tray_space
-  pallet_width <- 122
-  pallet_length <- 100
-  pallet_height <- 150
-  chimney_width <- 61
-  chimney_length <- 200
-  chimney_height <- 140
   waste_space <- 11
   item_measures <- syms(c(length = 'item_length_qty', height = 'item_height_qty', width = 'item_width_qty'))
   whpk_measures <- syms(c(length = 'whpk_length_qty', height = 'whpk_height_qty', width = 'whpk_width_qty'))
@@ -531,18 +526,12 @@ perform_spatial_computations <- function(data) {
     create_capacity_columns('no_rrp_', item_measures, waste_space, extra_space) %>% 
     create_capacity_columns('rrp_', whpk_measures, waste_space, extra_space) %>% 
     mutate(
-      pallet_length_item_qty = round(pallet_length / item_length_qty),
-      pallet_height_item_qty = round(pallet_height / item_height_qty),
-      pallet_width_item_qty  = round(pallet_width  / item_width_qty),
-      pallet_length_whpk_qty = round(pallet_length / whpk_length_qty),
-      pallet_height_whpk_qty = round(pallet_height / whpk_height_qty),
-      pallet_width_whpk_qty  = round(pallet_width  / whpk_width_qty),
-      chimney_length_item_qty = round(chimney_length / item_length_qty),
-      chimney_height_item_qty = round(chimney_height / item_height_qty),
-      chimney_width_item_qty  = round(chimney_width  / item_width_qty),
-      chimney_length_whpk_qty = round(chimney_length / whpk_length_qty),
-      chimney_height_whpk_qty = round(chimney_height / whpk_height_qty),
-      chimney_width_whpk_qty  = round(chimney_width  / whpk_width_qty),
+      pallet_length_item_qty = round(ancho_cm / item_length_qty),
+      pallet_height_item_qty = round(alto_cm / item_height_qty),
+      pallet_width_item_qty  = round(profundo_cm  / item_width_qty),
+      pallet_length_whpk_qty = round(ancho_cm / whpk_length_qty),
+      pallet_height_whpk_qty = round(alto_cm / whpk_height_qty),
+      pallet_width_whpk_qty  = round(profundo_cm  / whpk_width_qty),
       rrp_full_vol = round(rrp_max_qty * whpk_length_qty * whpk_width_qty * whpk_height_qty, digits = 2),
       left_avail_space = rrp_avail_space - rrp_full_vol,
       bkp_extra_pcs = floor(left_avail_space / (item_length_qty * item_width_qty * item_height_qty)),
@@ -553,16 +542,11 @@ perform_spatial_computations <- function(data) {
           round(pallet_length_whpk_qty * pallet_height_whpk_qty * pallet_width_whpk_qty * whpk_qty),
         grepl('CABECERA', used_shelf) & rrp_ind == 'N' ~ no_rrp_max_qty,
         grepl('CABECERA', used_shelf) & rrp_ind == 'Y' ~ rrp_max_qty * whpk_qty + bkp_extra_pcs,
+        # Se multiplican por 3 porque la base de datos trae las medidas de una media base, y una chimenea equivale a una media base sobre una base, es decir, 3 medias bases.
         grepl('CHIMENEA', used_shelf) & rrp_ind == 'N' ~ 
-          round(
-            pallet_length_item_qty * pallet_height_item_qty * pallet_width_item_qty + 
-              chimney_length_item_qty * chimney_height_item_qty * chimney_width_item_qty
-          ),
+          round(pallet_length_item_qty * pallet_height_item_qty * pallet_width_item_qty * 3),
         grepl('CHIMENEA', used_shelf) & rrp_ind == 'Y' ~ 
-          round(
-            pallet_length_whpk_qty * pallet_height_whpk_qty * pallet_width_whpk_qty * whpk_qty + 
-              chimney_length_whpk_qty * chimney_height_whpk_qty * chimney_width_whpk_qty * whpk_qty  
-          ),
+          round(pallet_length_whpk_qty * pallet_height_whpk_qty * pallet_width_whpk_qty * whpk_qty * 3),
         TRUE ~ 0
       )
     )
@@ -1683,6 +1667,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
   })
   good_features_rv <- reactiveVal()
   failed_combinations <- reactiveVal(NULL)
+  risky_combinations <- reactiveVal(NULL)
   observeEvent(query_result(), {
     r$is_running <- FALSE
     if (!is.data.frame(query_result()$data)) {
@@ -1715,18 +1700,42 @@ computePromotionsServer <- function(input, output, session, credentials) {
     )))
     r$final_result_trigger <- r$final_result_trigger + 1
   })
-  output$alert_info_dt <- renderDT({
+  output$failed_combinations_dt <- renderDT({
     req(!is.null(failed_combinations()))
     generate_basic_datatable(failed_combinations(), gl$cols)
   })
+  
+  output$risky_combinations_dt <- renderDT({
+    req(!is.null(risky_combinations()))
+    generate_basic_datatable(risky_combinations(), gl$cols)
+  })
     
   output$alert_info_ui <- renderUI({
-    req(!is.null(failed_combinations()))
+    req(final_result())
+    req(!is.null(failed_combinations()) | !is.null(risky_combinations()))
     ns <- session$ns
+    risky_combinations_text <- NULL
+    failed_combinations_text <- NULL
+    if(!is.null(risky_combinations())) {
+      risky_combinations_text <- tags$div(
+        tags$h3(tags$span(style = "color: #f47521", 'Combinaciones en riesgo')),
+        tags$h5(
+          'Hemos detectado que los muebles de algunas exhibiciones tienen espacio para almacenar una gran cantidad de DDV de algunos de los artículos que incluiste en ellos. Por favor, revisa que los muebles que especificaste sean los adecuados y que las medidas de los artículos sean correctas para las combinaciones de exhibición-artículo que se muestran abajo. Si no son correctas, usa piezas en el mueble predeterminado.'
+        )
+      )
+    }
+    if(!is.null(failed_combinations())) {
+      failed_combinations_text <- tags$div(
+        tags$h3(tags$span(style = "color: red", 'Combinaciones en conflicto')),
+        tags$h5('Hubo problemas al realizar la descarga de información de las combinaciones de promoción-artículo que se muestran en la tabla de abajo. No se encontró la información necesaria de las mismas para ser procesadas por la aplicación, por lo que las promociones a las que pertencen fueron completamente excluidas de los resultados.')
+      )
+    }
     tags$div(
-      tags$h2('Combinaciones problemáticas'),
-      tags$h5('Hubo problemas al realizar la descarga de información de las combinaciones de promoción-artículo que se muestran en la tabla de abajo. No se encontró la información necesaria de las mismas para ser procesadas por la aplicación, por lo que las promociones a las que pertencen fueron completamente excluidas de los resultados.'),
-      DTOutput(ns('alert_info_dt'))
+      tags$h2(tags$b('Alertas')),
+      risky_combinations_text,
+      DTOutput(ns('risky_combinations_dt')),
+      failed_combinations_text,
+      DTOutput(ns('failed_combinations_dt'))
     )
   })
 
@@ -1736,6 +1745,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
     input$sspres_benchmark_toggle
     input$impact_toggle
     r$final_result_trigger
+    r$items
   }, {
     req(r$final_result_trigger > 0)
     req(query_result()$data)
@@ -1775,6 +1785,18 @@ computePromotionsServer <- function(input, output, session, credentials) {
     } else {
       NULL
     }
+  })
+  
+  observeEvent(final_result(), {
+    req(!is.null(final_result()))
+    items_list <- final_result() %>% 
+      group_by(feature_name, old_nbr, used_shelf) %>% 
+      summarise_at(vars(feature_qty_req, feature_ddv_req, max_ddv), mean) %>% 
+      filter(feature_ddv_req >= max_ddv * 3)
+    if (length(items_list) <= 0) {
+      items_list <- NULL
+    }
+    risky_combinations(items_list)
   })
   
   ## Validaciones
@@ -2112,6 +2134,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
     query_result(NULL)
     r$query_was_tried <- NULL
     failed_combinations(NULL)
+    risky_combinations(NULL)
   })
   
   ## Descargar cálculos
