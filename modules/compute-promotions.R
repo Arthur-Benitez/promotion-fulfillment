@@ -1711,8 +1711,11 @@ computePromotionsServer <- function(input, output, session, credentials) {
   })
     
   output$alert_info_ui <- renderUI({
-    req(final_result())
-    req(!is.null(failed_combinations()) | !is.null(risky_combinations()))
+    shiny::validate(
+      need_input_ready() %then%
+        need_result_ready() %then%
+        need_alert_existence()
+    )
     ns <- session$ns
     risky_combinations_text <- NULL
     failed_combinations_text <- NULL
@@ -1731,7 +1734,6 @@ computePromotionsServer <- function(input, output, session, credentials) {
       )
     }
     tags$div(
-      tags$h2(tags$b('Alertas')),
       risky_combinations_text,
       DTOutput(ns('risky_combinations_dt')),
       failed_combinations_text,
@@ -1814,6 +1816,9 @@ computePromotionsServer <- function(input, output, session, credentials) {
   need_histogram_ready <- reactive({
     shiny::need(!is.null(quantity_histogram_data()) || !is.null(dispersion_histogram_data()), lang$need_final_result) %then%
       shiny::need(nchar(input$output_feature_select) > 0, lang$need_select_feature)
+  })
+  need_alert_existence <- reactive({
+    shiny::need(!is.null(failed_combinations()) || !is.null(risky_combinations()), lang$need_alert_existence)
   })
   
   ## Tabla que muestra las medidas de los artículos y su estatus de sincronización
@@ -2488,7 +2493,11 @@ computePromotionsUI <- function(id) {
             )
           )
         ),
-        DTOutput(ns('summary_table')) %>% withSpinner(type = 8),
+        DTOutput(ns('summary_table')) %>% withSpinner(type = 8)
+      ),
+      tabPanel(
+        value = 'output_alerts',
+        title = lang$alert,
         uiOutput(ns('alert_info_ui'))
       ),
       tabPanel(

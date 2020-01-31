@@ -57,6 +57,7 @@ lang <- list(
   error = 'Error',
   success = 'Éxito',
   warning = 'Advertencia',
+  alert = 'Alertas',
   done = 'Listo',
   yes = 'Sí',
   no = 'No',
@@ -143,6 +144,7 @@ lang <- list(
   need_query_result = 'El query falló :(',
   need_final_result = 'Los cálculos fallaron :(',
   need_select_feature = 'Selecciona una promoción para continuar.',
+  need_alert_existence = 'No hay alertas para mostrar.',
   ## Variables
   dc = 'CEDIS',
   store_nbr = 'Tienda',
