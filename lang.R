@@ -104,6 +104,8 @@ lang <- list(
   tab_input_graph = 'Tabla & Gráfica',
   tab_stores_lists = 'Tiendas especiales',
   feature = 'Promoción',
+  failed_combinations = 'Combinaciones en conflicto',
+  risky_combinations = 'Combinaciones en riesgo',
   quantity_histogram = 'Alcance a exhibición',
   histogram_selection = 'Histograma a desplegar',
   dispersion_histogram = 'Dispersión de inventario',
