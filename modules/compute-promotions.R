@@ -1708,9 +1708,45 @@ computePromotionsServer <- function(input, output, session, credentials) {
     req(r$query_was_recently_run)
     r$query_was_recently_run <- FALSE
     risky_combinations_table <- get_risky_combinations(final_result())
+    failed_combinations_table <- failed_combinations()
     risky_combinations(risky_combinations_table)
     
-    
+    n <- map(categorized_features_rv(), ~length(.x))
+    if (is.null(risky_combinations_table) && is.null(failed_combinations_table) && n$good_features > 0) {
+      text1 <- sprintf('La información fue descargada de Teradata en %s.', format_difftime(difftime(Sys.time(), query_result()$timestamp)))
+      title1 <- lang$success
+      type1 <- 'success'
+      message1 <- 'DOWNLOAD SUCCESSFUL'
+    } else if (is.null(risky_combinations_table) && is.null(failed_combinations_table) && n$empty_features > 0) {
+      text1 <- 'No se encontró información para ninguna de las promociones ingresadas, favor de revisar que sean correctos los datos.'
+      title1 <- lang$error
+      type1 <- 'error'
+      message1 <- 'DOWNLOAD FAILED'
+    } else {
+      if (is.null(risky_combinations_table)) {
+        text1 <- sprintf('La información se descargó en %s. Hubo problemas descargando la información para %s combinaciones de exhibición-artículo. Las exhibiciones con al menos una combinación en conflicto serán completamente omitidas de los resultados. Para más información, revisa la tabla de %s en la pestaña de %s.', query_result()$timestamp, nrow(failed_combinations_table), lang$failed_combinations, lang$alert)
+      } else if (is.null(failed_combinations_table)) {
+        text1 <- sprintf('La información se descargó en %s. Encontramos %s combinaciones de exhibición-artículo en las que sus muebles tienen espacio para almacenar una gran cantidad de DDV de algunos de los artículos que incluiste en ellos. Por favor, revisa los detalles en la tabla de %s en la pestaña de %s.', query_result()$timestamp, nrow(risky_combinations_table), lang$risky_combinations, lang$alert)
+      } else {
+        text1 <- sprintf(
+          'La información se descargó en %s. Econtramos algunas combinaciones exhibición-artículo que es recomendable que revises con detalle, %s de ellas son %s porque tuvieron problemas con la descarga de información y las otras %s son %s porque sus muebles tienen espacio para almacenar una gran cantidad de DDV de algunos de los artículos que incluiste en ellos. Por favor, revisa los detalles de estas dos alertas en la pestaña de %s.', query_result()$timestamp, nrow(failed_combinations_table), lang$failed_combinations, nrow(risky_combinations_table), lang$risky_combinations, lang$alert)
+      }
+      title1 <- lang$warning
+      type1 <- 'warning'
+      message1 <- 'DOWNLOAD PARTIALLY FAILED'
+    }
+    shinyalert::shinyalert(
+      type = type1,
+      title = title1,
+      text = text1,
+      closeOnClickOutside = TRUE,
+      html = TRUE
+    )
+    flog.info(toJSON(list(
+      session_info = msg_cred(isolate(credentials())),
+      message = message1,
+      details = list()
+    )))
     # Generar aquí la logica final de las alertas, considerando los warnings
     
     
@@ -1747,15 +1783,15 @@ computePromotionsServer <- function(input, output, session, credentials) {
     failed_combinations_text <- NULL
     if(!is.null(risky_combinations())) {
       risky_combinations_text <- tags$div(
-        tags$h3(tags$span(style = "color: #f47521", 'Combinaciones en riesgo')),
+        tags$h3(tags$span(style = "color: #f47521", lang$risky_combinations)),
         tags$h5(
-          'Hemos detectado que los muebles de algunas exhibiciones tienen espacio para almacenar una gran cantidad de DDV de algunos de los artículos que incluiste en ellos. Por favor, revisa que los muebles que especificaste sean los adecuados y que las medidas de los artículos sean correctas para las combinaciones de exhibición-artículo que se muestran abajo. Si no son correctas, usa piezas en el mueble predeterminado.'
+          'Hemos detectado que los muebles de algunas exhibiciones tienen espacio para almacenar una gran cantidad de DDV de algunos de los artículos que incluiste en ellos. Por favor, revisa que los muebles que especificaste sean los adecuados y que las medidas de los artículos sean correctas para las combinaciones de exhibición-artículo que se muestran en esta tabla. Si no son correctas, usa piezas en el mueble predeterminado.'
         )
       )
     }
     if(!is.null(failed_combinations())) {
       failed_combinations_text <- tags$div(
-        tags$h3(tags$span(style = "color: red", 'Combinaciones en conflicto')),
+        tags$h3(tags$span(style = "color: red", lang$failed_combinations)),
         tags$h5('Hubo problemas al realizar la descarga de información de las combinaciones de promoción-artículo que se muestran en la tabla de abajo. No se encontró la información necesaria de las mismas para ser procesadas por la aplicación, por lo que las promociones a las que pertencen fueron completamente excluidas de los resultados.')
       )
     }
