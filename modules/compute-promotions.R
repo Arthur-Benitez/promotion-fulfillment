@@ -17,89 +17,6 @@ generate_cols_spec <- function(column_info, columns) {
   )
 }
 
-## Decide que alerta mostrar
-alert_param <- function(combs_info, timestamp) {
-  feature_info <- combs_info %>% 
-    group_by(feature_name) %>% 
-    summarise(
-      any_empty = any(is_empty),
-      all_empty = all(is_empty),
-      any_measures_empty = any(measures_empty),
-      any_default_pieces_applies = any(default_pieces_applies)
-    )
-  good_features <- with(feature_info, feature_name[!any_empty & (!any_measures_empty | any_default_pieces_applies)])
-  partial_features <- with(feature_info, feature_name[(any_empty | (any_measures_empty & !any_default_pieces_applies)) & !all_empty])
-  empty_features <- with(feature_info, feature_name[all_empty])
-  
-  if (length(good_features) > 0 && length(partial_features) == 0 && length(empty_features) == 0) {
-    title1 <- lang$success
-    text1 <- sprintf('La información fue descargada de Teradata en %s.', format_difftime(difftime(Sys.time(), timestamp)))
-    type1 <- 'success'
-    message1 <- 'DOWNLOAD SUCCESSFUL'
-    table1 <- NULL
-  } else if (length(good_features) > 0 || length(partial_features) > 0) {
-    partial_combs <- combs_info %>% 
-      filter(feature_name %in% partial_features & (is_empty | measures_empty)) %>%
-      group_by(feature_name) %>% 
-      summarise(
-        sum_text = ifelse(
-          length(old_nbr) > 3,
-          sprintf('%s (%s, ...)', first(feature_name), paste0(old_nbr[1:3], collapse = ', ')),
-          sprintf('%s (%s)', first(feature_name), paste0(old_nbr, collapse = ', '))
-        )
-      ) %>% 
-      pull(sum_text)
-    
-    if (length(empty_features) > 0) {
-      empty_list <- c(paste(empty_features, '(todos)'), partial_combs)
-    } else {
-      empty_list <- partial_combs
-    }
-    
-    if (length(empty_list) > 5) {
-      empty_list_displayed <- c(empty_list[1:5], '...') 
-    } else {
-      empty_list_displayed <- empty_list
-    }
-    
-    title1 <- lang$warning
-    text1 <- sprintf(
-      '<div style="text-align:left;">
-      Hubo problemas descargando la información para las siguientes combinaciones de exhibición-artículo: <br><ul><li>%s</li></ul>
-      Las exhibiciones con al menos una combinación en la lista anterior serán completamente omitidas de los resultados.
-      Te sugerimos <b>revisar que el departamento y formato que ingresaste para ellas sean correctos.</b> Para más información, revisa la tabla de "Combinaciones en conflicto" en la pestaña de Resultados.
-      </div>',
-      paste0(empty_list_displayed, collapse  = '</li><li>'))
-    
-    table1 <- combs_info %>% 
-      filter(feature_name %in% partial_features & (is_empty | measures_empty)) %>% 
-      mutate(old_nbr = as.character(old_nbr)) %>% 
-      bind_rows(tibble(feature_name = empty_features, old_nbr = "Todos", is_empty = TRUE)) %>% 
-      mutate(
-        reason = case_when(
-        is_empty ~ 'No se encontró información.',
-        measures_empty ~ 'Una o más de las medidas del artículo están vacías.',
-        TRUE ~ 'Otra razón.'
-        ),
-        solution = case_when(
-          is_empty ~ 'Revisar que el departamento y formato sean correctos y que el artículo esté activo y resurtible.',
-          measures_empty ~ 'Añadir medidas faltantes en el OIF / Usar el mueble predeterminado en piezas y dejar en blanco el mueble deseado.',
-          TRUE ~ 'Sin solución recomendada.'
-        )
-      ) %>% 
-      select(feature_name, old_nbr, reason, solution)
-    type1 <- 'warning'
-    message1 <- 'DOWNLOAD PARTIALLY FAILED'
-  } else if (length(good_features) == 0 && length(partial_features) == 0 && length(empty_features) >= 0) {
-    title1 <- lang$error
-    text1 <- 'No se encontró información para ninguna de las promociones ingresadas, favor de revisar que sean correctos los datos.'
-    type1 <- 'error'
-    message1 <- 'DOWNLOAD FAILED'   
-    table1 <- NULL
-  }
-  return(list(title = title1, text = text1, type = type1, message = message1, good_features = good_features, table = table1))
-}
-
 ## Leer entrada
 parse_input <- function(input_file, gl, calendar_day, date_format = '%Y-%m-%d') {
   if (tools::file_ext(input_file) != 'xlsx') {
@@ -468,7 +385,7 @@ compare_ss_name <- function(sspress_tot, sscov_tot, min_ss, max_ss, sspress, bas
 }
 
 ## Regresar nombre de displays que no tuvieron info
-get_empty_combs <- function(result, input) {
+get_combs_info <- function(result, input) {
   measures_cols <- result %>% 
     select(contains('length_qty'), contains('height_qty'), contains('width_qty')) %>% 
     names()
@@ -481,6 +398,60 @@ get_empty_combs <- function(result, input) {
       default_pieces_applies = map_lgl(data, ~!is.na(as.numeric(first(.x$default_shelf))) & is.na(first(.x$shelf)))
     ) %>% 
     select(feature_name, old_nbr, is_empty, measures_empty, default_pieces_applies)
+}
+
+## Categoriza las combinaciones feature-item en buena / parcial / vacía
+categorize_features <- function(combs_info) {
+  feature_info <- combs_info %>% 
+    group_by(feature_name) %>% 
+    summarise(
+      any_empty = any(is_empty),
+      all_empty = all(is_empty),
+      any_measures_empty = any(measures_empty),
+      any_default_pieces_applies = any(default_pieces_applies)
+    )
+  good_features <- with(feature_info, feature_name[!any_empty & (!any_measures_empty | any_default_pieces_applies)])
+  partial_features <- with(feature_info, feature_name[(any_empty | (any_measures_empty & !any_default_pieces_applies)) & !all_empty])
+  empty_features <- with(feature_info, feature_name[all_empty])
+  return(list(good_features = good_features, partial_features = partial_features, empty_features = empty_features))
+}
+
+## Obtiene las combinaciones fallidas - errores
+get_failed_combinations <- function(categorized_combinations, combs_info) {
+  n <- map(categorized_combinations, ~length(.x))
+  if (n$partial_features > 0 || (n$good_features > 0 && n$empty_features > 0)) {
+    combs_info %>% 
+      filter(feature_name %in% categorized_combinations$partial_features & (is_empty | measures_empty)) %>% 
+      mutate(old_nbr = as.character(old_nbr)) %>% 
+      bind_rows(tibble(feature_name = categorized_combinations$empty_features, old_nbr = "Todos", is_empty = TRUE)) %>% 
+      mutate(
+        reason = case_when(
+          is_empty ~ 'No se encontró información.',
+          measures_empty ~ 'Una o más de las medidas del artículo están vacías.',
+          TRUE ~ 'Otra razón.'
+        ),
+        solution = case_when(
+          is_empty ~ 'Revisar que el departamento y formato sean correctos y que el artículo esté activo y resurtible.',
+          measures_empty ~ 'Añadir medidas faltantes en el OIF / Usar el mueble predeterminado en piezas y dejar en blanco el mueble deseado.',
+          TRUE ~ 'Sin solución recomendada.'
+        )
+      ) %>% 
+      select(feature_name, old_nbr, reason, solution)
+  } else {
+    NULL
+  }
+}
+
+## Obtiene las combinaciones con riesgos - warnings
+get_risky_combinations <- function(final_result) {
+  risky_combinations_table <- final_result %>% 
+    group_by(feature_name, old_nbr, used_shelf) %>% 
+    summarise_at(vars(feature_qty_req, feature_ddv_req, max_ddv), mean) %>% 
+    filter(feature_ddv_req >= max_ddv * 3)
+  if (length(risky_combinations_table) <= 0) {
+    risky_combinations_table <- NULL
+  }
+  risky_combinations_table
 }
 
 ## Cálculo de número de anaqueles basado en las alturas
@@ -1060,7 +1031,8 @@ computePromotionsServer <- function(input, output, session, credentials) {
     is_running = FALSE,
     query_was_tried = FALSE,
     reset_trigger = 0,
-    final_result_trigger = 0
+    final_result_trigger = 0,
+    query_was_recently_run = FALSE
   )
   
   ## UI
@@ -1665,80 +1637,22 @@ computePromotionsServer <- function(input, output, session, credentials) {
       html = TRUE
     )
   })
-  good_features_rv <- reactiveVal()
+  categorized_features_rv <- reactiveVal(NULL)
   failed_combinations <- reactiveVal(NULL)
   risky_combinations <- reactiveVal(NULL)
   observeEvent(query_result(), {
     r$is_running <- FALSE
-    if (!is.data.frame(query_result()$data)) {
-      alert_info <- list(
-        title = lang$error,
-        text = 'No se encontró información para ninguna de las promociones ingresadas, favor de revisar que sean correctos los datos.',
-        type = 'error',
-        message = 'DOWNLOAD FAILED'
-      )
-      good_features_rv(NULL)
-    } else {
-      combs_info <- get_empty_combs(query_result()$data, isolate(r$items))
-      alert_info <- alert_param(combs_info, query_result()$timestamp)
-      good_features_rv(alert_info$good_features)
+    failed_combinations_table <- NULL
+    if (is.data.frame(query_result()$data)) {
+      combs_info <- get_combs_info(query_result()$data, isolate(r$items))
+      categorized_features <- categorize_features(combs_info)
+      failed_combinations_table <- get_failed_combinations(categorized_features, combs_info)
+      categorized_features_rv(categorized_features)
     }
     # Si falla parcialmente, asigna la tabla, de otra forma asigna un NULL
-    failed_combinations(alert_info$table)
-    
-    shinyalert::shinyalert(
-      type = alert_info$type,
-      title = alert_info$title,
-      text = alert_info$text,
-      closeOnClickOutside = TRUE,
-      html = TRUE
-    )
-    flog.info(toJSON(list(
-      session_info = msg_cred(isolate(credentials())),
-      message = alert_info$message,
-      details = list()
-    )))
+    failed_combinations(failed_combinations_table)
     r$final_result_trigger <- r$final_result_trigger + 1
-  })
-  output$failed_combinations_dt <- renderDT({
-    req(!is.null(failed_combinations()))
-    generate_basic_datatable(failed_combinations(), gl$cols)
-  })
-  
-  output$risky_combinations_dt <- renderDT({
-    req(!is.null(risky_combinations()))
-    generate_basic_datatable(risky_combinations(), gl$cols)
-  })
-    
-  output$alert_info_ui <- renderUI({
-    shiny::validate(
-      need_input_ready() %then%
-        need_result_ready() %then%
-        need_alert_existence()
-    )
-    ns <- session$ns
-    risky_combinations_text <- NULL
-    failed_combinations_text <- NULL
-    if(!is.null(risky_combinations())) {
-      risky_combinations_text <- tags$div(
-        tags$h3(tags$span(style = "color: #f47521", 'Combinaciones en riesgo')),
-        tags$h5(
-          'Hemos detectado que los muebles de algunas exhibiciones tienen espacio para almacenar una gran cantidad de DDV de algunos de los artículos que incluiste en ellos. Por favor, revisa que los muebles que especificaste sean los adecuados y que las medidas de los artículos sean correctas para las combinaciones de exhibición-artículo que se muestran abajo. Si no son correctas, usa piezas en el mueble predeterminado.'
-        )
-      )
-    }
-    if(!is.null(failed_combinations())) {
-      failed_combinations_text <- tags$div(
-        tags$h3(tags$span(style = "color: red", 'Combinaciones en conflicto')),
-        tags$h5('Hubo problemas al realizar la descarga de información de las combinaciones de promoción-artículo que se muestran en la tabla de abajo. No se encontró la información necesaria de las mismas para ser procesadas por la aplicación, por lo que las promociones a las que pertencen fueron completamente excluidas de los resultados.')
-      )
-    }
-    tags$div(
-      risky_combinations_text,
-      DTOutput(ns('risky_combinations_dt')),
-      failed_combinations_text,
-      DTOutput(ns('failed_combinations_dt'))
-    )
+    r$query_was_recently_run <- TRUE
   })
 
   ### Ahora sí cálculos
@@ -1751,9 +1665,9 @@ computePromotionsServer <- function(input, output, session, credentials) {
   }, {
     req(r$final_result_trigger > 0)
     req(query_result()$data)
-    if (length(good_features_rv()) > 0) {
+    if (length(categorized_features_rv()$good_features) > 0) {
       good_data <- query_result()$data %>% 
-        filter(feature_name %in% good_features_rv())
+        filter(feature_name %in% categorized_features_rv()$good_features)
       if(file.exists(gl$shelves_database)) {
         flog.info(toJSON(list(
           session_info = msg_cred(isolate(credentials())),
@@ -1791,14 +1705,66 @@ computePromotionsServer <- function(input, output, session, credentials) {
   
   observeEvent(final_result(), {
     req(!is.null(final_result()))
-    items_list <- final_result() %>% 
-      group_by(feature_name, old_nbr, used_shelf) %>% 
-      summarise_at(vars(feature_qty_req, feature_ddv_req, max_ddv), mean) %>% 
-      filter(feature_ddv_req >= max_ddv * 3)
-    if (length(items_list) <= 0) {
-      items_list <- NULL
+    req(r$query_was_recently_run)
+    r$query_was_recently_run <- FALSE
+    risky_combinations_table <- get_risky_combinations(final_result())
+    risky_combinations(risky_combinations_table)
+    
+    
+    # Generar aquí la logica final de las alertas, considerando los warnings
+    
+    
+    # Generar aquí la alerta nueva y desplegar la shiny alert
+    
+    # checkpoint
+    # funcion que calcula errorres
+    # good features
+    # final result
+    # funcion que calcula warnings
+    
+    # calculo final de textos
+    # display de alerta y log
+  })
+  
+  output$failed_combinations_dt <- renderDT({
+    req(!is.null(failed_combinations()))
+    generate_basic_datatable(failed_combinations(), gl$cols)
+  })
+  
+  output$risky_combinations_dt <- renderDT({
+    req(!is.null(risky_combinations()))
+    generate_basic_datatable(risky_combinations(), gl$cols)
+  })
+  
+  output$alert_info_ui <- renderUI({
+    shiny::validate(
+      need_input_ready() %then%
+        need_result_ready() %then%
+        need_alert_existence()
+    )
+    ns <- session$ns
+    risky_combinations_text <- NULL
+    failed_combinations_text <- NULL
+    if(!is.null(risky_combinations())) {
+      risky_combinations_text <- tags$div(
+        tags$h3(tags$span(style = "color: #f47521", 'Combinaciones en riesgo')),
+        tags$h5(
+          'Hemos detectado que los muebles de algunas exhibiciones tienen espacio para almacenar una gran cantidad de DDV de algunos de los artículos que incluiste en ellos. Por favor, revisa que los muebles que especificaste sean los adecuados y que las medidas de los artículos sean correctas para las combinaciones de exhibición-artículo que se muestran abajo. Si no son correctas, usa piezas en el mueble predeterminado.'
+        )
+      )
     }
-    risky_combinations(items_list)
+    if(!is.null(failed_combinations())) {
+      failed_combinations_text <- tags$div(
+        tags$h3(tags$span(style = "color: red", 'Combinaciones en conflicto')),
+        tags$h5('Hubo problemas al realizar la descarga de información de las combinaciones de promoción-artículo que se muestran en la tabla de abajo. No se encontró la información necesaria de las mismas para ser procesadas por la aplicación, por lo que las promociones a las que pertencen fueron completamente excluidas de los resultados.')
+      )
+    }
+    tags$div(
+      risky_combinations_text,
+      DTOutput(ns('risky_combinations_dt')),
+      failed_combinations_text,
+      DTOutput(ns('failed_combinations_dt'))
+    )
   })
   
   ## Validaciones
