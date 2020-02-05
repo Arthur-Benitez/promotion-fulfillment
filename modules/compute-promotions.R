@@ -397,7 +397,8 @@ get_combs_info <- function(result, input) {
       measures_empty = map_lgl(data, ~any(is.na(.x[measures_cols]))),
       default_pieces_applies = map_lgl(data, ~!is.na(as.numeric(first(.x$default_shelf))) & is.na(first(.x$shelf)))
     ) %>% 
-    select(feature_name, old_nbr, is_empty, measures_empty, default_pieces_applies)
+    select(feature_name, old_nbr, is_empty, measures_empty, default_pieces_applies) %>% 
+    ungroup()
 }
 
 ## Categoriza las combinaciones feature-item en buena / parcial / vacía
@@ -448,7 +449,7 @@ get_risky_combinations <- function(final_result) {
     group_by(feature_name, old_nbr, used_shelf) %>% 
     summarise_at(vars(feature_qty_req, feature_ddv_req, max_ddv), mean) %>% 
     filter(feature_ddv_req >= max_ddv * 3)
-  if (length(risky_combinations_table) <= 0) {
+  if (nrow(risky_combinations_table) <= 0) {
     risky_combinations_table <- NULL
   }
   risky_combinations_table
