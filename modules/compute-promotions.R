@@ -445,13 +445,16 @@ get_failed_combinations <- function(categorized_combinations, combs_info) {
 
 ## Obtiene las combinaciones con riesgos - warnings
 get_risky_combinations <- function(final_result) {
-  risky_combinations_table <- final_result %>% 
-    group_by(feature_name, old_nbr, used_shelf) %>% 
-    summarise_at(vars(feature_qty_req, feature_ddv_req, max_ddv), mean) %>% 
-    filter(feature_ddv_req >= max_ddv * 3)
-  if (nrow(risky_combinations_table) <= 0) {
-    risky_combinations_table <- NULL
-  }
+  risky_combinations_table <- tryCatch({
+    res <- final_result %>% 
+      group_by(feature_name, old_nbr, used_shelf) %>% 
+      summarise_at(vars(feature_qty_req, feature_ddv_req, max_ddv), mean) %>% 
+      filter(feature_ddv_req >= max_ddv * 3)
+    if (nrow(res) <= 0) {
+      res <- NULL
+    }
+    res
+  }, error = function(e){NULL})
   risky_combinations_table
 }
 
@@ -1033,6 +1036,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
     query_was_tried = FALSE,
     reset_trigger = 0,
     final_result_trigger = 0,
+    alerts_trigger = 0,
     query_was_recently_run = FALSE
   )
   
@@ -1650,9 +1654,12 @@ computePromotionsServer <- function(input, output, session, credentials) {
       failed_combinations_table <- get_failed_combinations(categorized_features, combs_info)
       categorized_features_rv(categorized_features)
     }
+    else {
+      r$alerts_trigger <- r$alerts_trigger + 1
+    }
+    r$final_result_trigger <- r$final_result_trigger + 1
     # Si falla parcialmente, asigna la tabla, de otra forma asigna un NULL
     failed_combinations(failed_combinations_table)
-    r$final_result_trigger <- r$final_result_trigger + 1
     r$query_was_recently_run <- TRUE
   })
 
@@ -1665,8 +1672,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
     r$items
   }, {
     req(r$final_result_trigger > 0)
-    req(query_result()$data)
-    if (length(categorized_features_rv()$good_features) > 0) {
+    if (length(categorized_features_rv()$good_features) > 0  && !is.null(query_result()$data)) {
       good_data <- query_result()$data %>% 
         filter(feature_name %in% categorized_features_rv()$good_features)
       if(file.exists(gl$shelves_database)) {
@@ -1704,25 +1710,28 @@ computePromotionsServer <- function(input, output, session, credentials) {
     }
   })
   
-  observeEvent(final_result(), {
-    req(!is.null(final_result()))
+  observeEvent({
+    final_result()
+    r$alerts_trigger
+  }, {
+    req(r$alerts_trigger > 0)
     req(r$query_was_recently_run)
     r$query_was_recently_run <- FALSE
     risky_combinations_table <- get_risky_combinations(final_result())
     failed_combinations_table <- failed_combinations()
     risky_combinations(risky_combinations_table)
+    len <- map(categorized_features_rv(), ~length(.x))
     
-    n <- map(categorized_features_rv(), ~length(.x))
-    if (is.null(risky_combinations_table) && is.null(failed_combinations_table) && n$good_features > 0) {
-      text1 <- sprintf('La información fue descargada de Teradata en %s.', format_difftime(difftime(Sys.time(), query_result()$timestamp)))
-      title1 <- lang$success
-      type1 <- 'success'
-      message1 <- 'DOWNLOAD SUCCESSFUL'
-    } else if (is.null(risky_combinations_table) && is.null(failed_combinations_table) && n$empty_features > 0) {
+    if ((is.null(risky_combinations_table) && is.null(failed_combinations_table) && isTRUE(len$empty_features > 0)) || is.null(final_result())) {
       text1 <- 'No se encontró información para ninguna de las promociones ingresadas, favor de revisar que sean correctos los datos.'
       title1 <- lang$error
       type1 <- 'error'
       message1 <- 'DOWNLOAD FAILED'
+    } else if (is.null(risky_combinations_table) && is.null(failed_combinations_table) && isTRUE(len$good_features > 0)) {
+      text1 <- sprintf('La información fue descargada de Teradata en %s.', format_difftime(difftime(Sys.time(), query_result()$timestamp)))
+      title1 <- lang$success
+      type1 <- 'success'
+      message1 <- 'DOWNLOAD SUCCESSFUL'
     } else {
       if (is.null(risky_combinations_table)) {
         text1 <- sprintf('La información se descargó en %s. Hubo problemas descargando la información para %s combinaciones de exhibición-artículo. Las exhibiciones con al menos una combinación en conflicto serán completamente omitidas de los resultados. Para más información, revisa la tabla de %s en la pestaña de %s.', query_result()$timestamp, nrow(failed_combinations_table), lang$failed_combinations, lang$alert)
@@ -1748,19 +1757,6 @@ computePromotionsServer <- function(input, output, session, credentials) {
       message = message1,
       details = list()
     )))
-    # Generar aquí la logica final de las alertas, considerando los warnings
-    
-    
-    # Generar aquí la alerta nueva y desplegar la shiny alert
-    
-    # checkpoint
-    # funcion que calcula errorres
-    # good features
-    # final result
-    # funcion que calcula warnings
-    
-    # calculo final de textos
-    # display de alerta y log
   })
   
   output$failed_combinations_dt <- renderDT({
