@@ -1654,9 +1654,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
       failed_combinations_table <- get_failed_combinations(categorized_features, combs_info)
       categorized_features_rv(categorized_features)
     }
-    else {
-      r$alerts_trigger <- r$alerts_trigger + 1
-    }
+    r$alerts_trigger <- r$alerts_trigger + 1
     r$final_result_trigger <- r$final_result_trigger + 1
     # Si falla parcialmente, asigna la tabla, de otra forma asigna un NULL
     failed_combinations(failed_combinations_table)
@@ -1734,16 +1732,18 @@ computePromotionsServer <- function(input, output, session, credentials) {
       message1 <- 'DOWNLOAD SUCCESSFUL'
     } else {
       if (is.null(risky_combinations_table)) {
-        text1 <- sprintf('La información se descargó en %s. Hubo problemas descargando la información para %s combinaciones de exhibición-artículo. Las exhibiciones con al menos una combinación en conflicto serán completamente omitidas de los resultados. Para más información, revisa la tabla de %s en la pestaña de %s.', query_result()$timestamp, nrow(failed_combinations_table), lang$failed_combinations, lang$alert)
+        text1 <- sprintf('La información se descargó en %s. Hubo problemas descargando la información para %s combinaciones de exhibición-artículo. Las exhibiciones con al menos una combinación en conflicto serán completamente omitidas de los resultados. Para más información, revisa la tabla de "%s" en la pestaña de %s.', format_difftime(difftime(Sys.time(), query_result()$timestamp)), nrow(failed_combinations_table), lang$failed_combinations, lang$alert)
+        message1 <- 'DOWNLOAD PARTIALLY FAILED'
       } else if (is.null(failed_combinations_table)) {
-        text1 <- sprintf('La información se descargó en %s. Encontramos %s combinaciones de exhibición-artículo en las que sus muebles tienen espacio para almacenar una gran cantidad de DDV de algunos de los artículos que incluiste en ellos. Por favor, revisa los detalles en la tabla de %s en la pestaña de %s.', query_result()$timestamp, nrow(risky_combinations_table), lang$risky_combinations, lang$alert)
+        text1 <- sprintf('La información se descargó en %s. Encontramos %s combinaciones de exhibición-artículo en las que sus muebles tienen espacio para almacenar una gran cantidad de DDV de algunos de los artículos que incluiste en ellos. Por favor, revisa los detalles en la tabla de "%s" en la pestaña de %s.', format_difftime(difftime(Sys.time(), query_result()$timestamp)), nrow(risky_combinations_table), lang$risky_combinations, lang$alert)
+        message1 <- 'DOWNLOAD SUCCESSFUL; RISKY COMBINATIONS DETECTED'
       } else {
         text1 <- sprintf(
-          'La información se descargó en %s. Econtramos algunas combinaciones exhibición-artículo que es recomendable que revises con detalle, %s de ellas son %s porque tuvieron problemas con la descarga de información y las otras %s son %s porque sus muebles tienen espacio para almacenar una gran cantidad de DDV de algunos de los artículos que incluiste en ellos. Por favor, revisa los detalles de estas dos alertas en la pestaña de %s.', query_result()$timestamp, nrow(failed_combinations_table), lang$failed_combinations, nrow(risky_combinations_table), lang$risky_combinations, lang$alert)
+          'La información se descargó en %s. Econtramos algunas combinaciones exhibición-artículo que es recomendable que revises con detalle, %s de ellas son %s porque tuvieron problemas con la descarga de información y las otras %s son %s porque sus muebles tienen espacio para almacenar una gran cantidad de DDV de algunos de los artículos que incluiste en ellos. Por favor, revisa los detalles en la pestaña de %s.', format_difftime(difftime(Sys.time(), query_result()$timestamp)), nrow(failed_combinations_table), lang$failed_combinations, nrow(risky_combinations_table), lang$risky_combinations, lang$alert)
+        message1 <- 'DOWNLOAD PARTIALLY FAILED; RISKY COMBINATIONS DETECTED'
       }
       title1 <- lang$warning
       type1 <- 'warning'
-      message1 <- 'DOWNLOAD PARTIALLY FAILED'
     }
     shinyalert::shinyalert(
       type = type1,
