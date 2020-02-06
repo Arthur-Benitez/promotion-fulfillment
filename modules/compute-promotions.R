@@ -1780,16 +1780,24 @@ computePromotionsServer <- function(input, output, session, credentials) {
     failed_combinations_text <- NULL
     if(!is.null(risky_combinations())) {
       risky_combinations_text <- tags$div(
-        tags$h3(tags$span(style = "color: #f47521", lang$risky_combinations)),
-        tags$h5(
-          'Hemos detectado que los muebles de algunas exhibiciones tienen espacio para almacenar una gran cantidad de DDV de algunos de los artículos que incluiste en ellos. Por favor, revisa que los muebles que especificaste sean los adecuados y que las medidas de los artículos sean correctas para las combinaciones de exhibición-artículo que se muestran en esta tabla. Si no son correctas, usa piezas en el mueble predeterminado.'
+        tags$h3(
+          tags$span(style = "color: #f47521", lang$risky_combinations),
+          tags$span(
+            title = 'Hemos detectado que los muebles de algunas exhibiciones tienen espacio para almacenar una gran cantidad de DDV de algunos de los artículos que incluiste en ellos. Por favor, revisa que los muebles que especificaste sean los adecuados y que las medidas de los artículos sean correctas para las combinaciones de exhibición-artículo que se muestran en esta tabla. Si no son correctas, usa piezas en el mueble predeterminado.',
+            tags$i(class = 'fas fa-info-circle text-icon')
+          )
         )
       )
     }
     if(!is.null(failed_combinations())) {
       failed_combinations_text <- tags$div(
-        tags$h3(tags$span(style = "color: red", lang$failed_combinations)),
-        tags$h5('Hubo problemas al realizar la descarga de información de las combinaciones de promoción-artículo que se muestran en la tabla de abajo. No se encontró la información necesaria de las mismas para ser procesadas por la aplicación, por lo que las promociones a las que pertencen fueron completamente excluidas de los resultados.')
+        tags$h3(
+          tags$span(style = "color: red", lang$failed_combinations),
+          tags$span(
+            title = 'Hubo problemas al realizar la descarga de información de las combinaciones de promoción-artículo que se muestran en la tabla de abajo. No se encontró la información necesaria de las mismas para ser procesadas por la aplicación, por lo que las promociones a las que pertencen fueron completamente excluidas de los resultados.',
+            tags$i(class = 'fas fa-info-circle text-icon')
+          )
+        )
       )
     }
     tags$div(
