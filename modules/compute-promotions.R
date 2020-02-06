@@ -458,6 +458,28 @@ create_risky_combinations_table <- function(final_result) {
   risky_combinations_table
 }
 
+## Despliega la burbuja de notificaciones en el tab de Alertas
+show_notification_bubble <- function() {
+  runjs("
+    let tab = document.querySelector('a[data-value=\"output_alerts\"]')
+    let bubble = document.createElement('span');
+    bubble.id = 'alert-bubble';
+    bubble.innerText = '!';
+    bubble.style = 'position: absolute; top:-8px; left: 60px; padding: 1px 9px 0px; background-color: red; color: white; font-size: 1em; border-radius: 50%; display: block;';
+    tab.parentNode.insertBefore(bubble, tab.nextSibling);
+  ")
+}
+
+# Esconde la burbuja de notificaciones en el tab de Alertas
+hide_notification_bubble <- function(trigger) {
+  if (trigger > 0) {
+    runjs("
+      let bubble = document.querySelector('span[id=\"alert-bubble\"]')
+      bubble.style.display = 'none'
+    ") 
+  }
+}
+
 ## Cálculo de número de anaqueles basado en las alturas
 calculate_shelves_number <- function(height, reduced_shelf_height, extra_space, max_shelves) {
   stacks <- ceiling((reduced_shelf_height - extra_space * max_shelves) / (height * max_shelves))
@@ -1734,6 +1756,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
       type1 <- 'success'
       message1 <- 'DOWNLOAD SUCCESSFUL'
     } else {
+      show_notification_bubble()
       if (is.null(risky_combinations_table)) {
         text1 <- sprintf('La información se descargó en %s. Hubo problemas descargando la información para %s combinaciones de exhibición-artículo. Las exhibiciones con al menos una combinación en conflicto serán completamente omitidas de los resultados. Para más información, revisa la tabla de "%s" en la pestaña de %s.', format_difftime(difftime(Sys.time(), query_result()$timestamp)), nrow(failed_combinations_table), lang$failed_combinations, lang$alert)
         message1 <- 'DOWNLOAD PARTIALLY FAILED'
@@ -1760,6 +1783,11 @@ computePromotionsServer <- function(input, output, session, credentials) {
       message = message1,
       details = list()
     )))
+  })
+  
+  observeEvent(input$io, {
+    req(input$io == 'output_alerts')
+    hide_notification_bubble(1)
   })
   
   output$failed_combinations_dt <- renderDT({
@@ -2150,6 +2178,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
     r$query_was_tried <- NULL
     failed_combinations(NULL)
     risky_combinations(NULL)
+    hide_notification_bubble(r$reset_trigger)
   })
   
   ## Descargar cálculos
