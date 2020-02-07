@@ -1744,6 +1744,8 @@ computePromotionsServer <- function(input, output, session, credentials) {
     failed_combinations_table <- failed_combinations()
     risky_combinations(risky_combinations_table)
     len <- map(sorted_features_rv(), ~length(.x))
+    risky_features <- unique(risky_combinations_table$feature_name)
+    good_features <- setdiff(sorted_features_rv()$good_features, unique(risky_combinations_table$feature_name))
     
     if ((is.null(risky_combinations_table) && is.null(failed_combinations_table) && isTRUE(len$empty_features > 0)) || is.null(final_result())) {
       text1 <- 'No se encontró información para ninguna de las promociones ingresadas, favor de revisar que sean correctos los datos.'
@@ -1758,16 +1760,23 @@ computePromotionsServer <- function(input, output, session, credentials) {
     } else {
       show_notification_bubble()
       if (is.null(risky_combinations_table)) {
-        text1 <- sprintf('La información se descargó en %s. Hubo problemas descargando la información para %s combinaciones de exhibición-artículo. Las exhibiciones con al menos una combinación en conflicto serán completamente omitidas de los resultados. Para más información, revisa la tabla de "%s" en la pestaña de %s.', format_difftime(difftime(Sys.time(), query_result()$timestamp)), nrow(failed_combinations_table), lang$failed_combinations, lang$alert)
         message1 <- 'DOWNLOAD PARTIALLY FAILED'
       } else if (is.null(failed_combinations_table)) {
-        text1 <- sprintf('La información se descargó en %s. Encontramos %s combinaciones de exhibición-artículo en las que sus muebles tienen espacio para almacenar una gran cantidad de DDV de algunos de los artículos que incluiste en ellos. Por favor, revisa los detalles en la tabla de "%s" en la pestaña de %s.', format_difftime(difftime(Sys.time(), query_result()$timestamp)), nrow(risky_combinations_table), lang$risky_combinations, lang$alert)
         message1 <- 'DOWNLOAD SUCCESSFUL; RISKY COMBINATIONS DETECTED'
       } else {
-        text1 <- sprintf(
-          'La información se descargó en %s. Econtramos algunas combinaciones exhibición-artículo que es recomendable que revises con detalle, %s de ellas son %s porque tuvieron problemas con la descarga de información y las otras %s son %s porque sus muebles tienen espacio para almacenar una gran cantidad de DDV de algunos de los artículos que incluiste en ellos. Por favor, revisa los detalles en la pestaña de %s.', format_difftime(difftime(Sys.time(), query_result()$timestamp)), nrow(failed_combinations_table), lang$failed_combinations, nrow(risky_combinations_table), lang$risky_combinations, lang$alert)
         message1 <- 'DOWNLOAD PARTIALLY FAILED; RISKY COMBINATIONS DETECTED'
       }
+      text1 <- sprintf(
+        '<div style="text-align:left;">
+        La información se descargó en %s. 
+        Encontramos algunas exhibiciones que es recomendable que revises con detalle.<br><br><ul>
+            <li>%s %s</li>
+            <li>%s %s</li>
+            <li>%s %s</li>
+          </ul>Por favor, revisa los detalles en la pestaña de %s.
+        </div>',
+        format_difftime(difftime(Sys.time(), query_result()$timestamp)), length(good_features), lang$good_features, length(risky_features), lang$risky_features, len$partial_features, lang$partial_features, lang$alert
+      )
       title1 <- lang$warning
       type1 <- 'warning'
     }
