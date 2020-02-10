@@ -461,12 +461,13 @@ create_risky_combinations_table <- function(final_result) {
 ## Despliega la burbuja de notificaciones en el tab de Alertas
 show_notification_bubble <- function() {
   runjs("
-    let tab = document.querySelector('a[data-value=\"output_alerts\"]')
+    let tab = document.querySelector('a[data-value=\"output_alerts\"]');
     let bubble = document.createElement('span');
     bubble.id = 'alert-bubble';
     bubble.innerText = '!';
     bubble.style = 'position: absolute; top:-8px; left: 60px; padding: 1px 9px 0px; background-color: red; color: white; font-size: 1em; border-radius: 50%; display: block;';
     tab.parentNode.insertBefore(bubble, tab.nextSibling);
+    tab.onclick = () => {bubble.parentNode.removeChild(bubble);}
   ")
 }
 
@@ -474,8 +475,10 @@ show_notification_bubble <- function() {
 hide_notification_bubble <- function(trigger) {
   if (trigger > 0) {
     runjs("
-      let bubble = document.querySelector('span[id=\"alert-bubble\"]')
-      bubble.style.display = 'none'
+      let bubble = document.querySelector('span[id=\"alert-bubble\"]');
+      if (bubble) {
+        bubble.parentNode.removeChild(bubble);
+      }
     ") 
   }
 }
@@ -1792,11 +1795,6 @@ computePromotionsServer <- function(input, output, session, credentials) {
     )))
   })
   
-  observeEvent(input$io, {
-    req(input$io == 'output_alerts')
-    hide_notification_bubble(1)
-  })
-  
   output$failed_combinations_dt <- renderDT({
     req(!is.null(failed_combinations()))
     generate_basic_datatable(failed_combinations(), gl$cols)
@@ -2185,7 +2183,9 @@ computePromotionsServer <- function(input, output, session, credentials) {
     r$query_was_tried <- NULL
     failed_combinations(NULL)
     risky_combinations(NULL)
-    hide_notification_bubble(r$reset_trigger)
+    if (r$reset_trigger > 0) {
+      hide_notification_bubble(r$reset_trigger) 
+    }
   })
   
   ## Descargar cálculos
