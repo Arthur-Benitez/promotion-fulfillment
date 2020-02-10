@@ -401,8 +401,8 @@ get_combs_details <- function(result, input) {
     ungroup()
 }
 
-## Categoriza las combinaciones feature-item en buena / parcial / vacía
-sort_features <- function(combs_details) {
+## Categoriza las features en buena / parcial / vacía
+classify_features <- function(combs_details) {
   feature_info <- combs_details %>% 
     group_by(feature_name) %>% 
     summarise(
@@ -418,13 +418,13 @@ sort_features <- function(combs_details) {
 }
 
 ## Obtiene las combinaciones (feature-item) fallidas - errores
-create_failed_combinations_table <- function(sorted_combinations, combs_details) {
-  n <- map(sorted_combinations, ~length(.x))
-  if (n$partial_features > 0 || (n$good_features > 0 && n$empty_features > 0)) {
+create_failed_combinations_table <- function(classified_combinations, combs_details) {
+  len <- map(classified_combinations, ~length(.x))
+  if (len$partial_features > 0 || (len$good_features > 0 && len$empty_features > 0)) {
     combs_details %>% 
-      filter(feature_name %in% sorted_combinations$partial_features & (is_empty | measures_empty)) %>% 
+      filter(feature_name %in% classified_combinations$partial_features & (is_empty | measures_empty)) %>% 
       mutate(old_nbr = as.character(old_nbr)) %>% 
-      bind_rows(tibble(feature_name = sorted_combinations$empty_features, old_nbr = "Todos", is_empty = TRUE)) %>% 
+      bind_rows(tibble(feature_name = classified_combinations$empty_features, old_nbr = "Todos", is_empty = TRUE)) %>% 
       mutate(
         reason = case_when(
           is_empty ~ 'No se encontró información.',
@@ -1664,7 +1664,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
       html = TRUE
     )
   })
-  sorted_features_rv <- reactiveVal(NULL)
+  classified_features_rv <- reactiveVal(NULL)
   failed_combinations <- reactiveVal(NULL)
   risky_combinations <- reactiveVal(NULL)
   observeEvent(query_result(), {
@@ -1674,10 +1674,10 @@ computePromotionsServer <- function(input, output, session, credentials) {
       # Del resultado del query, obtener por cada feature-item si tiene información del query, si tiene medidas vacías y si aplica el default en piezas
       combs_details <- get_combs_details(query_result()$data, isolate(r$items))
       # Clasifica los features en good, partial o empty dependiendo de la información que contengan para cada artículo de la promo
-      sorted_features <- sort_features(combs_details)
+      classified_features <- classify_features(combs_details)
       # Crea la tabla de combinaciones feature-item de las que no se descargó información, incluyendo la razón y solución
-      failed_combinations_table <- create_failed_combinations_table(sorted_features, combs_details)
-      sorted_features_rv(sorted_features)
+      failed_combinations_table <- create_failed_combinations_table(classified_features, combs_details)
+      classified_features_rv(classified_features)
     }
     r$alerts_trigger <- r$alerts_trigger + 1
     r$final_result_trigger <- r$final_result_trigger + 1
@@ -1695,9 +1695,9 @@ computePromotionsServer <- function(input, output, session, credentials) {
     r$items
   }, {
     req(r$final_result_trigger > 0)
-    if (length(sorted_features_rv()$good_features) > 0  && !is.null(query_result()$data)) {
+    if (length(classified_features_rv()$good_features) > 0  && !is.null(query_result()$data)) {
       good_data <- query_result()$data %>% 
-        filter(feature_name %in% sorted_features_rv()$good_features)
+        filter(feature_name %in% classified_features_rv()$good_features)
       if(file.exists(gl$shelves_database)) {
         flog.info(toJSON(list(
           session_info = msg_cred(isolate(credentials())),
@@ -1740,28 +1740,26 @@ computePromotionsServer <- function(input, output, session, credentials) {
     req(r$alerts_trigger > 0)
     req(r$query_was_recently_run)
     r$query_was_recently_run <- FALSE
-    risky_combinations_table <- create_risky_combinations_table(final_result())
-    failed_combinations_table <- failed_combinations()
-    risky_combinations(risky_combinations_table)
-    len <- map(sorted_features_rv(), ~length(.x))
-    risky_features <- unique(risky_combinations_table$feature_name)
-    good_features <- setdiff(sorted_features_rv()$good_features, unique(risky_combinations_table$feature_name))
+    risky_combinations(create_risky_combinations_table(final_result()))
+    len <- map(classified_features_rv(), ~length(.x))
+    risky_features <- unique(risky_combinations()$feature_name)
+    good_features <- setdiff(classified_features_rv()$good_features, unique(risky_combinations()$feature_name))
     
-    if ((is.null(risky_combinations_table) && is.null(failed_combinations_table) && isTRUE(len$empty_features > 0)) || is.null(final_result())) {
+    if ((is.null(risky_combinations()) && is.null(failed_combinations()) && isTRUE(len$empty_features > 0)) || is.null(final_result())) {
       text1 <- 'No se encontró información para ninguna de las promociones ingresadas, favor de revisar que sean correctos los datos.'
       title1 <- lang$error
       type1 <- 'error'
       message1 <- 'DOWNLOAD FAILED'
-    } else if (is.null(risky_combinations_table) && is.null(failed_combinations_table) && isTRUE(len$good_features > 0)) {
+    } else if (is.null(risky_combinations()) && is.null(failed_combinations()) && isTRUE(len$good_features > 0)) {
       text1 <- sprintf('La información fue descargada de Teradata en %s.', format_difftime(difftime(Sys.time(), query_result()$timestamp)))
       title1 <- lang$success
       type1 <- 'success'
       message1 <- 'DOWNLOAD SUCCESSFUL'
     } else {
       show_notification_bubble()
-      if (is.null(risky_combinations_table)) {
+      if (is.null(risky_combinations())) {
         message1 <- 'DOWNLOAD PARTIALLY FAILED'
-      } else if (is.null(failed_combinations_table)) {
+      } else if (is.null(failed_combinations())) {
         message1 <- 'DOWNLOAD SUCCESSFUL; RISKY COMBINATIONS DETECTED'
       } else {
         message1 <- 'DOWNLOAD PARTIALLY FAILED; RISKY COMBINATIONS DETECTED'
