@@ -459,7 +459,7 @@ create_risky_combinations_table <- function(final_result) {
 }
 
 ## Despliega la burbuja de notificaciones en el tab de Alertas
-show_notification_bubble <- function() {
+create_notification_bubble <- function() {
   runjs("
     let tab = document.querySelector('a[data-value=\"output_alerts\"]');
     let bubble = document.createElement('span');
@@ -472,15 +472,13 @@ show_notification_bubble <- function() {
 }
 
 # Esconde la burbuja de notificaciones en el tab de Alertas
-hide_notification_bubble <- function(trigger) {
-  if (trigger > 0) {
-    runjs("
+remove_notification_bubble <- function() {
+  runjs("
       let bubble = document.querySelector('span[id=\"alert-bubble\"]');
       if (bubble) {
         bubble.parentNode.removeChild(bubble);
       }
-    ") 
-  }
+    ")
 }
 
 ## Cálculo de número de anaqueles basado en las alturas
@@ -1759,7 +1757,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
       type1 <- 'success'
       message1 <- 'DOWNLOAD SUCCESSFUL'
     } else {
-      show_notification_bubble()
+      create_notification_bubble()
       if (is.null(risky_combinations())) {
         message1 <- 'DOWNLOAD PARTIALLY FAILED'
       } else if (is.null(failed_combinations())) {
@@ -2184,7 +2182,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
     failed_combinations(NULL)
     risky_combinations(NULL)
     if (r$reset_trigger > 0) {
-      hide_notification_bubble(r$reset_trigger) 
+      remove_notification_bubble() 
     }
   })
   
