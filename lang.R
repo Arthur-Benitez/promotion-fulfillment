@@ -107,6 +107,8 @@ lang <- list(
   good_features = 'Exhibiciones sin problemas',
   partial_features = 'Exhibiciones sin información',
   risky_features = 'Exhibiciones en riesgo',
+  risky_combinations = 'Combinaciones en riesgo',
+  failed_combinations = 'Combinaciones sin información',
   quantity_histogram = 'Alcance a exhibición',
   histogram_selection = 'Histograma a desplegar',
   dispersion_histogram = 'Dispersión de inventario',
