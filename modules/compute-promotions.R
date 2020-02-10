@@ -418,13 +418,13 @@ classify_features <- function(combs_details) {
 }
 
 ## Obtiene las combinaciones (feature-item) fallidas - errores
-create_failed_combinations_table <- function(classified_combinations, combs_details) {
-  len <- map(classified_combinations, ~length(.x))
+create_failed_combinations_table <- function(classified_features, combs_details) {
+  len <- map(classified_features, ~length(.x))
   if (len$partial_features > 0 || (len$good_features > 0 && len$empty_features > 0)) {
     combs_details %>% 
-      filter(feature_name %in% classified_combinations$partial_features & (is_empty | measures_empty)) %>% 
+      filter(feature_name %in% classified_features$partial_features & (is_empty | measures_empty)) %>% 
       mutate(old_nbr = as.character(old_nbr)) %>% 
-      bind_rows(tibble(feature_name = classified_combinations$empty_features, old_nbr = "Todos", is_empty = TRUE)) %>% 
+      bind_rows(tibble(feature_name = classified_features$empty_features, old_nbr = "Todos", is_empty = TRUE)) %>% 
       mutate(
         reason = case_when(
           is_empty ~ 'No se encontró información.',
@@ -467,7 +467,12 @@ create_notification_bubble <- function() {
     bubble.innerText = '!';
     bubble.style = 'position: absolute; top:-8px; left: 60px; padding: 1px 9px 0px; background-color: red; color: white; font-size: 1em; border-radius: 50%; display: block;';
     tab.parentNode.insertBefore(bubble, tab.nextSibling);
-    tab.onclick = () => {bubble.parentNode.removeChild(bubble);}
+    tab.onclick = () => {
+      let bubble = document.querySelector('span[id=\"alert-bubble\"]');
+      if (bubble) {
+        bubble.parentNode.removeChild(bubble);
+      }
+    }
   ")
 }
 
