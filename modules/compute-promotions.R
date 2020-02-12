@@ -493,66 +493,53 @@ calculate_shelves_number <- function(height, reduced_shelf_height, extra_space, 
   shelves
 }
 
-## Cálculo de máxima cantidad (pzas / rrp)
-create_capacity_columns <- function(data, prefix, measures, waste_space, extra_space) {
-  initial_columns <- names(data)
-  data <- data %>% 
-    mutate(
-      reduced_height = alto_cm - waste_space,
-      max_shelves = 7,
-      shelves_number = calculate_shelves_number(!!measures$height, reduced_height, extra_space, max_shelves),
-      ah = round(reduced_height - (shelves_number * extra_space), digits = 2),
-      lh = round(ah / shelves_number, digits = 2),
-      avail_space = round(ancho_cm * profundo_cm * ah, digits = 2),
-      tiers_per_shelf = floor(lh / !!measures$height),
-      tiers_ttl = round(tiers_per_shelf * shelves_number),
-      length_qty = floor(ancho_cm / !!measures$length),
-      width_qty = floor(profundo_cm / !!measures$width),
-      max_qty = round(tiers_ttl * width_qty * length_qty)
-    ) %>% 
-    select(-c(reduced_height, max_shelves))
-  new_names <- setdiff(names(data), initial_columns)
-  new_modified_names <- c(initial_columns, paste0(prefix, new_names))
-  set_names(data, new_modified_names)
-}
-
 ## Usa las medidas de los muebles para obtener las piezas máximas
 perform_spatial_computations <- function(data) {
   finger_space <- 2.54
   tray_space <- 4.4958
   extra_space <- finger_space + tray_space
   waste_space <- 11
-  item_measures <- syms(c(length = 'item_length_qty', height = 'item_height_qty', width = 'item_width_qty'))
-  whpk_measures <- syms(c(length = 'whpk_length_qty', height = 'whpk_height_qty', width = 'whpk_width_qty'))
   
   data %>% 
-    create_capacity_columns('no_rrp_', item_measures, waste_space, extra_space) %>% 
-    create_capacity_columns('rrp_', whpk_measures, waste_space, extra_space) %>% 
     mutate(
-      pallet_length_item_qty = round(ancho_cm / item_length_qty),
-      pallet_height_item_qty = round(alto_cm / item_height_qty),
-      pallet_width_item_qty  = round(profundo_cm  / item_width_qty),
-      pallet_length_whpk_qty = round(ancho_cm / whpk_length_qty),
-      pallet_height_whpk_qty = round(alto_cm / whpk_height_qty),
-      pallet_width_whpk_qty  = round(profundo_cm  / whpk_width_qty),
-      rrp_full_vol = round(rrp_max_qty * whpk_length_qty * whpk_width_qty * whpk_height_qty, digits = 2),
-      left_avail_space = rrp_avail_space - rrp_full_vol,
+      # Placeholders temporales para las medidas (pueden ser de las piezas o del RRP)
+      height = ifelse(rrp_ind == 'N', item_height_qty, whpk_height_qty),
+      width  = ifelse(rrp_ind == 'N', item_width_qty,  whpk_width_qty),
+      length = ifelse(rrp_ind == 'N', item_length_qty, whpk_length_qty),
+      # Cálculos de máxima capacidad en cabecera
+      reduced_height = alto_cm - waste_space,
+      max_shelves = 7,
+      shelves_number = calculate_shelves_number(height, reduced_height, extra_space, max_shelves),
+      available_height = round(reduced_height - (shelves_number * extra_space), digits = 2),
+      shelf_height = round(available_height / shelves_number, digits = 2),
+      tiers_per_shelf = floor(shelf_height / height),
+      tiers_ttl = round(tiers_per_shelf * shelves_number),
+      length_qty = floor(ancho_cm / length),
+      width_qty = floor(profundo_cm / width),
+      max_qty = round(tiers_ttl * width_qty * length_qty),
+      avail_space = round(ancho_cm * profundo_cm * available_height, digits = 2),
+      # Cálculos de máxima capacidad en base
+      pallet_length_qty = round(ancho_cm / length),
+      pallet_height_qty = round(alto_cm / height),
+      pallet_width_qty  = round(profundo_cm  / width),
+      pallet_total_qty = round(pallet_length_qty * pallet_height_qty * pallet_width_qty),
+      # Piezas adicionales
+      rrp_full_vol = round(max_qty * whpk_length_qty * whpk_width_qty * whpk_height_qty, digits = 2),
+      left_avail_space = avail_space - rrp_full_vol,
       bkp_extra_pcs = floor(left_avail_space / (item_length_qty * item_width_qty * item_height_qty)),
+      # Cantidad final
       max_item_capacity = case_when(
-        grepl('BASE', used_shelf) & rrp_ind == 'N' ~ 
-          round(pallet_length_item_qty * pallet_height_item_qty * pallet_width_item_qty),
-        grepl('BASE', used_shelf) & rrp_ind == 'Y' ~ 
-          round(pallet_length_whpk_qty * pallet_height_whpk_qty * pallet_width_whpk_qty * whpk_qty),
-        grepl('CABECERA', used_shelf) & rrp_ind == 'N' ~ no_rrp_max_qty,
-        grepl('CABECERA', used_shelf) & rrp_ind == 'Y' ~ rrp_max_qty * whpk_qty + bkp_extra_pcs,
+        grepl('BASE', used_shelf) & rrp_ind == 'N' ~ pallet_total_qty,
+        grepl('BASE', used_shelf) & rrp_ind == 'Y' ~ pallet_total_qty * whpk_qty,
+        grepl('CABECERA', used_shelf) & rrp_ind == 'N' ~ max_qty,
+        grepl('CABECERA', used_shelf) & rrp_ind == 'Y' ~ max_qty * whpk_qty + bkp_extra_pcs,
         # Se multiplican por 3 porque la base de datos trae las medidas de una media base, y una chimenea equivale a una media base sobre una base, es decir, 3 medias bases.
-        grepl('CHIMENEA', used_shelf) & rrp_ind == 'N' ~ 
-          round(pallet_length_item_qty * pallet_height_item_qty * pallet_width_item_qty * 3),
-        grepl('CHIMENEA', used_shelf) & rrp_ind == 'Y' ~ 
-          round(pallet_length_whpk_qty * pallet_height_whpk_qty * pallet_width_whpk_qty * whpk_qty * 3),
+        grepl('CHIMENEA', used_shelf) & rrp_ind == 'N' ~ pallet_total_qty * 3,
+        grepl('CHIMENEA', used_shelf) & rrp_ind == 'Y' ~ pallet_total_qty * whpk_qty * 3,
         TRUE ~ 0
       )
-    )
+    ) %>% 
+    select(-c(reduced_height, max_shelves, height, length, width))
 }
 
 ## Resume la base de datos de muebles a cierto nivel
