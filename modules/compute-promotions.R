@@ -940,8 +940,19 @@ generate_dispersion_histogram_data <- function(output_filtered_data, bins_type =
 }
 
 ## Generar el nombre de la promo para GRS
-generate_promo_name <- function(dept_nbr, user, feature_name) {
-  sprintf('MX_D%d_PF_%s_%s', dept_nbr, toupper(user), feature_name)
+generate_promo_name <- function(input_data) {
+  input_data %>% 
+    select(dept_nbr, user, feature_name) %>% 
+    group_by(feature_name) %>% 
+    transmute(
+      promo_name = sprintf(
+        'MX_D%s_PF_%s_%s',
+        paste0(unique(dept_nbr), collapse = '_D'),
+        toupper(unique(user)),
+        unique(feature_name)
+      )
+    ) %>% 
+    pull(promo_name)
 }
 
 ## Generar el id de tienda en formato para GRS
@@ -953,7 +964,7 @@ generate_loc_id <- function(store_nbr) {
 generate_header <- function(input_data, impact_toggle = 'swap') {
   input_data %>% 
     transmute(
-      `*Promotion` = generate_promo_name(dept_nbr, user, feature_name),
+      `*Promotion` = generate_promo_name(.),
       Description = '',
       StartDate = StartDate,
       EndDate = EndDate,
@@ -977,7 +988,7 @@ generate_header <- function(input_data, impact_toggle = 'swap') {
 generate_detail <- function(output_data) {
   output_data %>% 
     transmute(
-      `*Promotion` = generate_promo_name(dept_nbr, user, feature_name),
+      `*Promotion` = generate_promo_name(.),
       `*StartDate` = StartDate,
       `*CID DMDUNIT NBR` = cid,
       `*DMDGroup` = '-',
