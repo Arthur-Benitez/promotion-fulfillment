@@ -970,7 +970,7 @@ generate_detail <- function(output_data) {
       `*DMDGroup` = '-',
       `*Loc` = generate_loc_id(store_nbr),
       `PRESENTATION PCT` = 0,
-      `PRESENTATION QTY ` = round(feature_qty_fin),
+      `PRESENTATION QTY ` = feature_qty_fin,
       `OFFSET START DAYS` = 0,
       `OFFSET END DAYS` = 0,
       `SPMTL ORDER QTY` = 0,
