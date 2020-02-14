@@ -552,6 +552,21 @@ mean_shelves <- function(data, groups, suffix) {
     ungroup()
 }
 
+## Obtiene la base con los muebles por cada feature-store que aplica en la base original
+get_shelves <- function(data, stores_shelves_df, suffix) {
+  data %>%
+    select(feature_name, store_nbr, dept_nbr, shelf) %>%
+    distinct() %>%
+    # Para un mismo feature-store puede haber más de un renglón (si un dept tiene el mueble y otro no) por lo que este debe ser inner join
+    inner_join(stores_shelves_df, by = c('store_nbr', 'shelf', 'dept_nbr')) %>% 
+    group_by(store_nbr, shelf, feature_name) %>% 
+    arrange(desc(shelves_qty)) %>% 
+    filter(row_number() == 1) %>% 
+    ungroup() %>% 
+    select(-c(dept_nbr, negocio, shelves_qty)) %>% 
+    rename_at(vars(contains('cm'), found), paste0, suffix)
+}
+
 ## Función para elegir mueble y calcular las piezas
 calculate_max_capacity <- function(data){
   initial_columns <- names(data)
@@ -568,22 +583,18 @@ calculate_max_capacity <- function(data){
   # Bases de datos internas
   business_average_shelves <- mean_shelves(stores_shelves_df, c('negocio', 'shelf'), '_business_average_shelves')
   average_shelves <- mean_shelves(stores_shelves_df, c('shelf'), '_average_shelves')
-  stores_shelves <- stores_shelves_df %>% 
-    select(-c(negocio, shelves_qty)) %>% 
-    rename_at(vars(contains('cm'), found), paste0, '_shelves')
-  stores_default_shelves <- stores_shelves_df %>% 
-    select(-c(negocio, shelves_qty)) %>% 
-    rename_at(vars(contains('cm'), found), paste0, '_default_shelves')
+  stores_shelves <- get_shelves(data, stores_shelves_df, '_shelves')
+  stores_default_shelves <- get_shelves(data, stores_shelves_df, '_default_shelves')
   
   sorted_data <- data %>% 
     left_join(rrp_sync_data, by = 'old_nbr') %>% 
     mutate_at(vars('rrp_ind', 'gs1_sync_status'), list(~replace_na(., 'N'))) %>% 
     # Convertir de decímetros a centímetros
     mutate_at(vars(contains('length'), contains('width'), contains('height')), ~.x * 10) %>% 
-    left_join(stores_shelves, by = c('store_nbr', 'shelf', 'dept_nbr')) %>% 
+    left_join(stores_shelves, by = c('store_nbr', 'shelf', 'feature_name')) %>% 
     left_join(
       stores_default_shelves,
-      by = c('store_nbr' = 'store_nbr', 'default_shelf' = 'shelf', 'dept_nbr' = 'dept_nbr')
+      by = c('store_nbr' = 'store_nbr', 'default_shelf' = 'shelf', 'feature_name' = 'feature_name')
     ) %>% 
     mutate(
       classification = case_when(
@@ -927,8 +938,18 @@ generate_dispersion_histogram_data <- function(output_filtered_data, bins_type =
 }
 
 ## Generar el nombre de la promo para GRS
-generate_promo_name <- function(dept_nbr, user, feature_name) {
-  sprintf('MX_D%d_PF_%s_%s', dept_nbr, toupper(user), feature_name)
+generate_promo_name <- function(input_data) {
+  input_data %>% 
+    group_by(feature_name) %>% 
+    transmute(
+      promo_name = sprintf(
+        'MX_D%s_PF_%s_%s',
+        names(which.max(table(dept_nbr))),
+        toupper(unique(user)),
+        unique(feature_name)
+      )
+    ) %>% 
+    pull(promo_name)
 }
 
 ## Generar el id de tienda en formato para GRS
@@ -940,7 +961,7 @@ generate_loc_id <- function(store_nbr) {
 generate_header <- function(input_data, impact_toggle = 'swap') {
   input_data %>% 
     transmute(
-      `*Promotion` = generate_promo_name(dept_nbr, user, feature_name),
+      `*Promotion` = generate_promo_name(.),
       Description = '',
       StartDate = StartDate,
       EndDate = EndDate,
@@ -964,7 +985,7 @@ generate_header <- function(input_data, impact_toggle = 'swap') {
 generate_detail <- function(output_data) {
   output_data %>% 
     transmute(
-      `*Promotion` = generate_promo_name(dept_nbr, user, feature_name),
+      `*Promotion` = generate_promo_name(.),
       `*StartDate` = StartDate,
       `*CID DMDUNIT NBR` = cid,
       `*DMDGroup` = '-',
