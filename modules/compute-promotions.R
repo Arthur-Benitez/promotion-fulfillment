@@ -570,9 +570,8 @@ get_shelves <- function(data, stores_shelves_df, suffix) {
   data %>%
     select(feature_name, store_nbr, dept_nbr, shelf) %>%
     distinct() %>%
-    left_join(stores_shelves_df, by = c('store_nbr', 'shelf', 'dept_nbr')) %>% 
-    # Para un mismo feature-store puede haber más de un renglón (si un dept tiene el mueble y otro no)
-    filter(!is.na(found)) %>% 
+    # Para un mismo feature-store puede haber más de un renglón (si un dept tiene el mueble y otro no) por lo que este debe ser inner join
+    inner_join(stores_shelves_df, by = c('store_nbr', 'shelf', 'dept_nbr')) %>% 
     group_by(store_nbr, shelf, feature_name) %>% 
     arrange(desc(shelves_qty)) %>% 
     filter(row_number() == 1) %>% 
@@ -954,12 +953,11 @@ generate_dispersion_histogram_data <- function(output_filtered_data, bins_type =
 ## Generar el nombre de la promo para GRS
 generate_promo_name <- function(input_data) {
   input_data %>% 
-    select(dept_nbr, user, feature_name) %>% 
     group_by(feature_name) %>% 
     transmute(
       promo_name = sprintf(
         'MX_D%s_PF_%s_%s',
-        paste0(unique(dept_nbr), collapse = '_D'),
+        names(which.max(table(dept_nbr))),
         toupper(unique(user)),
         unique(feature_name)
       )
