@@ -598,22 +598,22 @@ calculate_max_capacity <- function(data){
     ) %>% 
     mutate(
       classification = case_when(
-        is.na(shelf) & !is.na(as.numeric(default_shelf)) ~ 'FORCED_DEFAULT',
-        found_shelves ~ 'SHELF_FOUND',
-        !is.na(as.numeric(default_shelf)) ~ 'UNFORCED_DEFAULT_PCS',
-        found_default_shelves ~ 'UNFORCED_DEFAULT_CHAR',
-        TRUE ~ 'NOT_FOUND'
+        is.na(shelf) & !is.na(as.numeric(default_shelf)) ~ 'PIEZAS_FORZADAS',
+        found_shelves ~ 'DESEADO_ENCONTRADO',
+        !is.na(as.numeric(default_shelf)) ~ 'PIEZAS_NO_FORZADAS.',
+        found_default_shelves ~ 'PREDETERMINADO_ENCONTRADO',
+        TRUE ~ 'NO_ENCONTRADO'
       ),
       used_shelf = case_when(
-        classification == 'FORCED_DEFAULT' ~ 'PIECES NUMBER',
-        classification == 'SHELF_FOUND' ~ shelf,
-        classification == 'UNFORCED_DEFAULT_PCS' ~ 'PIECES NUMBER',
-        classification == 'UNFORCED_DEFAULT_CHAR' ~ default_shelf,
-        classification == 'NOT_FOUND' ~ default_shelf
+        classification == 'PIEZAS_FORZADAS' ~ 'PIEZAS',
+        classification == 'DESEADO_ENCONTRADO' ~ shelf,
+        classification == 'PIEZAS_NO_FORZADAS.' ~ 'PIEZAS',
+        classification == 'PREDETERMINADO_ENCONTRADO' ~ default_shelf,
+        classification == 'NO_ENCONTRADO' ~ default_shelf
       )
     )
   
-  ready_classifications <- c('FORCED_DEFAULT', 'UNFORCED_DEFAULT_PCS')
+  ready_classifications <- c('PIEZAS_FORZADAS', 'PIEZAS_NO_FORZADAS.')
   ready_data <- sorted_data %>% 
     filter(classification %in% ready_classifications) %>% 
     mutate(max_item_capacity = as.numeric(default_shelf))
