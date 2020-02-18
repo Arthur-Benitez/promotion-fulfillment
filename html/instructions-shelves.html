@@ -1,19 +1,19 @@
 <!DOCTYPE html>
 <h2>Muebles</h2>
-<p>En esta sección, podrás encontrar información relacionada al uso de las columnas de muebles y cómo estas afectan el cálculo.</p>
-<p>Las columnas de muebles permiten calcular una <b>aproximación</b> del número máximo de piezas que puede tener una exhibición en una tienda de acuerdo a los artículos que se incluyen en la misma. Para obtener esta aproximación, se usa un algoritmo que verifica la existencia del mueble que buscas en cada una de las tiendas del formato de la promoción; después, para el mueble encontrado en cada tienda, se usa el espacio disponible del mueble y las dimensiones de los artículos de la promoción para lograr aproximar el número de piezas que caben de cada artículo, considerando su participación de venta para esa tienda.</p>
+<p>Las columnas de muebles permiten calcular una <b>aproximación</b> del número máximo de piezas que puede cargar una exhibición, incluyendo exhibiciones compartidas entre varios artículos.</p>
+<p>Después de que seleccionas el mueble, se usa un algoritmo que verifica su existencia en cada una de las tiendas del formato. Una vez encontrado el mueble, se calculan las piezas máximas con base en las dimensiones del mueble, de los artículos y su participación de venta.</p>
 <ul>
-  <li><b>Mueble deseado:</b> Es el mueble real en el que se desea tener la exhibición adicional en la tienda, el designado junto con el comprador de acuerdo a la GDM.</li>
+  <li><b>Mueble deseado:</b> Es el mueble asignado en la GDM.</li>
   <ul>
     <li><em>Uso:</em> Las únicas opciones válidas son: __shelves__.</li>
   </ul>
-  <li><b>Mueble predeterminado:</b> Es un mueble semejante al deseado. En caso de que en una tienda no se encuentre el mueble deseado para el departamento de la promoción, entonces se buscará este mueble.</li>
+  <li><b>Mueble predeterminado:</b> En caso de que en una tienda no se encuentre el mueble deseado, entonces se buscará este mueble como segunda opción para el cálculo.</li>
   <ul>
-    <li><em>Uso:</em> Las opciones válidas son las mismas que para el mueble deseado, pero este campo también admite que escribas el número máximo de piezas que deben sumar entre todos los artículos para una sola tienda.</li>
+    <li><em>Uso:</em> Puedes elegir entre las mismas opciones que el mueble deseado, <b>o</b> puedes definir el número máximo de piezas a cargar entre todos los artículos de la exhibición por tienda.</li>
     <li><em>Características especiales:</em></li>
     <ul>
-       <li>Si en una tienda no se encuentra el mueble predeterminado para el departamento en cuestión, entonces se usará un promedio de las medidas de todos los muebles que sean del mismo tipo que el mueble predeterminado (__shelves__).</li>
-      <li>Si ingresas el número de piezas, en caso de que para una tienda no se encuentre el mueble deseado, el número que ingresaste pasará directamente a ser el máximo de piezas en la exhibición (sumando todos los artículos).</li>
+       <li>Si en una tienda no se encuentra el mueble predeterminado para una tienda, entonces se usará un promedio de las medidas.</li>
+      <li>Si ingresaste el número de piezas, en caso de que para una tienda no se encuentre el mueble deseado, el número que ingresaste pasará directamente a ser el máximo de piezas en la exhibición (sumando todos los artículos).</li>
     </ul>
   </ul>
 </ul>
