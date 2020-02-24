@@ -4,7 +4,7 @@ library(tidyverse)
 
 path_zonas <- 'data/deptos-zona.csv'
 path_depts <- 'data/deptos-vp.csv'
-path_save <- 'data/stores-shelfs.csv'
+path_save <- 'data/stores-shelves.csv'
 
 stores_paths <- list(
   sc = 'data/bases-cabeceras-sc.csv',
@@ -14,26 +14,20 @@ stores_paths <- list(
   bae = 'data/bases-cabeceras-bae.csv'
 )
 
-previous_levels <- c("ABARROTES Y VINOS", "APERTURAS", "CONSUMIBLES", "FARMACIA", "FRESH", "MG", "PERECEDEROS", "ROPA", "SALUD Y NUEVOS NEGOCIOS", 'PRICHOS')
-
-new_levels <- c('ABARROTES', 'APERTURAS', 'CONSUMIBLES', 'FARMACIA', 'ABARROTES FRESCOS', 'MERCANCIAS GENERALES', 'PERECEDEROS', 'ROPA', 'MERCANCIAS GENERALES', 'PRICHOS')
-
-
 # Files reading -----------------------------------------------------------
 
 zonas <- read_csv(path_zonas) %>% 
   filter(conocido == TRUE)
 
-deptos_vp <- read_csv(path_depts) %>% 
-  mutate(vp = as.character(factor(vp, levels = previous_levels, labels = new_levels)))
+deptos_vp <- read_csv(path_depts)
 
 stores_tables <- lapply(stores_paths, function(x){
   x %>% 
     read_csv %>% 
     na.omit %>% 
     set_names(tolower(names(.))) %>% 
-    gather('zona', 'shelfs_qty', -(store_nbr:total)) %>% 
-    filter(shelfs_qty > 0)
+    gather('zona', 'shelves_qty', -(store_nbr:total)) %>% 
+    filter(shelves_qty > 0)
 })
 
 
@@ -65,7 +59,7 @@ dictionary <- depto_df %>%
 
 # Stores tables processing ------------------------------------------------
 
-stores_shelfs <- stores_tables %>% 
+stores_shelves <- stores_tables %>% 
   do.call(rbind, .) %>% 
   left_join(dictionary, by = 'zona') %>% 
   mutate(
