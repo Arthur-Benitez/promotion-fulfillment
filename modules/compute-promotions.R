@@ -571,8 +571,7 @@ get_shelves <- function(data, stores_shelves_df, suffix) {
 calculate_max_capacity <- function(data){
   initial_columns <- names(data)
   # Bases de datos externas
-  rrp_sync_data <- readRDS(gl$rrp_sync_database) %>% 
-    set_names(tolower(names(.)))
+  rrp_sync_data <- readRDS(gl$rrp_sync_database)
   stores_shelves_df <- read_csv(gl$shelves_database) %>% 
     select(negocio, store_nbr, shelf, dept_nbr, alto_cm, ancho_cm, profundo_cm, shelves_qty) %>% 
     group_by(store_nbr, shelf, dept_nbr) %>% 
