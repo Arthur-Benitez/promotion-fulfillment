@@ -21,7 +21,13 @@ update_rrp_info <- function(ch = NULL, credentials, connector = 'production-conn
       connector =  connector,
       query = query,
       stringsAsFactors = FALSE
-    )
+    ) %>% 
+      as_tibble() %>% 
+      set_names(tolower(names(.))) %>% 
+      rename(
+        old_nbr = item_nbr,
+        rrp_ind = retail_ready_pack_ind
+      )
     backup_file(
       res,
       folder = dirname(gl$rrp_sync_database),
