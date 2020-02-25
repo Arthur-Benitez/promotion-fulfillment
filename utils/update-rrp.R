@@ -3,15 +3,22 @@
 
 library(tidyverse)
 
-working_dir <- '/home/rstudio/dev/DEV-promo-fulfillment-app'
+app_deployment_environment <- getArgument('app_deployment_environment', 'PARAMS')
+
+if (app_deployment_environment == 'prod') {
+  setwd('/home/rstudio/prod/promo-fulfillment-app-produccion')
+} else {
+  setwd('/home/rstudio/dev/DEV-promo-fulfillment-app')
+}
+
 functions_path <- 'utils/functions.R'
-rrp_database_path <- file.path(working_dir, 'data/item-rrp-sync-result.rds')
+rrp_database_path <- 'data/item-rrp-sync-result.rds'
 rrp_query_path <- 'sql/item_rrp_sync.sql'
 connector <- 'db2-production-connector'
 rrp_backups_n <- 5
-source(file.path(working_dir, functions_path))
+source(functions_path)
 
-query <- readLines(file.path(working_dir, rrp_query_path)) %>% 
+query <- readLines(rrp_query_path) %>% 
   paste(collapse = '\n')
 res <- mlutils::dataset.load(
   name = connector,
