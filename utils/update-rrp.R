@@ -66,7 +66,7 @@ if (is.data.frame(res$result)) {
 }
 
 tryCatch({
-  backup_file(
+  backup_name <- backup_file(
     res,
     folder = dirname(rrp_database_path),
     complete_file_name = basename(rrp_database_path),
@@ -82,4 +82,12 @@ tryCatch({
   )))
 })
 saveRDS(res, rrp_database_path)
+
+flog.info(toJSON(list(
+  message = 'DONE UPDATING RRP INFO',
+  details = list(
+    backup_name = backup_name,
+    backup_path = file.path(getwd(), dirname(rrp_database_path))
+  )
+)))
 
