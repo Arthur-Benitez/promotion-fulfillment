@@ -40,13 +40,15 @@ backup_file <- function(data, folder = 'data', complete_file_name, preserved_bac
   file_details <- unlist(strsplit(complete_file_name, split = '\\.'))
   file_name <- file_details[1]
   file_extension <- file_details[2]
-  saveRDS(data, sprintf('%s/%s-%s.%s', folder, file_name, format(Sys.time(), '%Y%m%d_%H%M%S'), file_extension))
+  backup_name <- sprintf('%s-%s.%s', file_name, format(Sys.time(), '%Y%m%d_%H%M%S'), file_extension)
+  saveRDS(data, file.path(folder, backup_name))
   backups <- list.files(paste0(folder, '/'), pattern = paste0(file_name, '-'), full.names = TRUE)
   total_backups <- length(backups)
   if(total_backups > preserved_backups) {
     backups[1:(total_backups - preserved_backups)] %>% 
     lapply(file.remove)
   }
+  return(backup_name)
 }
 
 ## Función para encadenar condiciones dentro de validate()
