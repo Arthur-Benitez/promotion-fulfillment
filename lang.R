@@ -43,6 +43,7 @@ lang <- list(
   ## UI
   app_name = 'Promo Fulfillment',
   promo = 'Calculadora de Promociones',
+  version_text = 'Versión de la aplicación',
   login = 'Login',
   logout = 'Logout',
   access_denied = 'Acceso denegado',
