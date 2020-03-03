@@ -19,7 +19,7 @@ header <- dashboardHeader(
     tags$div(
       title = lang$version_text,
       class = 'header-text',
-      substr(gl$app_version, start = 1, stop = 3)
+      sprintf('v%s', substr(gl$app_version, start = 1, stop = 3))
     ),
     tags$div(
       title = lang$help_title,
