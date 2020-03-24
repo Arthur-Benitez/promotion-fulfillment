@@ -59,12 +59,36 @@ dictionary <- depto_df %>%
 
 # Stores tables processing ------------------------------------------------
 
-stores_shelves <- stores_tables %>% 
+pre_stores_shelves <- stores_tables %>% 
   do.call(rbind, .) %>% 
   left_join(dictionary, by = 'zona') %>% 
   mutate(
-    shelf = toupper(paste(nombre_mueble, tipo, sep = ' '))
+    shelf = toupper(paste(nombre_mueble, tipo, sep = ' ')),
+    negocio = case_when(
+      negocio == 'SC'  ~ 'SUPERCENTER',
+      negocio == 'BA'  ~ 'BODEGA',
+      negocio == 'MB'  ~ 'MIBODEGA',
+      negocio == 'SP'  ~ 'SUPERAMA',
+      negocio == 'BAE' ~ 'BAE'
+    ),
+    correct_shelf_name = shelf %in% c('BASE', 'MEDIA BASE', 'CABECERA ALTA', 'CABECERA BAJA', 'CHIMENEA')
+  )
+
+pre_stores_shelves %>% 
+  filter(correct_shelf_name == FALSE) %>% 
+  mutate(
+    shelf = case_when(
+      str_detect(shelf, 'MEDIA BASE') & negocio == 'BODEGA' & dept_nbr %in% c(92, 95, 96) ~ 'CHIMENEA',
+      str_detect(shelf, 'MEDIA BASE') ~ 'MEDIA BASE',
+      str_detect(shelf, 'BASE') ~ 'BASE',
+      shelf == 'CABECERA CIRCULAR BAJA' ~ 'CABECERA BAJA',
+      TRUE ~ 'CABECERA ALTA'
+    )
   ) %>% 
+  bind_rows(
+    filter(pre_stores_shelves, correct_shelf_name == TRUE)
+  ) %>% 
+  select(-correct_shelf_name) %>% 
   write_csv(path_save)
 
 
