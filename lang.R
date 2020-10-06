@@ -192,8 +192,8 @@ lang <- list(
 
 lang$need_valid_input <- paste0('El archivo de items no está en el formato correcto.\n', lang$need_input_format)
 lang$no_stores_lists <- paste0('Tu archivo no tiene listas de tiendas especiales para incluir o excluir, por lo que las promociones se calcularán para todas las tiendas válidas de los formatos especificados.\n', lang$need_input_format)
-lang$email_name <- 'Replenishment Data Science MX'
-lang$email <- 'replen_ds_mx@email.wal-mart.com'
+lang$email_name <- 'Squad SCH Performance'
+lang$email <- 'squad_sch_perf@email.wal-mart.com'
 lang$email_subject <- 'Solicitud de activación de Promo Fulfillment'
 lang$email_body <- 'Hola, %0A%0AMe gustaría activar mi cuenta en la aplicación Promo Fulfillment, mi usuario es:%0A%0A[Escribe aquí tu usuario de Windows.]'
 lang$emailto <- paste0('mailto:', lang$email_name, '<', lang$email, '>', '?subject=', lang$email_subject, '&body=', lang$email_body)
