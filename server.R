@@ -29,7 +29,7 @@ shinyServer(function(input, output, session){
         items <- tagList(
           menuItem(tabName = 'promo', text = lang$promo, icon = icon('calculator'), selected = TRUE),
           menuItem(tabName = 'usage_stats', text = lang$usage_stats, icon = icon('tachometer-alt')),
-          menuItem(tabName = 'user_management', text = lang$user_management, icon = icon('users'))
+          menuItem(tabName = 'management', text = lang$management, icon = icon('users'))
         )
       } else {
         items <- tagList(
@@ -58,8 +58,20 @@ shinyServer(function(input, output, session){
             usageStatsUI('usage_stats')
           ),
           tabItem(
-            tabName = 'user_management',
-            userManagementUI('user_management')
+            tabName = 'management',
+            tabBox(
+              width = '100%',
+              tabPanel(
+                value = 'users',
+                title = lang$users,
+                userManagementUI('user_management')
+              ),
+              tabPanel(
+                value = 'data',
+                title = lang$data,
+                dataManagementUI('data_management')
+              )
+            )
           )
         )
       } else {
@@ -133,6 +145,13 @@ shinyServer(function(input, output, session){
   callModule(
     userManagementServer,
     id = 'user_management',
+    credentials = reactive(credentials())
+  )
+  
+  ## Administración de datos RRP
+  callModule(
+    dataManagementServer,
+    id = 'data_management',
     credentials = reactive(credentials())
   )
   

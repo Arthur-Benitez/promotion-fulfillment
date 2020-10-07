@@ -3,6 +3,7 @@ require(purrr)
 lang <- list(
   ## login
   user = 'Usuario',
+  users = 'Usuarios',
   user_name = 'Usuario',
   tribu = 'Tribu',
   puesto = 'Puesto',
@@ -42,12 +43,13 @@ lang <- list(
   ## UI
   app_name = 'Promo Fulfillment',
   promo = 'Calculadora de Promociones',
+  version_text = 'Versión de la aplicación',
   login = 'Login',
   logout = 'Logout',
   access_denied = 'Acceso denegado',
   auto_logout_title = 'La sesión se cerró por inactividad',
   password_update = 'Actualizar contraseña',
-  user_management = 'Administrar usuarios',
+  management = 'Administración',
   button = 'Aplicar',
   run = 'Generar exhibiciones',
   reset = 'Reset',
@@ -56,6 +58,7 @@ lang <- list(
   error = 'Error',
   success = 'Éxito',
   warning = 'Advertencia',
+  alert = 'Alertas',
   done = 'Listo',
   yes = 'Sí',
   no = 'No',
@@ -72,6 +75,7 @@ lang <- list(
   compute_promotions_columns_glossary = 'Glosario de columnas',
   compute_promotions_inputs_title = 'Controles principales. Para más ayuda haz click en "(?) Instrucciones".',
   compute_promotions_computation_parameters = 'Exhibiciones',
+  compute_promotions_shelves = 'Muebles',
   compute_promotions_computation_parameters_title = 'Parámetros que afectan el cálculo de las exhibiciones.',
   compute_promotions_impact_parameters = 'Impacto',
   compute_promotions_impact_parameters_title = 'Parámetros que afectan el cálculo de impacto.',
@@ -96,10 +100,16 @@ lang <- list(
   tab_input = 'Entradas',
   tab_output_histogram = 'Alcance',
   tab_output_summary = 'Resultados',
+  tab_output_item_details = 'Artículos',
   tab_output_table = 'Cálculos',
   tab_input_graph = 'Tabla & Gráfica',
   tab_stores_lists = 'Tiendas especiales',
   feature = 'Promoción',
+  good_features = 'Exhibiciones sin problemas',
+  partial_features = 'Exhibiciones sin información',
+  risky_features = 'Exhibiciones en riesgo',
+  risky_combinations = 'Combinaciones en riesgo',
+  failed_combinations = 'Combinaciones sin información',
   quantity_histogram = 'Alcance a exhibición',
   histogram_selection = 'Histograma a desplegar',
   dispersion_histogram = 'Dispersión de inventario',
@@ -140,6 +150,7 @@ lang <- list(
   need_query_result = 'El query falló :(',
   need_final_result = 'Los cálculos fallaron :(',
   need_select_feature = 'Selecciona una promoción para continuar.',
+  need_alert_existence = 'No hay alertas para mostrar.',
   ## Variables
   dc = 'CEDIS',
   store_nbr = 'Tienda',
@@ -150,8 +161,8 @@ lang <- list(
   departamento = 'Departamento',
   ## Usage Stats
   usage_stats = 'Utilización',
-  refresh = 'Refrescar logs',
-  update_user_info = 'Refrescar info de usuarios',
+  refresh = 'Actualizar logs',
+  update_user_info = 'Actualizar info de usuarios',
   max_days_to_load = 'Número de días a cargar',
   kpi = 'KPI',
   message = 'Evento',
@@ -172,13 +183,17 @@ lang <- list(
   graph_time_title = 'Tiempo de ejecución en segundos',
   graph_time_event = 'Evento',
   graph_time_event_names = c('Query', 'Gráfica de ventas'),
-  detail_table_tab = 'Detalle'
+  detail_table_tab = 'Detalle',
+  data = 'Datos',
+  rrp_sync_info = 'Información de RRP y estatus de sincronización en GS1',
+  db2_password = 'Contraseña de HOST / DB2',
+  update_rrp = 'Actualizar info de RRP'
 )
 
 lang$need_valid_input <- paste0('El archivo de items no está en el formato correcto.\n', lang$need_input_format)
 lang$no_stores_lists <- paste0('Tu archivo no tiene listas de tiendas especiales para incluir o excluir, por lo que las promociones se calcularán para todas las tiendas válidas de los formatos especificados.\n', lang$need_input_format)
-lang$email_name <- 'Replenishment Data Science MX'
-lang$email <- 'replen_ds_mx@email.wal-mart.com'
+lang$email_name <- 'Squad SCH Performance'
+lang$email <- 'squad_sch_perf@email.wal-mart.com'
 lang$email_subject <- 'Solicitud de activación de Promo Fulfillment'
 lang$email_body <- 'Hola, %0A%0AMe gustaría activar mi cuenta en la aplicación Promo Fulfillment, mi usuario es:%0A%0A[Escribe aquí tu usuario de Windows.]'
 lang$emailto <- paste0('mailto:', lang$email_name, '<', lang$email, '>', '?subject=', lang$email_subject, '&body=', lang$email_body)
