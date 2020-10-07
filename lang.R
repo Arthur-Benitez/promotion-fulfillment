@@ -43,6 +43,7 @@ lang <- list(
   ## UI
   app_name = 'Promo Fulfillment',
   promo = 'Calculadora de Promociones',
+  version_text = 'Versión de la aplicación',
   login = 'Login',
   logout = 'Logout',
   access_denied = 'Acceso denegado',
@@ -57,6 +58,7 @@ lang <- list(
   error = 'Error',
   success = 'Éxito',
   warning = 'Advertencia',
+  alert = 'Alertas',
   done = 'Listo',
   yes = 'Sí',
   no = 'No',
@@ -103,6 +105,11 @@ lang <- list(
   tab_input_graph = 'Tabla & Gráfica',
   tab_stores_lists = 'Tiendas especiales',
   feature = 'Promoción',
+  good_features = 'Exhibiciones sin problemas',
+  partial_features = 'Exhibiciones sin información',
+  risky_features = 'Exhibiciones en riesgo',
+  risky_combinations = 'Combinaciones en riesgo',
+  failed_combinations = 'Combinaciones sin información',
   quantity_histogram = 'Alcance a exhibición',
   histogram_selection = 'Histograma a desplegar',
   dispersion_histogram = 'Dispersión de inventario',
@@ -143,6 +150,7 @@ lang <- list(
   need_query_result = 'El query falló :(',
   need_final_result = 'Los cálculos fallaron :(',
   need_select_feature = 'Selecciona una promoción para continuar.',
+  need_alert_existence = 'No hay alertas para mostrar.',
   ## Variables
   dc = 'CEDIS',
   store_nbr = 'Tienda',
@@ -184,8 +192,8 @@ lang <- list(
 
 lang$need_valid_input <- paste0('El archivo de items no está en el formato correcto.\n', lang$need_input_format)
 lang$no_stores_lists <- paste0('Tu archivo no tiene listas de tiendas especiales para incluir o excluir, por lo que las promociones se calcularán para todas las tiendas válidas de los formatos especificados.\n', lang$need_input_format)
-lang$email_name <- 'Replenishment Data Science MX'
-lang$email <- 'replen_ds_mx@email.wal-mart.com'
+lang$email_name <- 'Squad SCH Performance'
+lang$email <- 'squad_sch_perf@email.wal-mart.com'
 lang$email_subject <- 'Solicitud de activación de Promo Fulfillment'
 lang$email_body <- 'Hola, %0A%0AMe gustaría activar mi cuenta en la aplicación Promo Fulfillment, mi usuario es:%0A%0A[Escribe aquí tu usuario de Windows.]'
 lang$emailto <- paste0('mailto:', lang$email_name, '<', lang$email, '>', '?subject=', lang$email_subject, '&body=', lang$email_body)

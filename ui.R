@@ -17,6 +17,11 @@ header <- dashboardHeader(
   tags$li(
     class = 'dropdown header-icons',
     tags$div(
+      title = lang$version_text,
+      class = 'header-text',
+      sprintf('v%s', substr(gl$app_version, start = 1, stop = 3))
+    ),
+    tags$div(
       title = lang$help_title,
       actionButton('help', '', icon = icon('question-circle'), class = 'header-icon')
     ),

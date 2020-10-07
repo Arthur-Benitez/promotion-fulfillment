@@ -23,23 +23,20 @@ h6,
   font-family: "Bogle", "Helvetica Neue", "Helvetica", "Arial", sans-serif !important;
 }
 
-/* Fill azul Walmart */
 .skin-blue .main-header .navbar,
 .skin-blue .main-header .logo,
 .skin-blue .main-header .navbar .sidebar-toggle {
-  background-color: #1A75CF;
+  background-color: #0f1c2c;
 }
 
-/* Border azul Walmart */
 .skin-blue .sidebar-menu>li.active>a,
 .nav-tabs-custom>.nav-tabs>li.active {
-  border-color: #1A75CF;
+  border-color: #eb148d;
 }
 
-/* Fill azul Walmart oscuro (select) */
 .skin-blue .main-header .logo:hover,
 .skin-blue .main-header .navbar .sidebar-toggle:hover {
-  background-color: #003896;
+  background-color: #eb148d;
 }
 
 /* Obligar a que los páneles tengan siempre una altura razonable */
@@ -127,24 +124,24 @@ h6,
 
 .header-icon,
 .header-icon:focus {
-  background-color: #1A75CF;
-  border-color: #1A75CF;
+  background-color: #0f1c2c;
+  border-color: #0f1c2c;
 }
 
 .header-icon:hover {
-  background-color: #003896;
-  border-color: #003896;
+  background-color: #eb148d;
+  border-color: #eb148d;
 }
 
 .header-icon:active,
 .header-icon:active:hover,
 .header-icon:active:focus {
-  background-color: #6CABE7;
-  border-color: #6CABE7;
+  background-color: #eb148d;
+  border-color: #eb148d;
 }
 
 .header-text {
-  width: 50px;
+  width: 55px;
   padding-top: 6px;
   color: white;
   font-size: 30px;
@@ -171,30 +168,30 @@ h6,
 .input-icon,
 .input-icon:focus,
 .input-icon:visited {
-  color: #003896;
+  color: #eb148d;
   background-color: #00000000;
   border-color: #00000000;
 }
 
 .input-icon:hover {
   color: white;
-  background-color: #003896;
-  border-color: #003896;
+  background-color: #eb148d;
+  border-color: #eb148d;
 }
 
 .input-icon:active,
 .input-icon:active:focus {
   color: white;
-  background-color: #6CABE7;
-  border-color: #6CABE7;
+  background-color: #eb148d;
+  border-color: #eb148d;
 }
 
 .material-switch > input[type="checkbox"]:checked + label::before {
-    background: #1A75CF !important;
+    background: #eb148d !important;
 }
 
 .material-switch > input[type="checkbox"]:checked + label::after {
-    background: #003896 !important;
+    background: #eb148d !important;
 }
 
 /* Tablas */
@@ -207,15 +204,15 @@ h6,
 
 table.dataTable thead tr th {
   color: white;
-  background-color: #1A75CF;
+  background-color: #0f1c2c;
 }
 
 table.dataTable thead tr td {
-  background-color: #6CABE7;
+  background-color: #eb148d;
 }
 
 table.dataTable thead tr th.header-theme1 {
-  background-color: #eb148d;
+  background-color: #0071ce;
 }
 
 table.dataTable thead tr th.header-theme2 {
@@ -223,11 +220,11 @@ table.dataTable thead tr th.header-theme2 {
 }
 
 table.dataTable thead tr th.header-theme3 {
-  background-color: #041e42;
+  background-color: #de1c24;
 }
 
 table.dataTable thead tr th.header-theme4 {
-  background-color: #de1c24;
+  background-color: #78b9e7;
 }
 
 /* Gráficas */
@@ -266,14 +263,14 @@ table.dataTable thead tr th.header-theme4 {
 }
 
 .modal-body button[data-dismiss="modal"] {
-  background-color: #1A75CF;
-  border-color: #1A75CF;
+  background-color: #0f1c2c;
+  border-color: #0f1c2c;
 }
 
 .modal-body button[data-dismiss="modal"]:active,
 .modal-body button[data-dismiss="modal"]:active:hover {
-  background-color: #6CABE7;
-  border-color: #6CABE7;
+  background-color: #eb148d;
+  border-color: #eb148d;
 }
 
 .modal-body button[data-dismiss="modal"]:hover {
@@ -306,7 +303,7 @@ table.dataTable thead tr th.header-theme4 {
 
 /* Loading de gráfica de ventas */
 #compute_promotions-grafica_ventas + .shiny-output-error-validation {
-    color: #1a75cf;
+    color: #0f1c2c;
     font-size: 20px;
 }
 
