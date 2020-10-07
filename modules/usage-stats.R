@@ -99,7 +99,7 @@ usageStatsServer <- function(input, output, session, credentials, dev_connection
     req('owner' %in% credentials()$role)
     actionButton(session$ns('update_user_info'), lang$update_user_info, icon = icon('redo-alt'))
   })
-  
+  # checkpoint
   ## Actualizar base de usuarios
   update_user_info <- reactiveVal(0)
   update_user_df <- reactiveVal(0)

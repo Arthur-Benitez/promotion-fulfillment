@@ -475,7 +475,6 @@ all_credentials <- function(session, user_data_path, app_deployment_environment)
   return(res)
 }
 
-
 # Login -------------------------------------------------------------------
 
 ## UI
@@ -688,7 +687,7 @@ userManagementUI <- function(id) {
   names(actions) <- c(lang$add, lang$update_password, lang$update_role, lang$delete)
   shiny::wellPanel(
     id = ns('manage_users'),
-    shiny::h2(lang$manage_users),
+    shiny::h3(lang$manage_users),
     shiny::uiOutput(ns('user_list_ui')),
     shiny::textInput(ns('new_user'), lang$user),
     shiny::textInput(ns('new_password'), lang$password),
@@ -727,13 +726,10 @@ userManagementServer <- function(input, output, session, credentials) {
     shiny::updateTextInput(session, 'new_password', value = '')
     shiny::updateSelectInput(session, 'new_role', selected = user$role)
   })
-  
   msg <- reactiveVal()
   output$msg_text <- renderText(msg())
   shiny::observeEvent(input$button, {
-    
     users <- load_users(gl$user_data_path)
-    
     if (input$action == 'add') {
       users <- users %>% 
         add_user(credentials(), input$new_user, input$new_password, input$new_role)
@@ -747,7 +743,6 @@ userManagementServer <- function(input, output, session, credentials) {
       users <- users %>% 
         delete_user(credentials(), input$new_user)
     }
-    
     if (users$status == 0) {
       save_users(users$users, gl$user_data_path)
       msg(switch(
@@ -768,11 +763,7 @@ userManagementServer <- function(input, output, session, credentials) {
         lang$unknown_action
       ))
     }
-    
     shinyjs::show(id = 'msg', anim = TRUE, time = 1, animType = 'fade')
     shinyjs::delay(5000, shinyjs::hide(id = "msg", anim = TRUE, time = 1, animType = "fade"))
   })
 }
-
-
-
