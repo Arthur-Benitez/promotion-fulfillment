@@ -1,86 +1,86 @@
 name	type	is_constant_by_feature	is_input	is_required_input	allow_na	format	theme	digits	pretty_name	description
-feature_name	character	TRUE	TRUE	TRUE	FALSE	character	default		ID Promo	"Nombre único de la promo (hasta 22 caracteres, sin espacios)."
-user	character	TRUE	TRUE	TRUE	FALSE	character	default		Usuario	Usuario de red que cargará las promos.
-dept_nbr	numeric	FALSE	TRUE	TRUE	FALSE	character	default		Departamento	Número de departamento (sin ceros a la izquierda).
+feature_name	character	TRUE	TRUE	TRUE	FALSE	character	default		ID Promo	"Nombre Ãºnico de la promo (hasta 22 caracteres, sin espacios)."
+user	character	TRUE	TRUE	TRUE	FALSE	character	default		Usuario	Usuario de red que cargarÃ¡ las promos.
+dept_nbr	numeric	FALSE	TRUE	TRUE	FALSE	character	default		Departamento	NÃºmero de departamento (sin ceros a la izquierda).
 negocio	character	TRUE	TRUE	TRUE	FALSE	character	default		Negocio	"Formato de negocio (BAE, BODEGA, MIBODEGA, SUPERAMA o SUPERCENTER)"
-old_nbr	numeric	FALSE	TRUE	TRUE	FALSE	character	default		Artículo (old_nbr)	Número de artículo de HOST (old_nbr en Teradata).
-primary_desc_temp	character	FALSE	TRUE	FALSE	TRUE	character	default		Descripción (opcional)	Descripción del artículo sólo para referencia en la página de inputs. En los resultados se sustituye por la descripción del artículo primario.
-min_feature_perc	numeric	TRUE	TRUE	TRUE	FALSE	percent	default	0	Mínimo de exhibición (%)	"Porcentaje de la cantidad máxima de piezas en el mueble que se desea en la exhibición (entre todos los artículos). Su efecto depende de la opción seleccionada en ""Lógica mínimo""."
-min_feature_qty	numeric		FALSE			comma	default	0	Mínimo de exhibición	"Mínimas piezas totales en el mueble (entre todos los artículos). Su efecto depende de la opción seleccionada en ""Lógica mínimo""."
-max_feature_qty	numeric		FALSE			comma	default	0	Máximo de exhibición	Máximas piezas totales en el mueble (entre todos los artículos).
-shelf	character	TRUE	TRUE	TRUE	TRUE	character	default		Mueble deseado	"Tipo de mueble que tendrá la exhibición (Base, Media Base, Cabecera alta, Cabecera baja, Cabecera circular)."
-default_shelf	character	TRUE	TRUE	TRUE	TRUE	character	default		Mueble predeterminado	Tipo de mueble que se usará para los cálculos en las combinaciones en las que no se encuentre el mueble deseado ó maximas piezas por exhibición.
-max_ddv	numeric	FALSE	TRUE	TRUE	FALSE	comma	default	1	Máximo de DDV	Tope máximo de días de venta por artículo.
-semana_ini	numeric	TRUE	TRUE	TRUE	FALSE	character	default		Semana inicial cálculo	"Semana Walmart inicial para calcular forecast o ventas (debe ser a pasado si fcst_or_sales = ""S"" y a futuro si es = ""F"")."
-semana_fin	numeric	TRUE	TRUE	TRUE	FALSE	character	default		Semana final cálculo	"Semana Walmart final para calcular forecast o ventas (debe ser a pasado si fcst_or_sales = ""S"" y a futuro si es = ""F"")."
-fcst_or_sales	character	TRUE	TRUE	TRUE	FALSE	character	default		¿Forecast o ventas?	"""F"" para usar forecast y ""S"" para usar ventas."
+old_nbr	numeric	FALSE	TRUE	TRUE	FALSE	character	default		ArtÃ­culo (old_nbr)	NÃºmero de artÃ­culo de HOST (old_nbr en Teradata).
+primary_desc_temp	character	FALSE	TRUE	FALSE	TRUE	character	default		DescripciÃ³n (opcional)	DescripciÃ³n del artÃ­culo sÃ³lo para referencia en la pÃ¡gina de inputs. En los resultados se sustituye por la descripciÃ³n del artÃ­culo primario.
+min_feature_perc	numeric	TRUE	TRUE	TRUE	FALSE	percent	default	0	MÃ­nimo de exhibiciÃ³n (%)	"Porcentaje de la cantidad mÃ¡xima de piezas en el mueble que se desea en la exhibiciÃ³n (entre todos los artÃ­culos). Su efecto depende de la opciÃ³n seleccionada en ""LÃ³gica mÃ­nimo""."
+min_feature_qty	numeric		FALSE			comma	default	0	MÃ­nimo de exhibiciÃ³n	"MÃ­nimas piezas totales en el mueble (entre todos los artÃ­culos). Su efecto depende de la opciÃ³n seleccionada en ""LÃ³gica mÃ­nimo""."
+max_feature_qty	numeric		FALSE			comma	default	0	MÃ¡ximo de exhibiciÃ³n	MÃ¡ximas piezas totales en el mueble (entre todos los artÃ­culos).
+shelf	character	TRUE	TRUE	TRUE	TRUE	character	default		Tipo de Mueble	"Tipo de mueble que tendrÃ¡ la exhibiciÃ³n (Base, Media Base, Cabecera alta, Cabecera baja, Cabecera circular)."
+default_shelf	character	TRUE	TRUE	TRUE	TRUE	character	default		Mueble Guia de Mercadeo	Tipo de mueble que se usarÃ¡ para los cÃ¡lculos en las combinaciones en las que no se encuentre el mueble deseado Ã³ maximas piezas por exhibiciÃ³n.
+max_ddv	numeric	FALSE	TRUE	TRUE	FALSE	comma	default	1	MÃ¡ximo de DDV	Tope mÃ¡ximo de dÃ­as de venta por artÃ­culo.
+fcst_or_sales	character	TRUE	TRUE	TRUE	FALSE	character	default		Â¿Forecast o ventas?	"""F"" para usar forecast y ""S"" para usar ventas."
+semana_ini	numeric	TRUE	TRUE	TRUE	FALSE	character	default		Semana inicial cÃ¡lculo	"Semana Walmart inicial para calcular forecast o ventas (debe ser a pasado si fcst_or_sales = ""S"" y a futuro si es = ""F"")."
+semana_fin	numeric	TRUE	TRUE	TRUE	FALSE	character	default		Semana final cÃ¡lculo	"Semana Walmart final para calcular forecast o ventas (debe ser a pasado si fcst_or_sales = ""S"" y a futuro si es = ""F"")."
 StartDate	date	TRUE	TRUE	TRUE	FALSE	date	default		Promo StartDate	Fecha de inicio de efectividad de la promo. Hay que especificar el formato de la fecha al subir el archivo.
 EndDate	date	TRUE	TRUE	TRUE	FALSE	date	default		Promo EndDate	Fecha de fin de efectividad de la promo. Hay que especificar el formato de la fecha al subir el archivo.
 Priority	numeric	TRUE	TRUE	TRUE	FALSE	comma	default	0	Priority	Prioridad de la estrategia en el sistema.
-white_list	character	TRUE	TRUE	FALSE	TRUE	character	default		Incluir sólo estas tiendas (opcional)	Tiendas que serán exclusivamente incluidas en la promoción.
-black_list	character	TRUE	TRUE	FALSE	TRUE	character	default		Excluir estas tiendas (opcional)	Tiendas que serán excluidas de la promoción.
+white_list	character	TRUE	TRUE	FALSE	TRUE	character	default		Incluir sÃ³lo estas tiendas (opcional)	Tiendas que serÃ¡n exclusivamente incluidas en la promociÃ³n.
+black_list	character	TRUE	TRUE	FALSE	TRUE	character	default		Excluir estas tiendas (opcional)	Tiendas que serÃ¡n excluidas de la promociÃ³n.
 timestamp	datetime		FALSE			datetime	default		Timestamp	Timestamp
 cid	numeric		FALSE			character	default		CID	CID = repl_group_nbr en Teradata
-primary_desc	character		FALSE			character	default		Descripción	Descripción del artículo.
-n_stores	numeric		FALSE			comma	default	0	Número de tiendas	Número de tiendas.
+primary_desc	character		FALSE			character	default		DescripciÃ³n	DescripciÃ³n del artÃ­culo.
+n_stores	numeric		FALSE			comma	default	0	NÃºmero de tiendas	NÃºmero de tiendas.
 avg_dly_sales	numeric		FALSE			comma	default	2	Ventas diarias promedio	Ventas diarias promedio dentro de la ventana de semanas especificada.
 avg_dly_forecast	numeric		FALSE			comma	default	2	Forecast diario promedio	Forecast diario promedio dentro de la ventana de semanas especificada.
-total_cost	numeric		FALSE			comma	header-theme1	0	Costo estrategia	Costo total de la estrategia sin tomar en cuenta otros safeties (i.e. compra máxima).
-total_impact_cost	numeric		FALSE			comma	header-theme1	0	Impacto en costo	Impacto en la compra en pesos a costo tomando en cuenta los demás safeties.
-total_stock_cost	numeric		FALSE			comma	header-theme1	0	Costo final	Costo de la mercancía que habría en las tiendas considerando el OH y el impacto de la promoción.
+total_cost	numeric		FALSE			comma	header-theme1	0	Costo estrategia	Costo total de la estrategia sin tomar en cuenta otros safeties (i.e. compra mÃ¡xima).
+total_impact_cost	numeric		FALSE			comma	header-theme1	0	Impacto en costo	Impacto en la compra en pesos a costo tomando en cuenta los demÃ¡s safeties.
+total_stock_cost	numeric		FALSE			comma	header-theme1	0	Costo final	Costo de la mercancÃ­a que habrÃ­a en las tiendas considerando el OH y el impacto de la promociÃ³n.
 total_qty	numeric		FALSE			comma	header-theme2	1	Piezas estrategia	Piezas totales de la estrategia sin tomar en cuenta otros safeties.
-total_impact_qty	numeric		FALSE			comma	header-theme2	1	Impacto en piezas	Impacto en la compra en piezas tomando en cuenta los demás safeties.
+total_impact_qty	numeric		FALSE			comma	header-theme2	1	Impacto en piezas	Impacto en la compra en piezas tomando en cuenta los demÃ¡s safeties.
 total_stock_qty	numeric		FALSE			comma	header-theme2	1	Inventario final	Inventario final sumando el impacto en piezas al OH actual de las tiendas.
-total_ddv	numeric		FALSE			comma	header-theme3	1	DDV estrategia	Días de venta totales de la estrategia sin tomar en cuenta otros safeties.
-total_impact_ddv	numeric		FALSE			comma	header-theme3	1	Impacto en DDV	Impacto en días de venta tomando en cuenta los demás safeties.
+total_ddv	numeric		FALSE			comma	header-theme3	1	DDV estrategia	DÃ­as de venta totales de la estrategia sin tomar en cuenta otros safeties.
+total_impact_ddv	numeric		FALSE			comma	header-theme3	1	Impacto en DDV	Impacto en dÃ­as de venta tomando en cuenta los demÃ¡s safeties.
 total_stock_ddv	numeric		FALSE			comma	header-theme3	1	DDV inventario final	DDV que representan las piezas del impacto sumadas a las piezas OH de las tiendas.
 total_vnpk	numeric		FALSE			comma	header-theme4	1	VNPK estrategia	Vendor packs totales de la estrategia sin tomar en cuenta otros safeties.
-total_impact_vnpk	numeric		FALSE			comma	header-theme4	1	Impacto en VNPK	Impacto en la compra en vendor packs tomando en cuenta los demás safeties.
-total_stock_vnpk	numeric		FALSE			comma	header-theme4	1	VNPK finales	VNPKs (cajas) que representan las piezas que hay en las tiendas (OH) más las del impacto de la promoción.
-perc_max_feature_qty_bin	character		FALSE			character	default		Porcentaje de alcance	Porcentaje del máximo de exhibición que se recomienda enviar a la tienda.
-ddv_bin	character		FALSE			character	default		Rango de DDV	Días de venta adicionales que representa la mercancía que se recomienda enviar a la tienda.
+total_impact_vnpk	numeric		FALSE			comma	header-theme4	1	Impacto en VNPK	Impacto en la compra en vendor packs tomando en cuenta los demÃ¡s safeties.
+total_stock_vnpk	numeric		FALSE			comma	header-theme4	1	VNPK finales	VNPKs (cajas) que representan las piezas que hay en las tiendas (OH) mÃ¡s las del impacto de la promociÃ³n.
+perc_max_feature_qty_bin	character		FALSE			character	default		Porcentaje de alcance	Porcentaje del mÃ¡ximo de exhibiciÃ³n que se recomienda enviar a la tienda.
+ddv_bin	character		FALSE			character	default		Rango de DDV	DÃ­as de venta adicionales que representa la mercancÃ­a que se recomienda enviar a la tienda.
 p_stores	numeric		FALSE			percent	default	1	Porcentaje de tiendas	Porcentaje de tiendas del formato que tienen el nivel de alcance.
 avg_store_cost	numeric		FALSE			comma	default	1	Costo promedio por tienda	Costo promedio por tienda de la estrategia sin tomar en cuenta otros safeties.
-avg_store_dly_pos_or_fcst	numeric		FALSE			comma	default	1	Forecast o ventas promedio	"Forecast promedio por tienda si la bandera de forecast o ventas está en ""F"", y ventas promedio por tienda si está en ""S""."
+avg_store_dly_pos_or_fcst	numeric		FALSE			comma	default	1	Forecast o ventas promedio	"Forecast promedio por tienda si la bandera de forecast o ventas estÃ¡ en ""F"", y ventas promedio por tienda si estÃ¡ en ""S""."
 avg_store_qty	numeric		FALSE			comma	default	1	Piezas promedio por tienda	Piezas promedio por tienda de la estrategia sin tomar en cuenta otros safeties.
 store_nbr	numeric		FALSE			character	default		Tienda	Determinante de la tienda (store_nbr).
 store_name	character		FALSE			character	default		Nombre de la tienda	Nombre de la tienda (store_name).
-dc_nbr	numeric		FALSE			character	default		Número de CEDIS	Determinante del CEDIS al que está alineada la combinación.
-dc_name	character		FALSE			character	default		Nombre de CEDIS	Nombre del CEDIS al que está alineada la combinación.
-avg_dly_pos_or_fcst	numeric		FALSE			comma	default	2	Forecast o ventas promedio	"Forecast promedio si la bandera de forecast o ventas está en ""F"", y ventas promedio si está en ""S""."
-feature_perc_pos_or_fcst	numeric		FALSE			percent	default	1	Porcentaje de participación en la exhibición	Porcentaje de la exhibición asignado al artículo.
-feature_qty_req_min	numeric		FALSE			comma	default	1	Piezas mínimas del artículo	= Porcentaje de la exhibición * Mínimo de exhibición
-feature_qty_req	numeric		FALSE			comma	default	1	Sugerencia inicial (piezas)	= Porcentaje de la exhibición * Máximo de exhibición
+dc_nbr	numeric		FALSE			character	default		NÃºmero de CEDIS	Determinante del CEDIS al que estÃ¡ alineada la combinaciÃ³n.
+dc_name	character		FALSE			character	default		Nombre de CEDIS	Nombre del CEDIS al que estÃ¡ alineada la combinaciÃ³n.
+avg_dly_pos_or_fcst	numeric		FALSE			comma	default	2	Forecast o ventas promedio	"Forecast promedio si la bandera de forecast o ventas estÃ¡ en ""F"", y ventas promedio si estÃ¡ en ""S""."
+feature_perc_pos_or_fcst	numeric		FALSE			percent	default	1	Porcentaje de participaciÃ³n en la exhibiciÃ³n	Porcentaje de la exhibiciÃ³n asignado al artÃ­culo.
+feature_qty_req_min	numeric		FALSE			comma	default	1	Piezas mÃ­nimas del artÃ­culo	= Porcentaje de la exhibiciÃ³n * MÃ­nimo de exhibiciÃ³n
+feature_qty_req	numeric		FALSE			comma	default	1	Sugerencia inicial (piezas)	= Porcentaje de la exhibiciÃ³n * MÃ¡ximo de exhibiciÃ³n
 feature_ddv_req	numeric		FALSE			comma	default	1	Sugerencia inicial (DDV)	= Sugerencia inicial (piezas) / Forecast o ventas promedio
-feature_ddv_pre	numeric		FALSE			comma	default	1	DDV topados	"= Mínimo(Sugerencia inicial (DDV), Máximo de DDV)"
-feature_qty_pre	numeric		FALSE			comma	default	1	Piezas topadas	= Porcentaje de la exhibición * DDV topados
-feature_qty_pre_tot	numeric		FALSE			comma	default	1	Piezas de la exhibición topadas	Total de piezas en la exhibición después de aplicar los topes.
-feature_qty_fin	numeric		FALSE			comma	default	1	Piezas finales	"Piezas finales recomendadas después de aplicar la ""Lógica mínimo""."
-feature_ddv_fin	numeric		FALSE			comma	default	1	DDV finales	"Días de venta finales recomendadas después de aplicar la ""Lógica mínimo""."
-display_key	character		FALSE			character	default		Llave de artículos en query	Llaves para filtrar los resultados del query.
+feature_ddv_pre	numeric		FALSE			comma	default	1	DDV topados	"= MÃ­nimo(Sugerencia inicial (DDV), MÃ¡ximo de DDV)"
+feature_qty_pre	numeric		FALSE			comma	default	1	Piezas topadas	= Porcentaje de la exhibiciÃ³n * DDV topados
+feature_qty_pre_tot	numeric		FALSE			comma	default	1	Piezas de la exhibiciÃ³n topadas	Total de piezas en la exhibiciÃ³n despuÃ©s de aplicar los topes.
+feature_qty_fin	numeric		FALSE			comma	default	1	Piezas finales	"Piezas finales recomendadas despuÃ©s de aplicar la ""LÃ³gica mÃ­nimo""."
+feature_ddv_fin	numeric		FALSE			comma	default	1	DDV finales	"DÃ­as de venta finales recomendadas despuÃ©s de aplicar la ""LÃ³gica mÃ­nimo""."
+display_key	character		FALSE			character	default		Llave de artÃ­culos en query	Llaves para filtrar los resultados del query.
 split_var	character		FALSE			character	default		Llave de query	El query corre una vez por cada valor distinto de esta variable.
-acct_dept_nbr	numeric		FALSE			character	default		Departamento de query	Número de departamento descargado del query (sin ceros a la izquierda).
-vendor9_nbr	numeric		FALSE			character	default		Proveedor	Número del proveedor a 9 dígitos.
+acct_dept_nbr	numeric		FALSE			character	default		Departamento de query	NÃºmero de departamento descargado del query (sin ceros a la izquierda).
+vendor9_nbr	numeric		FALSE			character	default		Proveedor	NÃºmero del proveedor a 9 dÃ­gitos.
 vendor_name	character		FALSE			character	default		Nombre del proveedor	Nombre del proveedor.
 status_grs	character		FALSE			character	default		Status GRS	Status GRS.
-item_nbr	numeric		FALSE			character	default		Artículo (item_nbr)	Número de artículo de Teradata (item_nbr).
-size_desc	character		FALSE			character	default		Presentación del artículo	Descripción de la presentación del artículo.
+item_nbr	numeric		FALSE			character	default		ArtÃ­culo (item_nbr)	NÃºmero de artÃ­culo de Teradata (item_nbr).
+size_desc	character		FALSE			character	default		PresentaciÃ³n del artÃ­culo	DescripciÃ³n de la presentaciÃ³n del artÃ­culo.
 fineline	numeric		FALSE			character	default		Fineline	Fineline.
-cost	numeric		FALSE			comma	default	2	Costo unitario	Costo unitario de la combinación.
+cost	numeric		FALSE			comma	default	2	Costo unitario	Costo unitario de la combinaciÃ³n.
 vnpk_qty	numeric		FALSE			comma	default	1	VNPK	Vendor packs.
 whpk_qty	numeric		FALSE			comma	default	1	WHPK	Warehouse packs.
-state	character		FALSE			character	default		Estado	MX para todo México.
-open_status	numeric		FALSE			character	default		Open status	Estátus de la tienda.
-status_code	character		FALSE			character	default		Status code	Estátus del artículo.
-carry_option	character		FALSE			character	default		Carry option	Identifica si el artículo está modulado (Resurtido).
-carried_status	character		FALSE			character	default		Carried status	Identifica el artículo como resurtible.
+state	character		FALSE			character	default		Estado	MX para todo MÃ©xico.
+open_status	numeric		FALSE			character	default		Open status	EstÃ¡tus de la tienda.
+status_code	character		FALSE			character	default		Status code	EstÃ¡tus del artÃ­culo.
+carry_option	character		FALSE			character	default		Carry option	Identifica si el artÃ­culo estÃ¡ modulado (Resurtido).
+carried_status	character		FALSE			character	default		Carried status	Identifica el artÃ­culo como resurtible.
 type_code	numeric		FALSE			character	default		Type code	"Tipo de resurtido (SSTK, XDOCK, DSD)"
-itm_mbm_code	character		FALSE			character	default		Itm mbm code	Identifica si el artículo está modulado (Modulares).
+itm_mbm_code	character		FALSE			character	default		Itm mbm code	Identifica si el artÃ­culo estÃ¡ modulado (Modulares).
 cancel_when_out_flag	character		FALSE			character	default		Cancel when out flag	Bandera de cancel when out.
-ordbk_flag	character		FALSE			character	default		ORDBK flag	Bandera de resurtido automático.
+ordbk_flag	character		FALSE			character	default		ORDBK flag	Bandera de resurtido automÃ¡tico.
 sub_tipo	numeric		FALSE			character	default		Sub tipo	Sub tipo.
-category_nbr	numeric		FALSE			character	default		Categoría	Categoría (primeros dos dígitos de la fineline).
-store_cost	numeric		FALSE			comma	default	2	Costo total	Costo total de la estrategia sin tomar en cuenta otros safeties (i.e. compra máxima).
+category_nbr	numeric		FALSE			character	default		CategorÃ­a	CategorÃ­a (primeros dos dÃ­gitos de la fineline).
+store_cost	numeric		FALSE			comma	default	2	Costo total	Costo total de la estrategia sin tomar en cuenta otros safeties (i.e. compra mÃ¡xima).
 vnpk_fin	numeric		FALSE			comma	default	1	VNPK totales	Vendor packs totales de la estrategia sin tomar en cuenta otros safeties.
 oh_qty	numeric		FALSE			comma	default	0	Piezas OH	Piezas que hay en existencia actual en las tiendas (OH).
 sspress	numeric		FALSE			comma	default	1	SSPres actual	SSPres vigente al momento de la consulta.
@@ -95,7 +95,7 @@ min_ss	numeric		FALSE			comma	default	1	MinSS	MinSS vigente al momento de la con
 max_ss	numeric		FALSE			comma	default	1	MaxSS	MaxSS vigente al momento de la consulta.
 ss_ganador	numeric		FALSE			comma	default	1	Ganador actual en piezas	SS Ganador en piezas de la competencia entre todos los safeties *vigentes*.
 ganador	character		FALSE			character	default		Ganador actual	Nombre del SS Ganador *actual*.
-comp_sspress	numeric		FALSE			comma	default	1	SSPres comparativo	SSPres comparativo (ver parámetros de impacto).
+comp_sspress	numeric		FALSE			comma	default	1	SSPres comparativo	SSPres comparativo (ver parÃ¡metros de impacto).
 comp_sspress_tot	numeric		FALSE			comma	default	1	SSPres comparativo + Base Presentation	SSPres comparativo + Base Presentation
 comp_ss_winner_qty	numeric		FALSE			comma	default	1	SS Ganador comparativo en piezas	SS Ganador en piezas de la competencia entre todos los safeties *comparativos*.
 comp_ss_winner_name	character		FALSE			character	default		SS Ganador comparativo	Nombre del SS Ganador *comparativo*.
@@ -103,77 +103,77 @@ new_sspress	numeric		FALSE			comma	default	1	SSPres final recomendado	SSPres fin
 new_sspress_tot	numeric		FALSE			comma	default	1	SSPres final recomendado + Base Presentation	SSPres final recomendado + Base Presentation
 ss_winner_qty	numeric		FALSE			comma	default	1	SS Ganador final en piezas	SS Ganador en piezas de la competencia entre todos los safeties *aplicando la estrategia*.
 ss_winner_name	character		FALSE			character	default		SS Ganador final	Nombre del SS Ganador *aplicando la estrategia*.
-impact_qty	numeric		FALSE			comma	default	1	Impacto en piezas	Impacto en la compra en piezas tomando en cuenta los demás safeties.
-impact_cost	numeric		FALSE			comma	default	0	Impacto en costo	Impacto en la compra en pesos a costo tomando en cuenta los demás safeties.
-impact_ddv	numeric		FALSE			comma	default	1	Impacto en DDV	Impacto en días de venta tomando en cuenta los demás safeties.
-impact_vnpk	numeric		FALSE			comma	default	1	Impacto en VNPK	Impacto en la compra en vendor packs tomando en cuenta los demás safeties.
+impact_qty	numeric		FALSE			comma	default	1	Impacto en piezas	Impacto en la compra en piezas tomando en cuenta los demÃ¡s safeties.
+impact_cost	numeric		FALSE			comma	default	0	Impacto en costo	Impacto en la compra en pesos a costo tomando en cuenta los demÃ¡s safeties.
+impact_ddv	numeric		FALSE			comma	default	1	Impacto en DDV	Impacto en dÃ­as de venta tomando en cuenta los demÃ¡s safeties.
+impact_vnpk	numeric		FALSE			comma	default	1	Impacto en VNPK	Impacto en la compra en vendor packs tomando en cuenta los demÃ¡s safeties.
 stock_qty	numeric		FALSE			comma	default	1	Inventario final	Inventario final sumando el impacto en piezas al OH actual de las tiendas.
-stock_cost	numeric		FALSE			comma	default	0	Costo final	Costo de la mercancía que habría en las tiendas considerando el OH y el impacto de la promoción.
+stock_cost	numeric		FALSE			comma	default	0	Costo final	Costo de la mercancÃ­a que habrÃ­a en las tiendas considerando el OH y el impacto de la promociÃ³n.
 stock_ddv	numeric		FALSE			comma	default	1	DDV inventario final	DDV que representan las piezas del impacto sumadas a las piezas OH de las tiendas.
-stock_vnpk	numeric		FALSE			comma	default	1	Cajas finales	VNPKs (cajas) que representan las piezas que hay en las tiendas (OH) más las del impacto de la promoción.
+stock_vnpk	numeric		FALSE			comma	default	1	Cajas finales	VNPKs (cajas) que representan las piezas que hay en las tiendas (OH) mÃ¡s las del impacto de la promociÃ³n.
 date	date		FALSE			date	default		Fecha	Fecha.
 all	character		FALSE			character	default		Todos	Todos.
 role	character		FALSE			character	default		Permisos	Nivel de permisos (owner > admin > basic).
 vp	character		FALSE			character	default		Vicepresidencia	Vicepresidencia.
-tribu	character		FALSE			character	default		Tribu	Tribu del usuario a la última actualización de la base de datos (no se guarda el histórico).
-puesto	character		FALSE			character	default		Puesto	Puesto del usuario a la última actualización de la base de datos (no se guarda el histórico).
-user_name	character		FALSE			character	default		Usuario	Nombre de usuario y usuario de red. El nombre sólo aparece si está en WM_AD_HOC.TABLA_RESURTIDOR.
-n_actions	numeric		FALSE			comma	default	0	Acciones	Número de acciones registradas en el log.
-n_sessions	numeric		FALSE			comma	default	0	Sesiones únicas	Sesiones únicas. Se registra una sesión cada que un usuario entra o recarga la página.
+tribu	character		FALSE			character	default		Tribu	Tribu del usuario a la Ãºltima actualizaciÃ³n de la base de datos (no se guarda el histÃ³rico).
+puesto	character		FALSE			character	default		Puesto	Puesto del usuario a la Ãºltima actualizaciÃ³n de la base de datos (no se guarda el histÃ³rico).
+user_name	character		FALSE			character	default		Usuario	Nombre de usuario y usuario de red. El nombre sÃ³lo aparece si estÃ¡ en WM_AD_HOC.TABLA_RESURTIDOR.
+n_actions	numeric		FALSE			comma	default	0	Acciones	NÃºmero de acciones registradas en el log.
+n_sessions	numeric		FALSE			comma	default	0	Sesiones Ãºnicas	Sesiones Ãºnicas. Se registra una sesiÃ³n cada que un usuario entra o recarga la pÃ¡gina.
 n_users	numeric		FALSE			comma	default	0	Usuarios activos	Usuarios activos.
 p_active_users	numeric		FALSE			percent	default	1	Porcentaje de usuarios activos en la VP	Porcentaje de usuarios de la VP que estuvieron activos.
-message	character		FALSE			character	default		Evento	Evento registrado en el log (ej. cargar un archivo de parámetros).
-session	character		FALSE			character	default		ID de la sesión	UUID de la sesión. Se registra una sesión cada que un usuario entra o recarga la página.
-platform	character		FALSE			character	default		Plataforma	"Plataforma por medio de la cuál se accedió a la herramienta (ej. SSO, Compass)"
-event_group	numeric		FALSE			comma	default	0	Grupo de evento	Cada pareja START..END de un evento dado dentro de una misma sesión genera un grupo de evento.
-duration_secs	numeric		FALSE			comma	default	1	Duración (segundos)	Duración del evento en segundos.
+message	character		FALSE			character	default		Evento	Evento registrado en el log (ej. cargar un archivo de parÃ¡metros).
+session	character		FALSE			character	default		ID de la sesiÃ³n	UUID de la sesiÃ³n. Se registra una sesiÃ³n cada que un usuario entra o recarga la pÃ¡gina.
+platform	character		FALSE			character	default		Plataforma	"Plataforma por medio de la cuÃ¡l se accediÃ³ a la herramienta (ej. SSO, Compass)"
+event_group	numeric		FALSE			comma	default	0	Grupo de evento	Cada pareja START..END de un evento dado dentro de una misma sesiÃ³n genera un grupo de evento.
+duration_secs	numeric		FALSE			comma	default	1	DuraciÃ³n (segundos)	DuraciÃ³n del evento en segundos.
 level	character		FALSE			character	default		Nivel del log	Nivel de urgencia del log (ERROR > WARN > INFO).
-clearance	numeric		FALSE			character	default		Permisos (número)	"Nivel de permisos (owner = 0, admin = 1, basic = 2)."
-top_role	character		FALSE			character	default		Permisos máximos	Nivel máximo de permisos.
-details	character		FALSE			character	default		Detalles	Más detalles del evento.
+clearance	numeric		FALSE			character	default		Permisos (nÃºmero)	"Nivel de permisos (owner = 0, admin = 1, basic = 2)."
+top_role	character		FALSE			character	default		Permisos mÃ¡ximos	Nivel mÃ¡ximo de permisos.
+details	character		FALSE			character	default		Detalles	MÃ¡s detalles del evento.
 name	character		FALSE			character	default		Nombre	Nombre del usuario obtenido de WM_AD_HOC.TABLA_RESURTIDOR.
-var_name	character		FALSE			character	default		Columna (nombre interno)	Nombre interno de la columna (sólo para developers).
+var_name	character		FALSE			character	default		Columna (nombre interno)	Nombre interno de la columna (sÃ³lo para developers).
 var_type	character		FALSE			character	default		Tipo	Tipo interno de la columna
-var_is_constant_by_feature	logical		FALSE			character	default		¿Puede cambiar dentro de una misma promo?	"Algunas columnas deben tener el mismo valor dentro de una promoción (ej. el máximo de exhibición), pero otras no (ej. el número de artículo)."
-var_is_input	logical		FALSE			character	default		¿Es un input?	¿Esta columna es un input?
+var_is_constant_by_feature	logical		FALSE			character	default		Â¿Puede cambiar dentro de una misma promo?	"Algunas columnas deben tener el mismo valor dentro de una promociÃ³n (ej. el mÃ¡ximo de exhibiciÃ³n), pero otras no (ej. el nÃºmero de artÃ­culo)."
+var_is_input	logical		FALSE			character	default		Â¿Es un input?	Â¿Esta columna es un input?
 var_format	character		FALSE			character	default		Formato en DT	Formato utilizado para generar la columna en datatable().
-var_digits	numeric		FALSE			comma	default	0	Precisión	Precisión numérica de la columna en todas las tablas que ve el usuario.
+var_digits	numeric		FALSE			comma	default	0	PrecisiÃ³n	PrecisiÃ³n numÃ©rica de la columna en todas las tablas que ve el usuario.
 var_pretty_name	character		FALSE			character	default		Columna	Nombre de la columna.
-var_description	character		FALSE			character	default		Descripción	Descripción de la columna.
+var_description	character		FALSE			character	default		DescripciÃ³n	DescripciÃ³n de la columna.
 var_notes	character		FALSE			character	default		Notas	Notas adicionales.
-item_length_qty	numeric		FALSE			comma	default	1	Largo del artículo (cm)	Longitud física de la pieza (cm).
-item_height_qty	numeric		FALSE			comma	default	1	Alto del artículo (cm)	Altura física de la pieza (cm).
-item_width_qty	numeric		FALSE			comma	default	1	Ancho del artículo (cm)	Anchura física de la pieza (cm).
-whpk_length_qty	numeric		FALSE			comma	default	1	Largo del WHPK (cm)	Longitud física del warehouse pack (WHPK) (cm).
-whpk_height_qty	numeric		FALSE			comma	default	1	Alto del WHPK (cm)	Altura física del warehouse pack (WHPK) (cm).
-whpk_width_qty	numeric		FALSE			comma	default	1	Ancho del WHPK (cm)	Anchura física del warehouse pack (WHPK) (cm).
-pallet_ti_qty	numeric		FALSE			comma	default	0	Pallet Ti	Número de VNPKs que caben en una cama del artículo.
-pallet_hi_qty	numeric		FALSE			comma	default	0	Pallet Hi	Número de camas que caben en una tarima del artículo.
-alto_cm	numeric		FALSE			comma	default	0	Alto de mueble (cm)	"Altura física del mueble usado para los cálculos (ya sea el deseado o el predeterminado, el valor es 0 (cero) si no exite) (cm)."
-ancho_cm	numeric		FALSE			comma	default	0	Ancho de mueble (cm)	"Anchura física del mueble usado para los cálculos (ya sea el deseado o el predeterminado, el valor es 0 (cero) si no exite) (cm)."
-profundo_cm	numeric		FALSE			comma	default	0	Profundo de mueble (cm)	"Profundidad física del mueble usado para los cálculos (ya sea el deseado o el predeterminado, el valor es 0 (cero) si no exite) (cm)."
-rrp_ind	character		FALSE			character	default		RRP Index	"Bandera que indica si el artículo cuenta con empaque de tipo ""Retail Ready Package (RRP)""."
-gs1_sync_status	character		FALSE			character	default		Bandera de sincronización	Estatus de sincronización del artículo en el catálogo electrónico (OIF).
-found_shelves	character		FALSE			character	default		Mueble deseado encontrado	Bandera activada para las combinaciones de las que se buscó y encontró el mueble deseado.
-found_default_shelves	character		FALSE			character	default		Mueble predeterminado encontrado	Bandera activada para las combinaciones de las que se buscó y encontró el mueble predeterminado.
-classification	character		FALSE			character	default		Clasificación	Tipo de procesamiento que se le dio a la combinación de acuerdo a la información que presenta.
-used_shelf	character		FALSE			character	default		Mueble utilizado	"Mueble que se usó en cada combinación para los cálculos de piezas máximas, 0 si no existe o si no aplica."
-shelves_number	numeric		FALSE			comma	default	0	Número de repisas	Cantidad de repisas que se estima que puede tener la cabecera.
+item_length_qty	numeric		FALSE			comma	default	1	Largo del artÃ­culo (cm)	Longitud fÃ­sica de la pieza (cm).
+item_height_qty	numeric		FALSE			comma	default	1	Alto del artÃ­culo (cm)	Altura fÃ­sica de la pieza (cm).
+item_width_qty	numeric		FALSE			comma	default	1	Ancho del artÃ­culo (cm)	Anchura fÃ­sica de la pieza (cm).
+whpk_length_qty	numeric		FALSE			comma	default	1	Largo del WHPK (cm)	Longitud fÃ­sica del warehouse pack (WHPK) (cm).
+whpk_height_qty	numeric		FALSE			comma	default	1	Alto del WHPK (cm)	Altura fÃ­sica del warehouse pack (WHPK) (cm).
+whpk_width_qty	numeric		FALSE			comma	default	1	Ancho del WHPK (cm)	Anchura fÃ­sica del warehouse pack (WHPK) (cm).
+pallet_ti_qty	numeric		FALSE			comma	default	0	Pallet Ti	NÃºmero de VNPKs que caben en una cama del artÃ­culo.
+pallet_hi_qty	numeric		FALSE			comma	default	0	Pallet Hi	NÃºmero de camas que caben en una tarima del artÃ­culo.
+alto_cm	numeric		FALSE			comma	default	0	Alto de mueble (cm)	"Altura fÃ­sica del mueble usado para los cÃ¡lculos (ya sea el deseado o el predeterminado, el valor es 0 (cero) si no exite) (cm)."
+ancho_cm	numeric		FALSE			comma	default	0	Ancho de mueble (cm)	"Anchura fÃ­sica del mueble usado para los cÃ¡lculos (ya sea el deseado o el predeterminado, el valor es 0 (cero) si no exite) (cm)."
+profundo_cm	numeric		FALSE			comma	default	0	Profundo de mueble (cm)	"Profundidad fÃ­sica del mueble usado para los cÃ¡lculos (ya sea el deseado o el predeterminado, el valor es 0 (cero) si no exite) (cm)."
+rrp_ind	character		FALSE			character	default		RRP Index	"Bandera que indica si el artÃ­culo cuenta con empaque de tipo ""Retail Ready Package (RRP)""."
+gs1_sync_status	character		FALSE			character	default		Bandera de sincronizaciÃ³n	Estatus de sincronizaciÃ³n del artÃ­culo en el catÃ¡logo electrÃ³nico (OIF).
+found_shelves	character		FALSE			character	default		Mueble deseado encontrado	Bandera activada para las combinaciones de las que se buscÃ³ y encontrÃ³ el mueble deseado.
+found_default_shelves	character		FALSE			character	default		Mueble predeterminado encontrado	Bandera activada para las combinaciones de las que se buscÃ³ y encontrÃ³ el mueble predeterminado.
+classification	character		FALSE			character	default		ClasificaciÃ³n	Tipo de procesamiento que se le dio a la combinaciÃ³n de acuerdo a la informaciÃ³n que presenta.
+used_shelf	character		FALSE			character	default		Mueble utilizado	"Mueble que se usÃ³ en cada combinaciÃ³n para los cÃ¡lculos de piezas mÃ¡ximas, 0 si no existe o si no aplica."
+shelves_number	numeric		FALSE			comma	default	0	NÃºmero de repisas	Cantidad de repisas que se estima que puede tener la cabecera.
 available_height	numeric		FALSE			comma	default	2	Altura efectiva de la cabecera (cm)	Altura de la cabecera - Espacio reservado por los anaqueles y los dedos de la clienta.
-shelf_height	numeric		FALSE			comma	default	2	Altura efectiva del anaquel (cm)	Altura efectiva de la cabecera / Número de repisas (cm).
-avail_space	numeric		FALSE			comma	default	2	Volumen efectivo en el mueble (cm3)	Volumen del mueble que puede ser ocupado por mercancía (cm3).
-tiers_per_shelf	numeric		FALSE			comma	default	0	Estibas por anaquel	Máxima cantidad de piezas o RRPs que pueden apilarse en el anaquel.
-tiers_ttl	numeric		FALSE			comma	default	0	Estibas totales	Máxima cantidad de camas que pueden caber en la cabecera.
-length_qty	numeric		FALSE			comma	default	0	Piezas/RRPs en ancho	Máxima cantidad de piezas o RRPs que pueden caber en el ancho de la cabecera.
-width_qty	numeric		FALSE			comma	default	0	Piezas/RRPs en profundo	Máxima cantidad de piezas o RRPs que pueden caber en el profundo de la cabecera.
-max_qty	numeric		FALSE			comma	default	0	Piezas/RRPs máximas	Máxima cantidad de piezas o RRPs que pueden caber en el total en la cabecera.
-pallet_length_qty	numeric		FALSE			comma	default	0	Piezas/RRPs en largo de la tarima	Máxima cantidad de piezas o RRPs que caben en el largo de la tarima.
-pallet_height_qty	numeric		FALSE			comma	default	0	Piezas/RRPs en alto de la tarima	Máxima cantidad de piezas o RRPs que caben en el alto de la tarima.
-pallet_width_qty	numeric		FALSE			comma	default	0	Piezas/RRPs en ancho de la tarima	Máxima cantidad de piezas o RRPs que caben en el ancho de la tarima.
-pallet_total_qty	numeric		FALSE			comma	default	0	Piezas/RRPs en el total de la tarima	Máxima cantidad de piezas o RRPs que caben en el total de la tarima.
+shelf_height	numeric		FALSE			comma	default	2	Altura efectiva del anaquel (cm)	Altura efectiva de la cabecera / NÃºmero de repisas (cm).
+avail_space	numeric		FALSE			comma	default	2	Volumen efectivo en el mueble (cm3)	Volumen del mueble que puede ser ocupado por mercancÃ­a (cm3).
+tiers_per_shelf	numeric		FALSE			comma	default	0	Estibas por anaquel	MÃ¡xima cantidad de piezas o RRPs que pueden apilarse en el anaquel.
+tiers_ttl	numeric		FALSE			comma	default	0	Estibas totales	MÃ¡xima cantidad de camas que pueden caber en la cabecera.
+length_qty	numeric		FALSE			comma	default	0	Piezas/RRPs en ancho	MÃ¡xima cantidad de piezas o RRPs que pueden caber en el ancho de la cabecera.
+width_qty	numeric		FALSE			comma	default	0	Piezas/RRPs en profundo	MÃ¡xima cantidad de piezas o RRPs que pueden caber en el profundo de la cabecera.
+max_qty	numeric		FALSE			comma	default	0	Piezas/RRPs mÃ¡ximas	MÃ¡xima cantidad de piezas o RRPs que pueden caber en el total en la cabecera.
+pallet_length_qty	numeric		FALSE			comma	default	0	Piezas/RRPs en largo de la tarima	MÃ¡xima cantidad de piezas o RRPs que caben en el largo de la tarima.
+pallet_height_qty	numeric		FALSE			comma	default	0	Piezas/RRPs en alto de la tarima	MÃ¡xima cantidad de piezas o RRPs que caben en el alto de la tarima.
+pallet_width_qty	numeric		FALSE			comma	default	0	Piezas/RRPs en ancho de la tarima	MÃ¡xima cantidad de piezas o RRPs que caben en el ancho de la tarima.
+pallet_total_qty	numeric		FALSE			comma	default	0	Piezas/RRPs en el total de la tarima	MÃ¡xima cantidad de piezas o RRPs que caben en el total de la tarima.
 rrp_full_vol	numeric		FALSE			comma	default	0	Volumen RRP (cm3)	Volumen ocupado por los RRPs que caben en la cabecera (cm3).
 left_avail_space	numeric		FALSE			comma	default	0	Volumen restante (cm3)	Volumen que sobra disponible en la cabecera luego de restar el Volumen RRP (cm3).
-bkp_extra_pcs	numeric		FALSE			comma	default	0	Piezas adicionales	Piezas que caben en el Volumen restante de acuerdo a su volumetría.
-max_item_capacity	character		FALSE			character	default		Capacidad máxima por artículo	Máximas piezas totales que caben en el mueble si se llenara con un sólo artículo.
-reason	character		FALSE			character	default		Razón	Razón por la que la combinación tuvo problemas en su descarga.
-solution	character		FALSE			character	default		Solución	Posible solución para la resolver el problema que tuvo cada combinación.
+bkp_extra_pcs	numeric		FALSE			comma	default	0	Piezas adicionales	Piezas que caben en el Volumen restante de acuerdo a su volumetrÃ­a.
+max_item_capacity	character		FALSE			character	default		Capacidad mÃ¡xima por artÃ­culo	MÃ¡ximas piezas totales que caben en el mueble si se llenara con un sÃ³lo artÃ­culo.
+reason	character		FALSE			character	default		RazÃ³n	RazÃ³n por la que la combinaciÃ³n tuvo problemas en su descarga.
+solution	character		FALSE			character	default		SoluciÃ³n	Posible soluciÃ³n para la resolver el problema que tuvo cada combinaciÃ³n.

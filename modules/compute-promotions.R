@@ -1,4 +1,14 @@
+#######################################
+#Scrip mas importante de la aplicación#
+#######################################
 
+#Encargado de crear funciones de extraccion, cruces, validacion, calculos de los espacios y logica de muebles.
+
+#Se divide en 3 partes:
+
+# 1. Definicion de Funciones de apoyo.
+# 2. UI (Fronted)
+# 3. Server (Motor)
 
 # Funciones ---------------------------------------------------------------
 
@@ -19,6 +29,7 @@ generate_cols_spec <- function(column_info, columns) {
 
 ## Leer entrada
 parse_input <- function(input_file, gl, calendar_day, date_format = '%Y-%m-%d') {
+  
   if (tools::file_ext(input_file) != 'xlsx') {
     return('¡Cuidado! El template de carga debe estar en formato de Excel (.xlsx). Te sugerimos que descarges el formato ejemplo de nuevo.')
   }
@@ -26,33 +37,44 @@ parse_input <- function(input_file, gl, calendar_day, date_format = '%Y-%m-%d') 
     column_info <- gl$cols[gl$cols$is_input, ]
     required_cols <- column_info[column_info$is_required_input, ]
     nms <- names(readxl::read_excel(input_file, sheet = 1, n_max = 0))
+    nms <- append(nms,"Tipo de Mueble", after = 7)
     if (!all(required_cols$pretty_name %in% nms)) {
       return(sprintf('Las siguientes columnas faltan en el archivo que ingresaste: %s, puedes agregarlas manualmente o descargar el template de ejemplo.', paste(setdiff(required_cols$pretty_name, nms), collapse = ', ')))
     }
     nms <- remap_names(columns = nms, column_info, from_col = 'pretty_name', to_col = 'name')
     col_types <- generate_cols_spec(column_info, nms)
-    items <- read_excel(
-      path = input_file,
-      sheet = 1,
-      col_names = TRUE,
-      col_types = col_types$excel_type
-      ) %>% 
+    #Diccionario de muebles del negocios y muebles estandar
+    stores_shelves_dict <- read_csv(gl$shelves_database) %>%
+      group_by(negocio, default_shelf, shelf) %>%
+      count() %>%
+      ungroup() %>%
+      mutate(llave = paste0(negocio,"-",default_shelf)) %>%
+      select(llave, shelf) %>%
+      rename(shelf_estandar = shelf )
+    #Lectura del archivo de entrada
+    items <- read_excel(path = input_file,
+                        sheet = 1,
+                        col_names = TRUE,
+                        col_types = col_types$excel_type[-8])
+    
+    #formato del input y cambio de nombre para el mueble de la guía de mercadeo
+    items["Tipo de Mueble"] <- ""
+    items <- items %>%
+      select(column_info$pretty_name) %>%
       magrittr::set_names(nms) %>%  
       init_col(c('white_list', 'black_list')) %>% 
       .[column_info$name] %>% 
-      mutate_at(
-        col_types$name[col_types$type %in% c('date')],
-        as.Date
-      ) %>% 
-      mutate(
-        fcst_or_sales = toupper(fcst_or_sales),
-        display_key = paste(dept_nbr, old_nbr, negocio, sep = '.'),
-        split_var = paste(semana_ini, semana_fin, fcst_or_sales, white_list, black_list, sep = '-')
-      ) %>% 
-      mutate_at(
-        vars(shelf, default_shelf),
-        ~toupper(str_replace(., '_', ' '))
-      )
+      mutate_at( col_types$name[col_types$type %in% c('date')], as.Date ) %>% 
+      mutate( fcst_or_sales = toupper(fcst_or_sales),
+              display_key = paste(dept_nbr, old_nbr, negocio, sep = '.'),
+              split_var = paste(semana_ini, semana_fin, fcst_or_sales, white_list, black_list, sep = '-') ) %>% 
+      mutate_at(vars(shelf, default_shelf), ~toupper(str_replace(., '_', ' ')) ) %>%
+      mutate(llave = paste0(negocio, "-",default_shelf)) %>%
+      left_join(stores_shelves_dict, by = c('llave')) %>% #Cruce con los muebles de la guia de mercadeo
+      mutate(shelf = shelf_estandar) %>%
+      select(-shelf_estandar, -llave)
+    
+    items["shelf"] <- ifelse((items$default_shelf %in% gl$shelves) | !(is.na(as.numeric(items$default_shelf))), items$default_shelf, items$shelf)
     
     stores_lists <- tryCatch({
       read_excel(
@@ -92,92 +114,88 @@ validate_input <- function(data, stores_lists = NULL, gl, calendar_day) {
         filter(today() >= date) %>% 
         filter(date == max(date)) %>% 
         pull(wm_yr_wk)
-      
-      cond <- tribble(
-        ~message, ~passed,
-        ## Checar que no haya valores faltantes
-        'No puede haber valores faltantes (blanks). Esto se debe comúnmente a que la fecha está almacenada como texto en Excel. Asegúrate de que Excel reconozca las fechas.',
-        data %>% 
-          select(setdiff(names(.), column_info$name[column_info$allow_na])) %>% 
-          anyNA() %>% 
-          not(),
-        ## Checar que feature_name sea de longitid <= 22 caracteres (para que en total sean <= 40 para GRS)
-        'feature_name no puede tener más de 22 caracteres',
-        all(nchar(data$feature_name) <= 22),
-        ## Checar que feature_name no tenga espacios
-        'feature_name no puede tener espacios',
-        all(!str_detect(data$feature_name, ' ')),
-        ## Checar las columnas que deben ser constantes por feature
-        sprintf('Las siguientes columnas no deben variar para el mismo feature_name: %s',
-                paste(gl$feature_const_cols, collapse = ', ')),
-        data %>% 
-          group_by(feature_name) %>% 
-          summarise_at(setdiff(gl$feature_const_cols, group_vars(.)), list(~length(unique(.)))) %>% 
-          select(-feature_name) %>%
-          equals(1) %>% 
-          all(),
-        ## Checar los negociosn
-        sprintf('Los formatos de negocio deben ser uno de: %s', paste(gl$negocios, collapse = ', ')),
-        all(data$negocio %in% gl$negocios),
-        ## No se deben repetir artículos por feature
-        'No se deben repetir artículos por feature_name',
-        data %>% 
-          group_by(feature_name) %>% 
-          summarise(n_dups = sum(duplicated(old_nbr))) %>% 
-          pull(n_dups) %>% 
-          sum() %>% 
-          equals(0),
-        ## Checar que el tipo sea F ó S
-        'fcst_or_sales debe ser F ó S',
-        all(toupper(data$fcst_or_sales) %in% c('F', 'S')),
-        ## Máximo de renglones
-        sprintf('El archivo de entrada no puede tener más de %d renglones', gl$max_input_rows),
-        nrow(data) <= gl$max_input_rows,
-        ## Máximo de queries a correr
-        sprintf('El archivo de entrada no puede tener más de %d combinaciones semana_ini-semana_fin-fcst_or_sales',
-                gl$max_input_queries),
-        length(unique(data$split_var)) <= gl$max_input_queries,
-        ## Semana ini <= semana fin
-        'semana_ini debe ser menor o igual a semana_fin',
-        with(data, all(semana_ini <= semana_fin)),
-        ## Checar que las semanas de forecast estén en el futuro
-        sprintf('El rango de fechas de forecast debe estar en el futuro (semana_ini >= %d)', current_wk),
-        with(data, all(fcst_or_sales == 'S') || all(semana_ini[fcst_or_sales == 'F'] >= current_wk)),
-        ## Checar que las semanas de ventas estén en el pasado
-        sprintf('El rango de fechas de ventas debe estar en el pasado (semana_fin < %d)', current_wk),
-        with(data, all(fcst_or_sales == 'F') || all(semana_fin[fcst_or_sales == 'S'] < current_wk)),
-        ## Checar que StartDate <= EndDate
-        sprintf('Se debe cumplir que %s < StartDate <= EndDate', Sys.Date()),
-        with(data, all(Sys.Date() <= StartDate & StartDate <= EndDate)),
-        ## Checar que Priority sea un entero entre 1 y 100
-        sprintf('Priority debe ser un entero entre 1 y 100'),
-        with(data, all(Priority == as.integer(Priority) & between(Priority, 1, 100))),
-        ## Checar que min_feature_perc esté entre 0 y 1
-        'min_feature_perc debe ser un número entre 0 y 1 que represente un porcentaje de la capacidad máxima del mueble.',
-        with(data, all(0 <= min_feature_perc & min_feature_perc <= 1)),
-        ## Todas las listas usadas deben existir
-        'Alguna de las columnas con las tiendas especiales a incluir o excluir no existe.',
-        (is.null(stores_lists) && all(is.na(data$white_list)) && all(is.na(data$black_list))) || (all(discard(unique(data$white_list), is.na) %in% names(stores_lists)) && all(discard(unique(data$black_list), is.na) %in% names(stores_lists))),
-        ## Verificar que todos los datos en las columnas de tiendas sean números
-        'Las columnas de tiendas especiales deben contener sólo números.',
-        stores_lists %>% 
-          map_lgl(~typeof(.x) == 'double') %>% 
-          all(),
-        ## Checar los tipos de muebles deseados
-        sprintf('El mueble debe ser uno de: %s', paste(gl$shelves, collapse = ', ')),
-        all(data$shelf %in% gl$shelves | is.na(data$shelf)),
-        ## Checar los datos de muebles default
-        sprintf('El mueble predeterminado no puede estar vacío al mismo tiempo que el mueble deseado, especifica al menos uno. El mueble predeterminado debe ser uno de: %s, o bien, la cantidad de piezas que se desea simular como máximo de capacidad en el mueble.', paste(gl$shelves, collapse = ', ')),
-        data %>% 
-          mutate(
-            validation = 
-              !is.na(shelf) | 
-              !is.na(as.numeric(default_shelf)) | 
-              default_shelf %in% gl$shelves
-          ) %>% 
-          pull(validation) %>% 
-          all
+      #Listado de validaciones a la informacion de entrada.
+      cond <- tribble( ~message, ~passed,
+      ## Checar que no haya valores faltantes
+      'No puede haber valores faltantes (blanks). Esto se debe comúnmente a que la fecha está almacenada como texto en Excel. Asegúrate de que Excel reconozca las fechas.',
+      data %>%  
+        select(setdiff(names(.), column_info$name[column_info$allow_na])) %>% 
+        anyNA() %>% 
+        not(),
+      ## Checar que feature_name sea de longitid <= 22 caracteres (para que en total sean <= 40 para GRS)
+      'feature_name no puede tener más de 22 caracteres',
+      all(nchar(data$feature_name) <= 22),
+      ## Checar que feature_name no tenga espacios
+      'feature_name no puede tener espacios',
+      all(!str_detect(data$feature_name, ' ')),
+      ## Checar las columnas que deben ser constantes por feature
+      sprintf('Las siguientes columnas no deben variar para el mismo feature_name: %s', paste(gl$feature_const_cols, collapse = ', ')),
+      data %>% 
+        group_by(feature_name) %>% 
+        summarise_at(setdiff(gl$feature_const_cols, group_vars(.)), list(~length(unique(.)))) %>% 
+        select(-feature_name) %>%
+        equals(1) %>% 
+        all(),
+      ## Checar los negocios
+      sprintf('Los formatos de negocio deben ser uno de: %s', paste(gl$negocios, collapse = ', ')),
+      all(data$negocio %in% gl$negocios),
+      ## No se deben repetir artículos por feature
+      'No se deben repetir artículos por feature_name',
+      data %>% 
+        group_by(feature_name) %>% 
+        summarise(n_dups = sum(duplicated(old_nbr))) %>% 
+        pull(n_dups) %>% 
+        sum() %>% 
+        equals(0),
+      ## Checar que el tipo sea F ó S
+      'fcst_or_sales debe ser F ó S',
+      all(toupper(data$fcst_or_sales) %in% c('F', 'S')),
+      ## Máximo de renglones
+      sprintf('El archivo de entrada no puede tener más de %d renglones', gl$max_input_rows),
+      nrow(data) <= gl$max_input_rows,
+      ## Máximo de queries a correr
+      sprintf('El archivo de entrada no puede tener más de %d combinaciones semana_ini-semana_fin-fcst_or_sales',
+      gl$max_input_queries),
+      length(unique(data$split_var)) <= gl$max_input_queries,
+      ## Semana ini <= semana fin
+      'semana_ini debe ser menor o igual a semana_fin',
+      with(data, all(semana_ini <= semana_fin)),
+      ## Checar que las semanas de forecast estén en el futuro
+      sprintf('El rango de fechas de forecast debe estar en el futuro (semana_ini >= %d)', current_wk),
+      with(data, all(fcst_or_sales == 'S') || all(semana_ini[fcst_or_sales == 'F'] >= current_wk)),
+      ## Checar que las semanas de ventas estén en el pasado
+      sprintf('El rango de fechas de ventas debe estar en el pasado (semana_fin < %d)', current_wk),
+      with(data, all(fcst_or_sales == 'F') || all(semana_fin[fcst_or_sales == 'S'] < current_wk)),
+      ## Checar que StartDate <= EndDate
+      sprintf('Se debe cumplir que %s < StartDate <= EndDate', Sys.Date()),
+      with(data, all(Sys.Date() <= StartDate & StartDate <= EndDate)),
+      ## Checar que Priority sea un entero entre 1 y 100
+      sprintf('Priority debe ser un entero entre 1 y 100'),
+      with(data, all(Priority == as.integer(Priority) & between(Priority, 1, 100))),
+      ## Checar que min_feature_perc esté entre 0 y 1
+      'min_feature_perc debe ser un número entre 0 y 1 que represente un porcentaje de la capacidad máxima del mueble.',
+      with(data, all(0 <= min_feature_perc & min_feature_perc <= 1)),
+      ## Todas las listas usadas deben existir
+      'Alguna de las columnas con las tiendas especiales a incluir o excluir no existe.',
+      (is.null(stores_lists) && all(is.na(data$white_list)) && all(is.na(data$black_list))) || (all(discard(unique(data$white_list), is.na) %in% names(stores_lists)) && all(discard(unique(data$black_list), is.na) %in% names(stores_lists))),
+      ## Verificar que todos los datos en las columnas de tiendas sean números
+      'Las columnas de tiendas especiales deben contener sólo números.',
+      stores_lists %>% 
+        map_lgl(~typeof(.x) == 'double') %>% all(),
+      ## Checar los tipos de muebles deseados
+      sprintf('No se le asigno un tipo de mueble estandar: %s %s %s %s',
+      paste(gl$shelves, collapse = ', ') ,
+      '. Mueble/s', 
+      str_replace_all(str_replace_all( paste(c(unique(data[!(data$shelf %in% gl$shelves), "default_shelf"])), "del negocio/s", as.vector(unique(data[!(data$shelf %in% gl$shelves),"negocio"]))), '\"' ,''), "c", ""),
+      ' no se encuentra en diccionario'),
+      all(data$shelf %in% gl$shelves | !is.na(data$shelf) | data$default_shelf %in% unique(gl$shelves)),
+      ## Checar los datos de muebles default
+      sprintf('El mueble no puede estar vacío, debes colocar uno de la hoja catalogo descargando el archivo de ejemplo'),
+      data %>% 
+      mutate( validation = !is.na((default_shelf)) ) %>% 
+      pull(validation) %>% all
       )
+
       failed_idx <- which(!cond$passed)
       if (length(failed_idx) == 0) {
         return(TRUE)
@@ -1025,8 +1043,7 @@ generate_sample_input <- function(calendar_day, column_info) {
     old_nbr = c(9660826, 100327654, 9609839, 9614873, 9554113, 100206810, 100236976, 100336602, 9289651, 9272072, 100101190, 100183858, 100369418, 4088042, 100276420, 100276070, 4078775, 100085127, 100273950, 6909653, 6909632, 6901253, 100290506, 100191564, 100379555, 100122572, 1319359),
     primary_desc_temp = c('GRAN CENTENARIO BCO', 'DON JULIO 70 700ML', 'CAZADORES REP 1.75LT', 'CORRALEJO 1LT+TARRO', 'HEINZ CATSUP ORGANIC', 'HEINZ SALSA CATSUP', 'ZAASCHILA SALS ARBOL', 'KNORR ROJA MARTAJADA', 'NESCAFE CLASICO 60G', 'AU CAFE SOLUBLE 100G', 'AU CAFE SOL LATA400G', 'AU CAFE LIGERO 400G', 'BENZAL WASH DURAZNO', 'LACTACYD FRESH 220M', 'SHAMPOO ESOS DIAS', 'TOALLAS HUMEDAS', 'BENZAL SPRAY BABY P', 'SPRAY ISLAND SPLASH', 'BEBYTO T4 72S', 'BEBYTO T5 40', 'BEBYTO T4 40', 'BEBYTO T3 14', 'TH PARENTS CHOICE 80', 'BOLD AMORES 5KG', 'ACE REGULAR 4 KG', 'GV DETERG POLVO 3KG', 'FOCA DET 1K'),
     min_feature_perc = rep(c(0.3, 0.2, 0.35, 0.4, 0.1, 0.15), feature_times_vector),
-    shelf = rep(c('CABECERA_ALTA', 'CABECERA BAJA', 'BASE', NA, 'MEDIA_BASE', 'CHIMENEA'), feature_times_vector),
-    default_shelf = rep(c('CABECERA_BAJA', 250, NA, 500, 80, 'MEDIA BASE'), feature_times_vector),
+    default_shelf = rep(c('CMT2', 'CAT1', 'BASE', 'CA8', 'CABECERA CHECKOUT K', 50), feature_times_vector),
     max_ddv = rep(c(20, 15, 18, 30, 10, 15), feature_times_vector),
     fcst_or_sales = rep(c('S', 'F'), query_times_vector),
     semana_ini = rep(c(sales_wks[1], fcst_wks[1]), query_times_vector),
@@ -1037,7 +1054,7 @@ generate_sample_input <- function(calendar_day, column_info) {
     white_list = rep(c('tiendas_grandes', NA), c(4, 23)),
     black_list = rep(c(NA, 'tiendas_chicas_y_muy_chicas', NA), c(4, 4, 19))
   )
-  names(info) <- remap_names(names(info), column_info, to_col = 'pretty_name')
+  names(info) <- remap_names(names(info), column_info[-8], to_col = 'pretty_name') #El menos 8 significa que no toma el mueble deseado de column_info
   stores_lists <- tryCatch({
     read_csv('data/stores-lists.csv')
   }, error = function(e){
@@ -1049,7 +1066,16 @@ generate_sample_input <- function(calendar_day, column_info) {
       tiendas_grandes = c(3733, 3983, 1424, 2052, 4036)
     )
   })
-  catalog <- list(negocios_validos = gl$negocios, muebles_validos = gl$shelves)
+  
+  catalog <- read_csv(gl$shelves_database) %>% 
+    select(negocio, shelf, default_shelf, alto_cm, ancho_cm, profundo_cm) %>% 
+    group_by(shelf, default_shelf) %>%  
+    filter(row_number() == 1) %>% 
+    ungroup() %>% 
+    mutate(found = ifelse(is.na(alto_cm) | is.na(ancho_cm) | is.na(profundo_cm), FALSE, TRUE)) %>%
+    rename("Tipo de Mueble" = "shelf", "Mueble Guia de Mercadeo" = "default_shelf")
+  
+  catalog <- mean_shelves(catalog, c('negocio', 'Tipo de Mueble','Mueble Guia de Mercadeo'), '_business_average_shelves')
   
   dictionary <- gl$cols %>% 
     filter(is_input) %>% 

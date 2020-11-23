@@ -122,7 +122,7 @@ gl <- list(
   cols = tryCatch({
     read_tsv(
       file = 'data/column-info.txt',
-      locale = locale(encoding = 'ISO-8859-1'),
+      locale = locale(encoding = 'UTF-8'),
       col_types = 'ccllllccdcc'
     )
   }, error = function(e){
