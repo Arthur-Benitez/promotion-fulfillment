@@ -538,7 +538,7 @@ perform_spatial_computations <- function(data) {
       tiers_per_shelf = floor(shelf_height / height),
       tiers_ttl = round(tiers_per_shelf * shelves_number),
       length_qty = floor(ancho_cm / length),
-      width_qty = floor(profundo_cm / width),
+      width_qty = round(profundo_cm / width),
       max_qty = round(tiers_ttl * width_qty * length_qty),
       avail_space = round(ancho_cm * profundo_cm * available_height, digits = 2),
       # Cálculos de máxima capacidad en base
@@ -578,82 +578,76 @@ mean_shelves <- function(data, groups, suffix) {
 ## Obtiene la base con los muebles por cada feature-store que aplica en la base original
 get_shelves <- function(data, stores_shelves_df, suffix) {
   data %>%
-    select(feature_name, store_nbr, dept_nbr, shelf) %>%
+    select(feature_name, store_nbr, default_shelf) %>%
     distinct() %>%
     # Para un mismo feature-store puede haber más de un renglón (si un dept tiene el mueble y otro no) por lo que este debe ser inner join
-    inner_join(stores_shelves_df, by = c('store_nbr', 'shelf', 'dept_nbr')) %>% 
-    group_by(store_nbr, shelf, feature_name) %>% 
-    arrange(desc(shelves_qty)) %>% 
+    left_join(stores_shelves_df, by = c('store_nbr', 'default_shelf')) %>% 
+    group_by(store_nbr, default_shelf, feature_name) %>% 
     filter(row_number() == 1) %>% 
     ungroup() %>% 
-    select(-c(dept_nbr, negocio, shelves_qty)) %>% 
+    select(-c(negocio, shelf)) %>% 
     rename_at(vars(contains('cm'), found), paste0, suffix)
 }
 
 ## Función para elegir mueble y calcular las piezas
 calculate_max_capacity <- function(data){
+  
   initial_columns <- names(data)
+  
   # Bases de datos externas
   rrp_sync_data <- readRDS(gl$rrp_sync_database)
+  
+  #Resumen de las medidas de los muebles preterminados de la aplicacion
   stores_shelves_df <- read_csv(gl$shelves_database) %>% 
-    select(negocio, store_nbr, shelf, dept_nbr, alto_cm, ancho_cm, profundo_cm, shelves_qty) %>% 
-    group_by(store_nbr, shelf, dept_nbr) %>% 
-    arrange(desc(shelves_qty)) %>% 
+    select(negocio, store_nbr, shelf, default_shelf, alto_cm, ancho_cm, profundo_cm) %>% 
+    group_by(store_nbr, shelf, default_shelf) %>% 
+    arrange(store_nbr) %>% 
     filter(row_number() == 1) %>% 
     ungroup() %>% 
-    mutate(found = ifelse(is.na(alto_cm) | is.na(ancho_cm) | is.na(profundo_cm) | is.na(shelves_qty), FALSE, TRUE))
-  # Bases de datos internas
-  business_average_shelves <- mean_shelves(stores_shelves_df, c('negocio', 'shelf'), '_business_average_shelves')
-  average_shelves <- mean_shelves(stores_shelves_df, c('shelf'), '_average_shelves')
+    mutate(found = ifelse(is.na(alto_cm) | is.na(ancho_cm) | is.na(profundo_cm), FALSE, TRUE)) 
+  
+  #Cruce de las tiendas y sus muebles.
   stores_shelves <- get_shelves(data, stores_shelves_df, '_shelves')
-  stores_default_shelves <- get_shelves(data, stores_shelves_df, '_default_shelves')
+  
+  #Cruce de las medidas de los muebles para cada promocion
   
   sorted_data <- data %>% 
     left_join(rrp_sync_data, by = 'old_nbr') %>% 
     mutate_at(vars('rrp_ind', 'gs1_sync_status'), list(~replace_na(., 'N'))) %>% 
     # Convertir de decímetros a centímetros
     mutate_at(vars(contains('length'), contains('width'), contains('height')), ~.x * 10) %>% 
-    left_join(stores_shelves, by = c('store_nbr', 'shelf', 'feature_name')) %>% 
-    left_join(
-      stores_default_shelves,
-      by = c('store_nbr' = 'store_nbr', 'default_shelf' = 'shelf', 'feature_name' = 'feature_name')
-    ) %>% 
+    left_join(stores_shelves, by = c('store_nbr' = 'store_nbr', 'default_shelf' = 'default_shelf', 'feature_name' = 'feature_name') ) %>% #Primero nos interesa encontrar por tienda
     mutate(
       classification = case_when(
-        is.na(shelf) & !is.na(as.numeric(default_shelf)) ~ 'PIEZAS_FORZADAS',
-        found_shelves ~ 'DESEADO_ENCONTRADO',
-        !is.na(as.numeric(default_shelf)) ~ 'PIEZAS_NO_FORZADAS.',
-        found_default_shelves ~ 'PREDETERMINADO_ENCONTRADO',
-        TRUE ~ 'NO_ENCONTRADO'
-      ),
+        !is.na(as.numeric(default_shelf)) ~ 'PIEZAS_NO_FORZADAS',
+        found_shelves ~ 'PREDETERMINADO_ENCONTRADO',
+        TRUE ~ 'NO_ENCONTRADO' ),
       used_shelf = case_when(
-        classification == 'PIEZAS_FORZADAS' ~ 'PIEZAS',
-        classification == 'DESEADO_ENCONTRADO' ~ shelf,
-        classification == 'PIEZAS_NO_FORZADAS.' ~ 'PIEZAS',
-        classification == 'PREDETERMINADO_ENCONTRADO' ~ default_shelf,
-        classification == 'NO_ENCONTRADO' ~ default_shelf
-      )
+        classification == 'PIEZAS_NO_FORZADAS' ~ 'PIEZAS',
+        classification == 'PREDETERMINADO_ENCONTRADO' ~ shelf,
+        classification == 'NO_ENCONTRADO' ~ shelf) 
     )
   
-  ready_classifications <- c('PIEZAS_FORZADAS', 'PIEZAS_NO_FORZADAS.')
+  #Si en default_shelf y shelf tenemos valores numericos indican que el usuario coloco el numero de piezas que desea.
+  #Separamos estos datos para no correr perform_spatial_computations
+  ready_classifications <- c('PIEZAS_FORZADAS', 'PIEZAS_NO_FORZADAS')
   ready_data <- sorted_data %>% 
     filter(classification %in% ready_classifications) %>% 
     mutate(max_item_capacity = as.numeric(default_shelf))
   
+  
   ## Llamar función que calcula las piezas de acuerdo a tamaños, etc.
-  sorted_data %>% 
+  sorted_data  %>%
     filter(!(classification %in% ready_classifications)) %>%
-    left_join(business_average_shelves, by = c('default_shelf' = 'shelf', 'negocio' = 'negocio')) %>% 
-    left_join(average_shelves, by = c('default_shelf' = 'shelf')) %>% 
     mutate(
-      alto_cm = coalesce(alto_cm_shelves, alto_cm_default_shelves, alto_cm_business_average_shelves, alto_cm_average_shelves),
-      ancho_cm = coalesce(ancho_cm_shelves, ancho_cm_default_shelves, ancho_cm_business_average_shelves, ancho_cm_average_shelves),
-      profundo_cm = coalesce(profundo_cm_shelves, profundo_cm_default_shelves, profundo_cm_business_average_shelves, profundo_cm_average_shelves)
-    ) %>%
+      alto_cm = coalesce(alto_cm_shelves),
+      ancho_cm = coalesce(ancho_cm_shelves),
+      profundo_cm = coalesce(profundo_cm_shelves) ) %>%
     perform_spatial_computations() %>% 
-    bind_rows(ready_data) %>% 
-    select(-ends_with('cm_shelves'), -ends_with('cm_default_shelves'), -ends_with('cm_business_average_shelves'), -ends_with('cm_average_shelves')) %>% 
+    bind_rows(ready_data) %>%
+    select(-ends_with('cm_shelves')) %>% 
     mutate_at(setdiff(names(.), initial_columns), list(~replace_na(., 0)))
+  
 }
 
 ## Lógica en R
@@ -1043,7 +1037,7 @@ generate_sample_input <- function(calendar_day, column_info) {
     old_nbr = c(9660826, 100327654, 9609839, 9614873, 9554113, 100206810, 100236976, 100336602, 9289651, 9272072, 100101190, 100183858, 100369418, 4088042, 100276420, 100276070, 4078775, 100085127, 100273950, 6909653, 6909632, 6901253, 100290506, 100191564, 100379555, 100122572, 1319359),
     primary_desc_temp = c('GRAN CENTENARIO BCO', 'DON JULIO 70 700ML', 'CAZADORES REP 1.75LT', 'CORRALEJO 1LT+TARRO', 'HEINZ CATSUP ORGANIC', 'HEINZ SALSA CATSUP', 'ZAASCHILA SALS ARBOL', 'KNORR ROJA MARTAJADA', 'NESCAFE CLASICO 60G', 'AU CAFE SOLUBLE 100G', 'AU CAFE SOL LATA400G', 'AU CAFE LIGERO 400G', 'BENZAL WASH DURAZNO', 'LACTACYD FRESH 220M', 'SHAMPOO ESOS DIAS', 'TOALLAS HUMEDAS', 'BENZAL SPRAY BABY P', 'SPRAY ISLAND SPLASH', 'BEBYTO T4 72S', 'BEBYTO T5 40', 'BEBYTO T4 40', 'BEBYTO T3 14', 'TH PARENTS CHOICE 80', 'BOLD AMORES 5KG', 'ACE REGULAR 4 KG', 'GV DETERG POLVO 3KG', 'FOCA DET 1K'),
     min_feature_perc = rep(c(0.3, 0.2, 0.35, 0.4, 0.1, 0.15), feature_times_vector),
-    default_shelf = rep(c('CMT2', 'CAT1', 'BASE', 'CA8', 'CABECERA CHECKOUT K', 50), feature_times_vector),
+    default_shelf = rep(c('CMT2', 'CAT1', 'AF1 TARIMA 4', 'CA8', 'CABECERA CHECKOUT K', 50), feature_times_vector),
     max_ddv = rep(c(20, 15, 18, 30, 10, 15), feature_times_vector),
     fcst_or_sales = rep(c('S', 'F'), query_times_vector),
     semana_ini = rep(c(sales_wks[1], fcst_wks[1]), query_times_vector),
