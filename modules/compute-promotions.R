@@ -1759,7 +1759,8 @@ computePromotionsServer <- function(input, output, session, credentials) {
     good_features <- setdiff(classified_features_rv()$good_features, unique(risky_combinations()$feature_name))
     
     if ((is.null(risky_combinations()) && is.null(failed_combinations()) && isTRUE(len$empty_features > 0)) || is.null(final_result())) {
-      text1 <- 'No se encontró información para ninguna de las promociones ingresadas, favor de revisar que sean correctos los datos.'
+      create_notification_bubble()
+      text1 <- 'No se encontró información para ninguna de las promociones ingresadas, favor de revisar que sean correctos los datos. Puedes revisar detalles en la pestaña de Alertas'
       title1 <- lang$error
       type1 <- 'error'
       message1 <- 'DOWNLOAD FAILED'
@@ -1814,11 +1815,10 @@ computePromotionsServer <- function(input, output, session, credentials) {
     req(!is.null(risky_combinations()))
     generate_basic_datatable(risky_combinations(), gl$cols)
   })
-  
+  #Tablas de alertas articulos en riesgo y no encontrados
   output$alert_info_ui <- renderUI({
     shiny::validate(
       need_input_ready() %then%
-        need_result_ready() %then%
         need_alert_existence()
     )
     ns <- session$ns
