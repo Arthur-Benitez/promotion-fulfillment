@@ -869,10 +869,11 @@ generate_quantity_histogram_data <- function(output_filtered_data, bins = 10) {
       max_ddv = sum(max_ddv * temp_avg_store_dly_pos_or_fcst) / sum(temp_avg_store_dly_pos_or_fcst)
     ) %>% 
     ungroup() %>% 
-    mutate(
-      p_stores = n_stores / sum(n_stores)
-    ) %>% 
     right_join(tibble(perc_max_feature_qty_bin = fct_relevel(factor(c(no_shelf_label, cut_labels)), no_shelf_label)), by = 'perc_max_feature_qty_bin') %>% 
+    mutate(
+      p_stores = n_stores / sum(n_stores, na.rm = TRUE),
+      fcst_or_sales = replace_na(fcst_or_sales, '-')
+    ) %>% 
     replace(., is.na(.), 0) %>% 
     select(perc_max_feature_qty_bin, n_stores, p_stores, everything())
 }
@@ -928,10 +929,11 @@ generate_dispersion_histogram_data <- function(output_filtered_data, bins_type =
       max_feature_qty = mean(max_feature_qty)
     ) %>% 
     ungroup() %>% 
-    mutate(
-      p_stores = n_stores / sum(n_stores)
-    ) %>% 
     right_join(tibble(ddv_bin = factor(cut_labels, levels = cut_labels)), by = 'ddv_bin') %>% 
+    mutate(
+      p_stores = n_stores / sum(n_stores, na.rm = TRUE),
+      fcst_or_sales = replace_na(fcst_or_sales, '-')
+    ) %>% 
     replace(., is.na(.), 0) %>% 
     select(ddv_bin, n_stores, p_stores, everything())
 }
