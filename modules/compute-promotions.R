@@ -274,7 +274,13 @@ run_query <- function(ch, input_data, stores_lists, connector = 'production-conn
     })) %>% 
     map('result') %>% 
     keep(~is.data.frame(.x) && !all(is.na(.x$store_nbr)) && nrow(.x) > 0) %>% 
-    lapply(function(x) {mutate_at(x, vars(size_desc), as.character)})
+    map(~mutate(
+      .x, 
+      across(c(
+        store_nbr, cid, fineline, cost, item_length_qty:whpk_height_qty, open_status, type_code, category_nbr:avg_dly_pos_or_fcst
+      ), as.numeric),
+      size_desc = as.character(size_desc)
+    ))
   if (length(res) > 0) {
     res <- bind_rows(res)
   } else {
@@ -286,7 +292,6 @@ run_query <- function(ch, input_data, stores_lists, connector = 'production-conn
 
 ## Query para descargar las ventas y forecast para la grafica
 get_graph_data <- function(ch, input, calendar_day) {
-  
   old_nbrs <- unique(input$old_nbr)
   negocios <- unique(input$negocio)
   query_graph <- readLines('sql/grafica.sql') %>% 
@@ -355,7 +360,8 @@ search_ss <- function(ch, input_data_ss, connector = 'production-connector') {
       search_ss_once(ch, x, connector)
     })) %>% 
     map('result') %>% 
-    keep(is.data.frame)
+    keep(is.data.frame) %>% 
+    map(~mutate(.x, across(c(sspress:ss_ganador), as.numeric)))
   if (length(res) > 0) {
     res <- bind_rows(res)
   } else {
