@@ -1793,7 +1793,7 @@ computePromotionsServer <- function(input, output, session, credentials) {
             <li>%s %s</li>
           </ul>Por favor, revisa los detalles en la pestaña de %s.
         </div>',
-        format_difftime(difftime(Sys.time(), query_result()$timestamp)), length(good_features), lang$good_features, length(risky_features), lang$risky_features, len$partial_features, lang$partial_features, lang$alert
+        format_difftime(difftime(Sys.time(), query_result()$timestamp)), length(good_features), lang$good_features, length(risky_features), lang$risky_features, len$partial_features + len$empty_features, lang$partial_features, lang$alert
       )
       title1 <- lang$warning
       type1 <- 'warning'
