@@ -257,9 +257,8 @@ run_query_once <- function(ch, input_data, white_list, black_list, connector = '
       as_tibble() %>% 
       set_names(tolower(names(.))) %>% 
       mutate_if(is.factor, as.character) %>% 
-      rename(avg_dly_pos_or_fcst = !!value)
-    input_data %>% 
-      left_join(res)
+      rename(avg_dly_pos_or_fcst = !!value) %>% 
+      right_join(input_data)
   }, error = function(e){
     NULL
   })
@@ -273,7 +272,7 @@ run_query <- function(ch, input_data, stores_lists, connector = 'production-conn
       run_query_once(ch, x, white_list, black_list, connector)
     })) %>% 
     map('result') %>% 
-    keep(~is.data.frame(.x) && !all(is.na(.x$store_nbr)) && nrow(.x) > 0) %>% 
+    keep(~is.data.frame(.x)) %>% 
     map(~mutate(
       .x, 
       across(c(
@@ -342,8 +341,8 @@ search_ss_once <- function(ch, input_data_ss, connector = 'production-connector'
       as_tibble() %>% 
       set_names(tolower(names(.))) %>% 
       mutate_if(is.factor, as.character) %>% 
-      left_join(
-        input_data_ss %>% select(feature_name, old_nbr),
+      right_join(
+        select(input_data_ss, feature_name, old_nbr),
         by = 'old_nbr'
       )
   }, error = function(e){
